@@ -47,3 +47,15 @@ test('profile editing requires identity and scopes changes to the authenticated 
   assert.match(routes, /await client\.query\('BEGIN'\)/);
   assert.match(routes, /await client\.query\('COMMIT'\)/);
 });
+
+
+test('account settings APIs are authenticated and validate sensitive account changes', async () => {
+  const routes = await source('../src/modules/account/account.routes.js');
+  assert.match(routes, /accountRoutes\.use\(requireDatabase, requireVerifiedIdentity\)/);
+  assert.match(routes, /patch\('\/profile'/);
+  assert.match(routes, /put\('\/settings'/);
+  assert.match(routes, /post\('\/password'/);
+  assert.match(routes, /verifyPassword\(rows\[0\]\.password_hash, parsed\.data\.currentPassword\)/);
+  assert.match(routes, /UPDATE auth_sessions SET revoked_at = now\(\)/);
+  assert.match(routes, /delete\('\/connections\/:application'/);
+});
