@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
 import { pool, requireDatabase } from '../../db/pool.js';
-import { requireVerifiedIdentity } from '../auth/auth.service.js';
+import { requireVerifiedIdentity, verifyAccessToken } from '../auth/auth.service.js';
 
 export const socialRoutes = Router();
 socialRoutes.use(requireDatabase);
@@ -51,14 +51,27 @@ socialRoutes.get('/profiles/:username', async (req, res, next) => {
     const { rows } = await pool.query(
       `SELECT c.id, c.username, c.display_name, c.bio, c.avatar_url, c.created_at,
               (SELECT count(*)::int FROM channel_follows f WHERE f.followed_channel_id = c.id) AS follower_count,
-              (SELECT count(*)::int FROM channel_follows f JOIN channels followed ON followed.id = f.followed_channel_id WHERE f.follower_user_id = c.owner_user_id) AS following_count
+              (SELECT count(*)::int FROM channel_follows f JOIN channels followed ON followed.id = f.followed_channel_id WHERE f.follower_user_id = c.owner_user_id) AS following_count,
+              COALESCE(us.profile_visibility, 'public') AS profile_visibility
          FROM channels c
+         LEFT JOIN user_settings us ON us.user_id = c.owner_user_id
         WHERE c.username = $1
         LIMIT 1`,
       [username]
     );
     if (!rows[0]) return res.status(404).json({ error: { code: 'PROFILE_NOT_FOUND', message: 'Profile not found.' } });
     const profile = rows[0];
+    if (profile.profile_visibility === 'private') {
+      const authorization = req.headers.authorization ?? '';
+      const match = /^Bearer\\s+(.+)$/i.exec(authorization);
+      let viewerUserId = null;
+      if (match) {
+        try { viewerUserId = (await verifyAccessToken(match[1])).userId; } catch { /* Treat invalid tokens as anonymous visitors. */ }
+      }
+      if (!viewerUserId || viewerUserId !== profile.id && viewerUserId !== (await pool.query('SELECT owner_user_id FROM channels WHERE id = $1', [profile.id])).rows[0]?.owner_user_id) {
+        return res.status(404).json({ error: { code: 'PROFILE_NOT_FOUND', message: 'Profile not found.' } });
+      }
+    }
     const [locations, storefronts, menus, articles] = await Promise.all([
       pool.query(
         `SELECT l.id, l.name, l.slug, l.address, l.google_place_id, l.latitude, l.longitude, l.phone, l.opening_hours, l.is_primary
