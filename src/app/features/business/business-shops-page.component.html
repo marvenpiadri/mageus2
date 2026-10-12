@@ -1,0 +1,53 @@
+<section class="shops-page">
+  <header class="shops-header"><a routerLink="/business/locations" class="shops-back">← Business workspace</a><div class="shops-heading"><div><span class="shops-kicker">MAGEUS BUSINESS</span><h1>Your shops.</h1><p>Create storefronts for physical, online, or hybrid businesses. Manage products and services with simple forms, then publish them on your public profile.</p></div><button class="shop-primary" type="button" (click)="newShop()">＋ Create shop</button></div></header>
+  @if (loading()) { <div class="shops-state"><span>✦</span><p>Loading your storefronts…</p></div> }
+  @else {
+    <div class="shops-layout">
+      <aside class="shops-sidebar"><div class="shops-panel-heading"><div><span class="shops-kicker">YOUR STOREFRONTS</span><h2>Shops <span>{{ shops().length }}</span></h2></div></div>
+        @if (!shops().length) { <div class="shops-empty"><span>◇</span><h3>Start with one shop</h3><p>A restaurant, clothing shop, online store, or service business — you can add more storefronts later.</p><button class="shop-primary" type="button" (click)="newShop()">Create first shop</button></div> }
+        @else { <div class="shop-list">@for (shop of shops(); track shop.id) { <button type="button" class="shop-list-card" [class.shop-list-card-active]="selectedShopId() === shop.id" (click)="selectShop(shop.id)"><span class="shop-symbol">◇</span><span class="shop-list-copy"><strong>{{ shop.name }}</strong><small>{{ shop.location_name || (shop.fulfillment_type === 'online' ? 'Online storefront' : 'No location selected') }}</small><span class="shop-counts">{{ shop.product_count || 0 }} products · {{ shop.service_count || 0 }} services</span></span><span class="shop-arrow">↗</span></button> }</div> }
+        <div class="shops-sidebar-links"><a routerLink="/business/locations">Manage locations ↗</a><a routerLink="/business/menus">Manage menus ↗</a></div>
+      </aside>
+
+      <main class="shop-workspace">
+        <section class="shop-editor"><div class="shops-panel-heading"><div><span class="shops-kicker">{{ shopEditingId() ? 'SHOP SETTINGS' : 'NEW STOREFRONT' }}</span><h2>{{ shopEditingId() ? 'Edit shop' : 'Create a shop' }}</h2></div><span class="shop-spark">✦</span></div>
+          <form class="shop-form" (submit)="$event.preventDefault(); saveShop()">
+            <label>Shop name<input name="shop-name" required maxlength="120" [value]="shopName()" (input)="setShopName($any($event.target).value)" placeholder="e.g. Piadri Clothing" /></label>
+            <label>Public URL slug<input name="shop-slug" required maxlength="120" pattern="[a-z0-9]+(-[a-z0-9]+)*" [value]="shopSlug()" (input)="shopSlug.set($any($event.target).value)" placeholder="piadri-clothing" /><small>Used in the public storefront URL.</small></label>
+            <label>Description<textarea name="shop-description" rows="2" maxlength="3000" [value]="shopDescription()" (input)="shopDescription.set($any($event.target).value)" placeholder="What do you sell or offer?"></textarea></label>
+            <div class="shop-form-grid"><label>Business type<select name="fulfillment" [value]="fulfillmentType()" (change)="fulfillmentType.set($any($event.target).value)"><option value="online">Online only</option><option value="physical">Physical location</option><option value="hybrid">Online and physical</option></select></label><label>Location <span class="optional-label">Optional</span><select name="shop-location" [value]="shopLocationId()" (change)="shopLocationId.set($any($event.target).value)"><option value="">No specific location</option>@for (location of locations(); track location.id) { <option [value]="location.id">{{ location.name }}</option> }</select></label></div>
+            <label>Visibility<select name="shop-status" [value]="shopStatus()" (change)="shopStatus.set($any($event.target).value)"><option value="draft">Draft — only you manage it</option><option value="published">Published — visible publicly</option><option value="archived">Archived — hidden from visitors</option></select></label>
+            <div class="shop-form-footer"><button class="shop-primary" type="submit" [disabled]="saving()">{{ saving() ? 'Saving…' : (shopEditingId() ? 'Save shop details' : 'Create shop') }}</button></div>
+          </form>
+        </section>
+
+        @if (selectedShopId()) {
+          <section class="catalog-panel"><div class="shops-panel-heading"><div><span class="shops-kicker">SHOP CATALOG</span><h2>Products & services</h2><p>Add products or services without a complicated setup.</p></div></div>
+            <div class="catalog-tabs"><button type="button" [class.catalog-tab-active]="catalogKind() === 'product'" (click)="startCatalog('product')">◇ Products <span>{{ products().length }}</span></button><button type="button" [class.catalog-tab-active]="catalogKind() === 'service'" (click)="startCatalog('service')">✦ Services <span>{{ services().length }}</span></button></div>
+            <div class="catalog-content">
+              <div class="catalog-list">
+                @for (item of (catalogKind() === 'product' ? products() : services()); track item.id) {
+                  <button type="button" class="catalog-item" [class.catalog-item-active]="catalogEditingId() === item.id" (click)="editCatalog(item, catalogKind())"><span class="catalog-item-image">@if (item.image_url) { <img [src]="item.image_url" [alt]="item.name" /> } @else { <span>◇</span> }</span><span class="catalog-item-copy"><strong>{{ item.name }}</strong><small>{{ item.price_amount == null ? 'Price not set' : (item.price_amount + ' ' + item.currency) }}</small><span class="catalog-status" [class.catalog-status-live]="item.status === 'published'">{{ item.status }}</span></span><span class="catalog-edit">Edit ↗</span></button>
+                }
+                @if (!(catalogKind() === 'product' ? products() : services()).length) { <div class="catalog-list-empty"><span>＋</span><p>No {{ catalogKind() === 'product' ? 'products' : 'services' }} yet.</p></div> }
+                <button class="shop-secondary add-catalog" type="button" (click)="startCatalog(catalogKind())">＋ Add {{ catalogKind() }}</button>
+              </div>
+              <form class="catalog-form" (submit)="$event.preventDefault(); saveCatalog()">
+                <div class="catalog-form-heading"><strong>{{ catalogEditingId() ? 'Edit ' : 'New ' }}{{ catalogKind() }}</strong><button type="button" class="text-action" (click)="startCatalog(catalogKind())">Clear form</button></div>
+                <label>{{ catalogKind() === 'product' ? 'Product name' : 'Service name' }}<input name="item-name" required maxlength="160" [value]="itemName()" (input)="setItemName($any($event.target).value)" placeholder="Name your offering" /></label>
+                <label>Public URL slug<input name="item-slug" required maxlength="160" pattern="[a-z0-9]+(-[a-z0-9]+)*" [value]="itemSlug()" (input)="itemSlug.set($any($event.target).value)" placeholder="offering-name" /></label>
+                <label>Description<textarea name="item-description" rows="3" maxlength="5000" [value]="itemDescription()" (input)="itemDescription.set($any($event.target).value)" placeholder="Useful details for customers"></textarea></label>
+                <label>Image URL <span class="optional-label">Optional</span><input name="item-image" type="url" [value]="itemImageUrl()" (input)="itemImageUrl.set($any($event.target).value)" placeholder="https://…/image.jpg" /><small>HTTPS image links only. A square 1:1 image works best for product cards.</small></label>
+                <div class="shop-form-grid"><label>Price<input name="item-price" type="number" min="0" step="0.01" [value]="itemPrice()" (input)="itemPrice.set($any($event.target).value)" placeholder="0.00" /></label><label>Currency<input name="item-currency" minlength="3" maxlength="3" [value]="itemCurrency()" (input)="itemCurrency.set($any($event.target).value)" placeholder="MAD" /></label></div>
+                @if (catalogKind() === 'service') { <label>Booking link <span class="optional-label">Optional</span><input name="booking-url" type="url" [value]="bookingUrl()" (input)="bookingUrl.set($any($event.target).value)" placeholder="https://…/booking" /><small>Use an HTTPS link to your booking page.</small></label> }
+                <label>Visibility<select name="item-status" [value]="itemStatus()" (change)="itemStatus.set($any($event.target).value)"><option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option></select></label>
+                <button class="shop-primary" type="submit" [disabled]="saving()">{{ saving() ? 'Saving…' : (catalogEditingId() ? 'Save changes' : 'Add ' + catalogKind()) }}</button>
+              </form>
+            </div>
+          </section>
+        } @else { <div class="catalog-placeholder"><span>◇</span><h2>Your catalog lives here</h2><p>Select a storefront or create your first shop to manage its products and services.</p></div> }
+      </main>
+    </div>
+  }
+  @if (message()) { <p class="shop-flash" role="status">{{ message() }}</p> } @if (error()) { <p class="shop-error" role="alert">{{ error() }}</p> }
+</section>
