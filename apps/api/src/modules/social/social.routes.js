@@ -90,6 +90,24 @@ socialRoutes.get('/profiles/:username', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+socialRoutes.get('/profiles/:username/following', requireVerifiedIdentity, async (req, res, next) => {
+  const username = String(req.params.username ?? '').toLowerCase();
+  if (!usernamePattern.test(username)) {
+    return res.status(404).json({ error: { code: 'PROFILE_NOT_FOUND', message: 'Profile not found.' } });
+  }
+  try {
+    const { rows } = await pool.query(
+      `SELECT EXISTS (
+         SELECT 1 FROM channel_follows f
+         JOIN channels c ON c.id = f.followed_channel_id
+         WHERE c.username = $1 AND f.follower_user_id = $2
+       ) AS following`,
+      [username, req.auth.userId]
+    );
+    return res.json({ following: rows[0].following });
+  } catch (error) { next(error); }
+});
+
 socialRoutes.post('/profiles/:username/follow', socialWriteLimit, requireVerifiedIdentity, async (req, res, next) => {
   const username = String(req.params.username ?? '').toLowerCase();
   if (!usernamePattern.test(username)) {
