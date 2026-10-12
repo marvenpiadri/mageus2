@@ -6,6 +6,7 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 
 interface BusinessLocation { id: string; name: string; }
+interface CatalogEntry { id: string; storefront_id: string; name: string; slug: string; description: string; image_url: string | null; price_amount: number | string | null; currency: string; booking_url?: string | null; status: 'draft' | 'published' | 'archived'; }
 interface Storefront {
   id: string; name: string; slug: string; description: string; fulfillment_type: 'physical' | 'online' | 'hybrid';
   location_id: string | null; location_name?: string | null; status: 'draft' | 'published' | 'archived';
@@ -43,6 +44,21 @@ export class BusinessCatalogPageComponent {
   readonly status = signal<'draft' | 'published' | 'archived'>('draft');
   readonly message = signal('');
   readonly error = signal('');
+  readonly selectedStoreId = signal<string | null>(null);
+  readonly products = signal<CatalogEntry[]>([]);
+  readonly services = signal<CatalogEntry[]>([]);
+  readonly catalogLoading = signal(false);
+  readonly itemSaving = signal(false);
+  readonly itemKind = signal<'product' | 'service'>('product');
+  readonly editingItemId = signal<string | null>(null);
+  readonly itemName = signal('');
+  readonly itemSlug = signal('');
+  readonly itemDescription = signal('');
+  readonly itemImageUrl = signal('');
+  readonly itemPrice = signal('');
+  readonly itemCurrency = signal('USD');
+  readonly itemBookingUrl = signal('');
+  readonly itemStatus = signal<'draft' | 'published' | 'archived'>('draft');
 
   constructor() { void this.load(); }
 
@@ -118,6 +134,111 @@ export class BusinessCatalogPageComponent {
         this.saving.set(false);
       },
       error: (error) => { this.error.set(error?.error?.error?.message || 'The shop could not be saved.'); this.saving.set(false); }
+    });
+  }
+
+
+  selectedStoreName(): string {
+    return this.storefronts().find((store) => store.id === this.selectedStoreId())?.name ?? 'Shop catalog';
+  }
+
+  manageItems(store: Storefront): void {
+    this.selectedStoreId.set(store.id);
+    this.products.set([]);
+    this.services.set([]);
+    this.catalogLoading.set(true);
+    this.editingItemId.set(null);
+    this.error.set('');
+    this.http.get<{ products: CatalogEntry[]; services: CatalogEntry[] }>(
+      `/api/v1/social/me/business/storefronts/${encodeURIComponent(store.id)}/catalog`,
+      { headers: this.auth.authorizationHeaders() }
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (result) => { this.products.set(result.products); this.services.set(result.services); this.catalogLoading.set(false); },
+      error: (error) => { this.error.set(error?.error?.error?.message || 'The shop catalog could not be loaded.'); this.catalogLoading.set(false); }
+    });
+  }
+
+  startItem(kind: 'product' | 'service'): void {
+    this.itemKind.set(kind); this.editingItemId.set(null); this.itemName.set(''); this.itemSlug.set('');
+    this.itemDescription.set(''); this.itemImageUrl.set(''); this.itemPrice.set(''); this.itemCurrency.set('USD');
+    this.itemBookingUrl.set(''); this.itemStatus.set('draft'); this.message.set(''); this.error.set('');
+  }
+
+  onItemNameInput(value: string): void {
+    this.itemName.set(value);
+    if (!this.editingItemId()) this.itemSlug.set(value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 160));
+  }
+
+  editItem(kind: 'product' | 'service', item: CatalogEntry): void {
+    this.itemKind.set(kind); this.editingItemId.set(item.id); this.itemName.set(item.name); this.itemSlug.set(item.slug);
+    this.itemDescription.set(item.description || ''); this.itemImageUrl.set(item.image_url || '');
+    this.itemPrice.set(item.price_amount == null ? '' : String(item.price_amount)); this.itemCurrency.set(item.currency || 'USD');
+    this.itemBookingUrl.set(item.booking_url || ''); this.itemStatus.set(item.status); this.message.set(''); this.error.set('');
+  }
+
+  saveItem(): void {
+    const storeId = this.selectedStoreId();
+    if (!storeId || this.itemSaving()) return;
+    const name = this.itemName().trim();
+    const slug = this.itemSlug().trim().toLowerCase();
+    const imageUrl = this.itemImageUrl().trim();
+    const bookingUrl = this.itemBookingUrl().trim();
+    const priceText = this.itemPrice().trim();
+    const priceAmount = priceText ? Number(priceText) : null;
+    if (!name || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+      this.error.set('Add a name and a URL slug using lowercase letters, numbers, and hyphens.'); return;
+    }
+    if (imageUrl && !imageUrl.startsWith('https://')) { this.error.set('Use an HTTPS URL for the image, or leave it empty.'); return; }
+    if (this.itemKind() === 'service' && bookingUrl && !bookingUrl.startsWith('https://')) { this.error.set('Use an HTTPS booking link, or leave it empty.'); return; }
+    if (priceText && (!Number.isFinite(priceAmount) || priceAmount! < 0)) { this.error.set('Enter a valid non-negative price, or leave it empty.'); return; }
+    if (!/^[A-Z]{3}$/.test(this.itemCurrency().trim().toUpperCase())) { this.error.set('Currency must be a three-letter code, such as MAD or USD.'); return; }
+    const payload: Record<string, unknown> = {
+      name, slug, description: this.itemDescription().trim(), imageUrl: imageUrl || null,
+      priceAmount, currency: this.itemCurrency().trim().toUpperCase(), status: this.itemStatus()
+    };
+    if (this.itemKind() === 'service') payload['bookingUrl'] = bookingUrl || null;
+    const kind = this.itemKind();
+    const editingId = this.editingItemId();
+    const endpoint = kind === 'product'
+      ? (editingId ? `/api/v1/social/me/business/products/${encodeURIComponent(editingId)}` : `/api/v1/social/me/business/storefronts/${encodeURIComponent(storeId)}/products`)
+      : (editingId ? `/api/v1/social/me/business/services/${encodeURIComponent(editingId)}` : `/api/v1/social/me/business/storefronts/${encodeURIComponent(storeId)}/services`);
+    const options = { headers: this.auth.authorizationHeaders() };
+    const request = editingId
+      ? this.http.patch<{ product?: CatalogEntry; service?: CatalogEntry }>(endpoint, payload, options)
+      : this.http.post<{ product?: CatalogEntry; service?: CatalogEntry }>(endpoint, payload, options);
+    this.itemSaving.set(true); this.error.set(''); this.message.set('');
+    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (result) => {
+        const saved = result.product ?? result.service;
+        if (!saved) { this.error.set('The saved item could not be returned.'); this.itemSaving.set(false); return; }
+        const setter = kind === 'product' ? this.products : this.services;
+        setter.update((items) => editingId ? items.map((item) => item.id === saved.id ? saved : item) : [saved, ...items]);
+        this.message.set(editingId ? 'Catalog item updated.' : 'Catalog item created.');
+        this.startItem(kind);
+        this.itemSaving.set(false);
+        this.storefronts.update((items) => items.map((store) => store.id !== storeId ? store : {
+          ...store, product_count: kind === 'product' && !editingId ? store.product_count + 1 : store.product_count,
+          service_count: kind === 'service' && !editingId ? store.service_count + 1 : store.service_count
+        }));
+      },
+      error: (error) => { this.error.set(error?.error?.error?.message || 'The catalog item could not be saved.'); this.itemSaving.set(false); }
+    });
+  }
+
+  archiveItem(kind: 'product' | 'service', item: CatalogEntry): void {
+    const endpoint = kind === 'product'
+      ? `/api/v1/social/me/business/products/${encodeURIComponent(item.id)}`
+      : `/api/v1/social/me/business/services/${encodeURIComponent(item.id)}`;
+    this.http.patch<{ product?: CatalogEntry; service?: CatalogEntry }>(endpoint, { status: 'archived' }, {
+      headers: this.auth.authorizationHeaders()
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (result) => {
+        const saved = result.product ?? result.service;
+        if (!saved) return;
+        const setter = kind === 'product' ? this.products : this.services;
+        setter.update((items) => items.map((entry) => entry.id === saved.id ? saved : entry));
+      },
+      error: (error) => this.error.set(error?.error?.error?.message || 'The item could not be archived.')
     });
   }
 
