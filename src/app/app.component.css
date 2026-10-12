@@ -1,0 +1,18 @@
+:host { display: block; min-height: 100dvh; }
+.wallpaper-layer { position: fixed; inset: 0; z-index: -2; background-size: cover; background-position: center; transform: scale(1.035); }
+.wallpaper-scrim { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(0,0,0,.62), rgba(0,0,0,.38) 45%, rgba(0,0,0,.68)); }
+.mageus-shell { position: relative; display: flex; min-height: 100dvh; color: var(--text-primary); background: var(--glass-surface); backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border); transition: background-color .6s ease, border-color .6s ease; }
+.main-rail { position: fixed; z-index: 20; inset: 0 auto 0 0; width: 58px; display: flex; align-items: center; flex-direction: column; gap: 2rem; padding: 1rem .55rem; background: rgba(0,0,0,.24); border-right: 1px solid rgba(255,255,255,.1); }
+.brand-mark { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--accent); border-radius: 12px; color: var(--accent); font-family: Georgia,serif; font-size: 1.35rem; text-decoration: none; }
+.rail-links { display: flex; flex-direction: column; gap: .8rem; }
+.rail-links a, .rail-bottom { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px; color: rgba(255,255,255,.75); text-decoration: none; font-size: 1.25rem; transition: background .2s ease,color .2s ease; }
+.rail-links a:hover, .rail-links a:focus-visible { color: var(--accent); background: rgba(255,255,255,.1); outline: none; }
+.rail-bottom { margin-top: auto; color: var(--accent); }
+.shell-content { width: calc(100% - 58px); margin-left: 58px; min-width: 0; }
+.global-topbar { height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0 1.5rem; border-bottom: 1px solid rgba(255,255,255,.1); background: rgba(0,0,0,.14); }
+.wordmark { color: #fff; font-family: Georgia,serif; font-size: 1.2rem; letter-spacing: .04em; text-decoration: none; }
+.wordmark span { color: var(--accent); }
+.topbar-context { color: rgba(255,255,255,.48); font-size: .72rem; letter-spacing: .04em; }
+.create-link { display: inline-flex; align-items: center; gap: .4rem; padding: .48rem .85rem; border: 1px solid var(--glass-border); border-radius: 999px; color: #fff; background: rgba(255,255,255,.08); text-decoration: none; font-size: .78rem; }
+.create-link:hover { border-color: var(--accent); }
+@media (max-width: 640px) { .main-rail { width: 48px; padding-inline: .35rem; } .shell-content { width: calc(100% - 48px); margin-left: 48px; } .global-topbar { padding: 0 .75rem; } .topbar-context { display: none; } }
