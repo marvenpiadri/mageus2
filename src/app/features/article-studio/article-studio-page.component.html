@@ -6,6 +6,7 @@
       <button class="save-button" type="button" (click)="exportDraft()">Export draft</button>
       <button class="save-button" type="button" (click)="saveDraft()">Save local draft</button>
     <button class="save-button" type="button" (click)="syncDraft()">Sync draft</button>
+    @if (serverArticleId()) { <button class="save-button" type="button" (click)="reloadServerDraft()">Reload server version</button> }
     <button class="save-button" type="button" (click)="publishArticle()" [disabled]="!auth.isAuthenticated()">Publish</button>
     </div>
   </header>
