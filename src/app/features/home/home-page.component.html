@@ -8,7 +8,7 @@
     <a class="studio-shortcut" routerLink="/write"><span class="shortcut-icon">↗</span><span><strong>Enter the studio</strong><small>Compose an article</small></span></a>
   </div>
   <div class="section-heading"><div><span class="section-kicker">RECENTLY PUBLISHED</span><h2>Stories worth staying for</h2></div><span class="count-label">{{ articles().length }} STORIES</span></div>
-  @if (loading()) {
+  @if (loading() && !articles().length) {
     <p class="home-state" role="status">Finding stories…</p>
   } @else if (articles().length) {
     <div class="article-grid">
@@ -21,6 +21,8 @@
         </a>
       }
     </div>
+    @if (loadFailed()) { <div class="home-state" role="status"><span>More stories could not be loaded.</span><p>Check your connection and try again.</p><button type="button" class="load-more-button" (click)="loadMore()">Try again</button></div> }
+    @else if (hasMore()) { <div class="load-more-row"><button type="button" class="load-more-button" (click)="loadMore()" [disabled]="loading()">{{ loading() ? 'Loading stories…' : 'Discover more stories ↓' }}</button></div> }
   } @else {
     <div class="home-state" role="status">
       <span>{{ loadFailed() ? 'The reading room is temporarily unavailable.' : 'Your reading room is ready.' }}</span>
