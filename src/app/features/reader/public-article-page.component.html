@@ -40,7 +40,16 @@
           </div>
           @if (item.cover_image_url) { <figure class="hero-image"><img [src]="item.cover_image_url" [alt]="item.title" fetchpriority="high" /><figcaption>{{ item.title }}</figcaption></figure> }
           <div class="article-body">
-            @for (block of item.blocks; track block.id) { <mageus-article-block-renderer [block]="block" /> }
+            @for (block of item.blocks; track block.id; let i = $index) {
+              @if (isStepBlock(block)) {
+                <div class="article-step" [class.has-next]="isStepBlock(item.blocks[i + 1])">
+                  <span class="article-step-marker" aria-hidden="true">{{ stepNumberAt(item.blocks, i) }}</span>
+                  <div class="article-step-content"><mageus-article-block-renderer [block]="block" /></div>
+                </div>
+              } @else {
+                <mageus-article-block-renderer [block]="block" />
+              }
+            }
           </div>
           <footer class="article-end"><span>END OF ARTICLE</span><a routerLink="/">Discover another story ↗</a></footer>
         </article>
