@@ -181,9 +181,6 @@ export class ArticleStudioPageComponent {
       case 'timeline':
         this.patchBlock(block.id, { events: [...block.events, { date: '', title: '', description: '' }] });
         break;
-      case 'steps':
-        this.patchBlock(block.id, { steps: [...block.steps, { title: '', description: '' }] });
-        break;
       case 'data_viz':
         this.patchBlock(block.id, { values: [...block.values, { label: '', value: 0 }] });
         break;
@@ -199,7 +196,6 @@ export class ArticleStudioPageComponent {
       case 'gallery': this.patchBlock(block.id, { images: block.images.filter((_, i) => i !== index) }); break;
       case 'slide': this.patchBlock(block.id, { slides: block.slides.filter((_, i) => i !== index) }); break;
       case 'timeline': this.patchBlock(block.id, { events: block.events.filter((_, i) => i !== index) }); break;
-      case 'steps': this.patchBlock(block.id, { steps: block.steps.filter((_, i) => i !== index) }); break;
       case 'data_viz': this.patchBlock(block.id, { values: block.values.filter((_, i) => i !== index) }); break;
       case 'hotspot': this.patchBlock(block.id, { points: block.points.filter((_, i) => i !== index) }); break;
       default: break;
@@ -214,7 +210,6 @@ export class ArticleStudioPageComponent {
       case 'gallery': this.patchBlock(block.id, { images: update(block.images) }); break;
       case 'slide': this.patchBlock(block.id, { slides: update(block.slides) }); break;
       case 'timeline': this.patchBlock(block.id, { events: update(block.events) }); break;
-      case 'steps': this.patchBlock(block.id, { steps: update(block.steps) }); break;
       case 'data_viz': this.patchBlock(block.id, { values: update(block.values) }); break;
       case 'hotspot': this.patchBlock(block.id, { points: update(block.points) }); break;
       default: break;
