@@ -1,8 +1,11 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, PLATFORM_ID, REQUEST, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, PLATFORM_ID, REQUEST, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { catchError, of } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
+import { ExplorationStateService } from '../../core/exploration-state.service';
 
 interface Magazine {
   id: string;
@@ -15,6 +18,7 @@ interface Magazine {
   issue_count: number;
   published_at: string;
 }
+interface MagazinePage { items: Magazine[]; nextCursor: string | null; }
 
 @Component({
   standalone: true,
@@ -28,11 +32,16 @@ export class MagazineDiscoveryPageComponent {
   private readonly http = inject(HttpClient);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly request = inject(REQUEST, { optional: true });
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly exploration = inject(ExplorationStateService);
+  private readonly listKey = 'magazines:published';
   private readonly apiBase = this.resolveApiBase();
   readonly auth = inject(AuthService);
-  readonly items = signal<Magazine[]>([]);
-  readonly loading = signal(true);
-  readonly failed = signal(false);
+  readonly listState = this.exploration.state<Magazine>(this.listKey);
+  readonly items = computed(() => this.listState().items);
+  readonly loading = computed(() => this.listState().loading);
+  readonly failed = computed(() => this.listState().failed);
+  readonly hasMore = computed(() => this.listState().hasMore);
   readonly title = signal('');
   readonly slug = signal('');
   readonly description = signal('');
@@ -41,7 +50,10 @@ export class MagazineDiscoveryPageComponent {
   readonly message = signal('');
   readonly hasTitle = computed(() => this.title().trim().length > 0);
 
-  constructor() { this.load(); }
+  constructor() {
+    this.exploration.registerContext('/magazines', this.listKey);
+    if (!this.listState().items.length && !this.listState().loading) this.loadPage(true);
+  }
 
   updateTitle(value: string): void {
     const previousGeneratedSlug = this.slugify(this.title());
@@ -49,12 +61,26 @@ export class MagazineDiscoveryPageComponent {
     if (!this.slug() || this.slug() === previousGeneratedSlug) this.slug.set(this.slugify(value));
   }
 
-  load(): void {
-    this.loading.set(true);
-    this.failed.set(false);
-    this.http.get<{ items: Magazine[] }>(this.apiBase + '?limit=24').subscribe({
-      next: (result) => { this.items.set(result.items ?? []); this.loading.set(false); },
-      error: () => { this.failed.set(true); this.loading.set(false); }
+  load(): void { this.loadPage(true); }
+  loadMore(): void { this.loadPage(false); }
+
+  private loadPage(replace: boolean): void {
+    const current = this.listState();
+    if (current.loading || (!replace && !current.hasMore)) return;
+    this.exploration.patch<Magazine>(this.listKey, { loading: true, failed: false });
+    const cursor = replace ? null : current.nextCursor;
+    const query = new URLSearchParams({ limit: '24' });
+    if (cursor) query.set('cursor', cursor);
+    this.http.get<MagazinePage>(this.apiBase + '?' + query.toString()).pipe(
+      catchError(() => {
+        this.exploration.patch<Magazine>(this.listKey, { loading: false, failed: true });
+        return of(null);
+      }),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe((result) => {
+      if (!result) return;
+      if (replace) this.exploration.replacePage(this.listKey, result.items ?? [], result.nextCursor);
+      else this.exploration.appendPage(this.listKey, result.items ?? [], result.nextCursor, (item) => item.id);
     });
   }
 
@@ -67,17 +93,17 @@ export class MagazineDiscoveryPageComponent {
     this.http.post<{ magazine: { id: string } }>(this.apiBase, {
       title: this.title().trim(), slug: cleanSlug, description: this.description().trim(),
       coverImageUrl: this.coverImageUrl().trim() || null
-    }, { headers: this.auth.authorizationHeaders() }).subscribe({
+    }, { headers: this.auth.authorizationHeaders() }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (result) => {
         this.http.patch(this.apiBase + '/' + encodeURIComponent(result.magazine.id) + '/publish', {}, {
           headers: this.auth.authorizationHeaders()
-        }).subscribe({
+        }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: () => {
             this.title.set(''); this.slug.set(''); this.description.set(''); this.coverImageUrl.set('');
             this.message.set('Magazine published. Open it to create your first issue.');
             this.busy.set(false); this.load();
           },
-          error: () => { this.message.set('The magazine was created but could not be published. Try again from your magazine page.'); this.busy.set(false); }
+          error: () => { this.message.set('The magazine was created but could not be published. Refresh and check your publication list.'); this.busy.set(false); }
         });
       },
       error: (error) => {
@@ -85,6 +111,12 @@ export class MagazineDiscoveryPageComponent {
         this.busy.set(false);
       }
     });
+  }
+
+  private resolveApiBase(): string {
+    if (typeof process !== 'undefined' && process.env['MAGEUS_API_URL']) return process.env['MAGEUS_API_URL'].replace(/\/$/, '') + '/magazines';
+    if (!isPlatformBrowser(this.platformId) && this.request?.url) return new URL('/api/v1/magazines', this.request.url).toString();
+    return '/api/v1/magazines';
   }
 
   private slugify(value: string): string {
