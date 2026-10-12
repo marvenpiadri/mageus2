@@ -74,6 +74,7 @@ socialRoutes.get('/profiles/:username', async (req, res, next) => {
       `SELECT c.id, c.username, c.display_name, c.bio, c.avatar_url, c.created_at,
               (SELECT count(*)::int FROM channel_follows f WHERE f.followed_channel_id = c.id) AS follower_count,
               (SELECT count(*)::int FROM channel_follows f JOIN channels followed ON followed.id = f.followed_channel_id WHERE f.follower_user_id = c.owner_user_id) AS following_count,
+              (SELECT count(*)::int FROM articles a WHERE a.channel_id = c.id AND a.status = 'published' AND a.published_at IS NOT NULL) AS article_count,
               COALESCE(us.profile_visibility, 'public') AS profile_visibility
          FROM channels c
          LEFT JOIN user_settings us ON us.user_id = c.owner_user_id
