@@ -7,7 +7,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, of, switchMap } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 
-type ProfileSection = 'posts' | 'shops' | 'menus' | 'locations';
+type ProfileSection = 'articles' | 'shops' | 'menus' | 'locations';
 
 interface ProfileLocation {
   id: string; name: string; slug: string; address: string; google_place_id: string | null;
@@ -67,7 +67,7 @@ export class PublicProfilePageComponent {
   readonly profileData = signal<PublicProfile | null>(null);
   readonly loading = signal(true);
   readonly notFound = signal(false);
-  readonly section = signal<ProfileSection>('posts');
+  readonly section = signal<ProfileSection>('articles');
   readonly following = signal(false);
   readonly followBusy = signal(false);
   readonly followMessage = signal('');
@@ -92,12 +92,12 @@ export class PublicProfilePageComponent {
       this.profileData.set(data);
       this.loading.set(false);
       this.notFound.set(!data);
-      this.section.set('posts');
+      this.section.set('articles');
       this.following.set(false);
       if (data) {
         const name = data.profile.display_name || data.profile.username;
         this.titleService.setTitle(`@${data.profile.username} · ${name} | Mageus`);
-        this.meta.updateTag({ name: 'description', content: (data.profile.bio || `Explore posts, shops, menus, and services from ${name} on Mageus.`).slice(0, 300) });
+        this.meta.updateTag({ name: 'description', content: (data.profile.bio || `Explore articles, shops, menus, and services from ${name} on Mageus.`).slice(0, 300) });
         this.meta.updateTag({ property: 'og:type', content: 'profile' });
         this.meta.updateTag({ property: 'og:title', content: `@${data.profile.username} · ${name}` });
         this.meta.updateTag({ property: 'og:description', content: data.profile.bio || `Explore ${name} on Mageus.` });
