@@ -81,7 +81,9 @@ export function readRefreshCookie(req) {
   const cookie = req.headers.cookie;
   if (!cookie) return null;
   const entry = cookie.split(';').map((part) => part.trim()).find((part) => part.startsWith(`${COOKIE_NAME}=`));
-  return entry ? decodeURIComponent(entry.slice(COOKIE_NAME.length + 1)) || null : null;
+  if (!entry) return null;
+  try { return decodeURIComponent(entry.slice(COOKIE_NAME.length + 1)) || null; }
+  catch { return null; }
 }
 
 export function requireAuthConfiguration(_req, res, next) {
