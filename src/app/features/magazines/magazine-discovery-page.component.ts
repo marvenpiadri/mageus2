@@ -1,8 +1,9 @@
-import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { CommonModule, DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, DestroyRef, PLATFORM_ID, REQUEST, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { Meta, Title } from '@angular/platform-browser';
 import { catchError, of } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { ExplorationStateService } from '../../core/exploration-state.service';
@@ -34,6 +35,9 @@ export class MagazineDiscoveryPageComponent {
   private readonly request = inject(REQUEST, { optional: true });
   private readonly destroyRef = inject(DestroyRef);
   private readonly exploration = inject(ExplorationStateService);
+  private readonly document = inject(DOCUMENT);
+  private readonly titleService = inject(Title);
+  private readonly meta = inject(Meta);
   private readonly listKey = 'magazines:published';
   private readonly apiBase = this.resolveApiBase();
   readonly auth = inject(AuthService);
@@ -51,6 +55,18 @@ export class MagazineDiscoveryPageComponent {
   readonly hasTitle = computed(() => this.title().trim().length > 0);
 
   constructor() {
+    this.titleService.setTitle('Magazines and Issues · Mageus');
+    this.meta.updateTag({ name: 'description', content: 'Explore ongoing Mageus publications, curated issues, and ordered collections of stories.' });
+    this.meta.updateTag({ property: 'og:title', content: 'Magazines and Issues · Mageus' });
+    this.meta.updateTag({ property: 'og:description', content: 'Explore ongoing Mageus publications, curated issues, and ordered collections of stories.' });
+    this.meta.updateTag({ property: 'og:type', content: 'website' });
+    let canonical = '/magazines';
+    if (this.request?.url) { try { canonical = new URL('/magazines', this.request.url).toString(); } catch { /* keep relative path */ } }
+    else if (this.document.location?.origin) canonical = new URL('/magazines', this.document.location.origin).toString();
+    this.meta.updateTag({ property: 'og:url', content: canonical });
+    let canonicalLink = this.document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!canonicalLink) { canonicalLink = this.document.createElement('link'); canonicalLink.setAttribute('rel', 'canonical'); this.document.head.appendChild(canonicalLink); }
+    canonicalLink.setAttribute('href', canonical);
     this.exploration.registerContext('/magazines', this.listKey);
     if (!this.listState().items.length && !this.listState().loading) this.loadPage(true);
   }
@@ -81,6 +97,7 @@ export class MagazineDiscoveryPageComponent {
       if (!result) return;
       if (replace) this.exploration.replacePage(this.listKey, result.items ?? [], result.nextCursor);
       else this.exploration.appendPage(this.listKey, result.items ?? [], result.nextCursor, (item) => item.id);
+      this.updateStructuredData(this.listState().items);
     });
   }
 
@@ -111,6 +128,27 @@ export class MagazineDiscoveryPageComponent {
         this.busy.set(false);
       }
     });
+  }
+
+  private updateStructuredData(items: Magazine[]): void {
+    const canonical = this.document.querySelector('link[rel="canonical"]')?.getAttribute('href') || '/magazines';
+    let script = this.document.getElementById('mageus-magazine-list-jsonld') as HTMLScriptElement | null;
+    if (!script) {
+      script = this.document.createElement('script');
+      script.id = 'mageus-magazine-list-jsonld';
+      script.type = 'application/ld+json';
+      this.document.head.appendChild(script);
+    }
+    script.textContent = JSON.stringify({
+      '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'Magazines and Issues',
+      url: canonical, mainEntity: {
+        '@type': 'ItemList', itemListElement: items.map((item, index) => ({
+          '@type': 'ListItem', position: index + 1,
+          url: `/${encodeURIComponent(item.author_username)}/magazines/${encodeURIComponent(item.slug)}`,
+          name: item.title
+        }))
+      }
+    }).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
   }
 
   private resolveApiBase(): string {
