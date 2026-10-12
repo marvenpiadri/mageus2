@@ -65,7 +65,7 @@
               <div class="voting-status">
                 <span class="rating-summary">{{ voteCount() ? (voteAverage() + ' / 100 · ' + voteCount() + (voteCount() === 1 ? ' vote' : ' votes')) : 'Be the first to rate' }}</span>
                 @if (!auth.isAuthenticated()) {
-                  <a routerLink="/sign-in">Sign in to save your score ↗</a>
+                  <a routerLink="/sign-in" [queryParams]="{ returnUrl: '/' + item.author_username + '/' + item.slug }">Sign in to save your score ↗</a>
                 }
               </div>
               @if (voteMessage()) { <p class="vote-message" aria-live="polite">{{ voteMessage() }}</p> }
