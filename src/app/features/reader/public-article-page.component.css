@@ -73,3 +73,7 @@
 .comment-form-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .75rem; color: var(--text-muted, #a8adbb); font-size: .75rem; }
 .comment-form-footer button { border: 1px solid var(--accent, #66ccc3); border-radius: 99px; padding: .65rem 1rem; color: var(--text-primary, #f6f6fb); background: color-mix(in srgb, var(--accent, #66ccc3) 16%, transparent); font: inherit; font-weight: 650; cursor: pointer; }
 .comment-form-footer button:disabled { opacity: .5; cursor: not-allowed; }
+
+.reader-back { appearance: none; display: inline-grid; place-items: center; flex: 0 0 auto; width: 2.35rem; height: 2.35rem; padding: 0; border: 1px solid var(--glass-border, rgba(255,255,255,.16)); border-radius: 50%; color: var(--text-primary, #f6f6fb); background: transparent; font: inherit; cursor: pointer; }
+.reader-back:hover { background: var(--glass-surface, rgba(255,255,255,.08)); }
+.reader-back:focus-visible { outline: 2px solid var(--accent, #66ccc3); outline-offset: 3px; }
