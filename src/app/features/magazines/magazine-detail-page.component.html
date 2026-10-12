@@ -1,0 +1,64 @@
+<section class="detail-page">
+  <a class="back-link" routerLink="/magazines">← All magazines</a>
+  @if (loading()) { <div class="state">Opening the publication…</div> }
+  @else if (failed()) { <div class="state"><h1>This publication isn't available.</h1><p>It may have been moved, or its latest issue is not public.</p><a routerLink="/magazines">Browse magazines</a></div> }
+  @else if (issue(); as edition) {
+    <p class="kicker">{{ edition.magazine_title }} / ISSUE {{ edition.issue_number }}</p>
+    <header class="issue-hero">
+      <div><h1>{{ edition.title }}</h1><p>{{ edition.summary || 'A curated edition of stories from this magazine.' }}</p><p class="byline">PUBLISHED BY <a [routerLink]="['/', edition.author_username]">@{{ edition.author_username }}</a></p></div>
+      <div class="issue-cover" [style.background-image]="edition.cover_image_url ? 'url(' + edition.cover_image_url + ')' : (edition.magazine_cover_image_url ? 'url(' + edition.magazine_cover_image_url + ')' : null)"><span>ISSUE {{ edition.issue_number }}</span></div>
+    </header>
+    <div class="section-heading"><div><p class="kicker">INSIDE THIS ISSUE</p><h2>Read the edition</h2></div><span>{{ articles().length }} STORIES</span></div>
+    @if (articles().length) {
+      <div class="issue-articles">
+        @for (article of articles(); track article.id; let i = $index) {
+          <a class="issue-article" [routerLink]="['/', edition.author_username, article.slug]">
+            <span class="article-number">{{ (i + 1).toString().padStart(2, '0') }}</span>
+            <div class="article-image" [style.background-image]="article.cover_image_url ? 'url(' + article.cover_image_url + ')' : null"></div>
+            <div><p class="kicker">{{ article.section_title || article.category || 'FEATURE' }}</p><h3>{{ article.title }}</h3><p>{{ article.excerpt || article.subtitle }}</p></div><span class="open-arrow">↗</span>
+          </a>
+        }
+      </div>
+    } @else { <div class="state">This issue has no published stories yet.</div> }
+  } @else if (magazine(); as publication) {
+    <p class="kicker">AN ONGOING PUBLICATION</p>
+    <header class="magazine-hero">
+      <div><h1>{{ publication.title }}</h1><p>{{ publication.description || 'A continuing collection of stories and ideas.' }}</p><p class="byline">CURATED BY <a [routerLink]="['/', publication.author_username]">@{{ publication.author_username }}</a></p></div>
+      <div class="publication-cover" [style.background-image]="publication.cover_image_url ? 'url(' + publication.cover_image_url + ')' : null"><span>MAGEUS<br>PERIODICAL</span><strong>M.</strong></div>
+    </header>
+
+    @if (managing()) {
+      <section class="manage-panel">
+        <p class="kicker">EDITOR'S DESK</p><h2>Publish a new issue</h2>
+        <p>Choose stories already published on your channel. The issue preserves their reading order without duplicating the articles.</p>
+        <div class="issue-form">
+          <label>Issue title<input [value]="issueTitle()" (input)="updateIssueTitle($any($event.target).value)" placeholder="e.g. The Art of Everyday Cooking"></label>
+          <label>URL name<input [value]="issueSlug()" (input)="issueSlug.set($any($event.target).value)" placeholder="the-art-of-everyday-cooking"></label>
+          <label>Issue number<input type="number" min="1" [value]="issueNumber()" (input)="issueNumber.set($any($event.target).value)"></label>
+          <label class="wide">Editor's note<textarea rows="2" maxlength="5000" [value]="issueSummary()" (input)="issueSummary.set($any($event.target).value)" placeholder="Introduce this edition to your readers"></textarea></label>
+        </div>
+        <div class="article-picker"><h3>Choose articles</h3>
+          @if (articleOptions().length) {
+            @for (article of articleOptions(); track article.id) {
+              <label class="article-option"><input type="checkbox" [checked]="selectedArticleIds().includes(article.id)" (change)="setArticleSelected(article.id, $any($event.target).checked)"><span>{{ article.title }}<small>{{ article.slug }}</small></span></label>
+            }
+          } @else { <p>Publish an article first, then return here to include it in an issue.</p> }
+        </div>
+        <button class="publish-button" type="button" [disabled]="busy() || !articleOptions().length" (click)="createIssue()">{{ busy() ? 'Publishing issue…' : 'Publish issue ↗' }}</button>
+        @if (message()) { <p class="feedback" role="status">{{ message() }}</p> }
+      </section>
+    }
+
+    <div class="section-heading"><div><p class="kicker">THE ARCHIVE</p><h2>Issues</h2></div><span>{{ issues().length }} EDITIONS</span></div>
+    @if (issues().length) {
+      <div class="issue-grid">
+        @for (edition of issues(); track edition.id) {
+          <a class="issue-card" [routerLink]="['/', publication.author_username, 'magazines', publication.slug, 'issues', edition.slug]">
+            <div class="issue-card-cover" [style.background-image]="edition.cover_image_url ? 'url(' + edition.cover_image_url + ')' : (publication.cover_image_url ? 'url(' + publication.cover_image_url + ')' : null)"><span>NO. {{ edition.issue_number }}</span><strong>{{ edition.issue_number.toString().padStart(2, '0') }}</strong></div>
+            <p class="kicker">ISSUE {{ edition.issue_number }} · {{ edition.article_count ?? 0 }} STORIES</p><h3>{{ edition.title }}</h3><p>{{ edition.summary }}</p>
+          </a>
+        }
+      </div>
+    } @else { <div class="state"><h2>The first issue is waiting to be made.</h2><p>This magazine is ready for its first edition. Published articles can be arranged into an issue from the editor's desk.</p></div> }
+  }
+</section>
