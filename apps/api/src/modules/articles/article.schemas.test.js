@@ -19,6 +19,14 @@ test('article block schema accepts a versioned text block', () => {
   assert.equal(parsed.type, 'text');
 });
 
+test('text blocks accept optional regular or step presentation metadata', () => {
+  const regular = articleBlockSchema.parse({ id: 'text-regular', type: 'text', html: '<p>Paragraph</p>', presentation: 'regular' });
+  const step = articleBlockSchema.parse({ id: 'text-step', type: 'text', html: '<p>Prepare the ingredients</p>', presentation: 'step' });
+  assert.equal(regular.presentation, 'regular');
+  assert.equal(step.presentation, 'step');
+  assert.equal(articleBlockSchema.safeParse({ id: 'text-invalid', type: 'text', html: '<p>Text</p>', presentation: 'nested-step' }).success, false);
+});
+
 test('article block schema rejects unsafe non-HTTP media URLs', () => {
   const result = articleBlockSchema.safeParse({
     id: 'image-1', type: 'image', imageUrl: 'javascript:alert(1)', alt: 'Unsafe URL', width: 'normal'
