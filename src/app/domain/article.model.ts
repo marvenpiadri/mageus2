@@ -21,6 +21,7 @@ export type ArticleBlockType =
   | 'math'
   | 'product'
   | 'product_collection'
+  | 'commerce_collection'
   | 'magazine_ref';
 
 export interface ArticleBlockBase {
@@ -165,6 +166,26 @@ export interface ProductCollectionBlock extends ArticleBlockBase {
   layout: 'grid' | 'carousel' | 'list';
 }
 
+
+export type CommerceItemType = 'product' | 'service' | 'menu_item';
+export interface ResolvedCommerceItem {
+  id: string;
+  name: string;
+  description: string;
+  image_url: string | null;
+  price_amount: string | number | null;
+  currency: string;
+  href?: string | null;
+}
+export interface CommerceCollectionBlock extends ArticleBlockBase {
+  type: 'commerce_collection';
+  itemType: CommerceItemType;
+  itemIds: string[];
+  title?: string;
+  /** Added by the public API at read time; never persisted as article content. */
+  resolvedItems?: ResolvedCommerceItem[];
+}
+
 export interface MagazineReferenceBlock extends ArticleBlockBase {
   type: 'magazine_ref';
   magazineId: string;
@@ -174,7 +195,7 @@ export type ArticleBlock =
   | TextBlock | HeadingBlock | DividerBlock | CalloutBlock | TableBlock | CodeBlock | VideoBlock | AudioBlock | ImageBlock | QuoteBlock | GalleryBlock | SlideBlock
   | EmbedBlock | BeforeAfterBlock | HotspotBlock | TimelineBlock
   | DataVizBlock | MathBlock | ProductBlock
-  | ProductCollectionBlock | MagazineReferenceBlock;
+  | ProductCollectionBlock | CommerceCollectionBlock | MagazineReferenceBlock;
 
 export type ArticleStatus = 'draft' | 'published' | 'archival';
 
