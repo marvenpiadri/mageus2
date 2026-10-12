@@ -23,3 +23,9 @@
 @media (prefers-reduced-motion: reduce) { .mageus-shell,.mageus-shell::before { transition: none; } }
 .sign-in-link { border: 1px solid var(--glass-border, rgba(255,255,255,.16)); border-radius: 999px; padding: .55rem .85rem; background: transparent; color: var(--text-primary, #f4f5fa); text-decoration: none; font: inherit; font-size: .78rem; cursor: pointer; }
 .account-chip { color: var(--text-muted, #b3b8c8); font-size: .78rem; }
+
+.social-links { display: inline-flex; align-items: center; gap: .8rem; }
+.social-links a { color: var(--text-muted,#b3b8c8); font-size: .75rem; text-decoration: none; transition: color .18s ease; }
+.social-links a:hover,.social-links a:focus-visible { color: var(--accent); }
+@media (max-width: 760px) { .social-links { gap: .5rem; } .social-links a { font-size: .68rem; } }
+@media (max-width: 520px) { .social-links { display: none; } }
