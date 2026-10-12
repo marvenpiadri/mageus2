@@ -1,0 +1,53 @@
+<section class="business-page">
+  <header class="business-header">
+    <a routerLink="/settings" class="business-back">← Account settings</a>
+    <div class="business-heading">
+      <div><span class="business-kicker">BUSINESS PROFILE</span><h1>Locations</h1><p>Manage the places connected to your Mageus channel. Menus can belong to a specific location.</p></div>
+      <button type="button" class="business-primary" (click)="startNew()">＋ Add location</button>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="business-state"><span>✦</span><p>Loading your locations…</p></div>
+  } @else {
+    <div class="business-layout">
+      <section class="location-list-panel" aria-labelledby="locations-list-title">
+        <div class="panel-heading"><div><span class="business-kicker">YOUR BUSINESS</span><h2 id="locations-list-title">Saved locations</h2></div><span class="location-count">{{ locations().length }}</span></div>
+        @if (!locations().length) {
+          <div class="location-empty"><span>⌖</span><h3>Start with your first location</h3><p>Add your café, restaurant, studio, shop, or other physical place. You can add online-only storefronts separately.</p><button type="button" class="business-primary" (click)="startNew()">Create first location</button></div>
+        } @else {
+          <div class="location-list">
+            @for (location of locations(); track location.id) {
+              <article class="location-card" [class.location-card-active]="editingId() === location.id">
+                <div class="location-symbol">⌖</div>
+                <div class="location-main"><div class="location-title-row"><h3>{{ location.name }}</h3>@if (location.is_primary) { <span class="primary-tag">Primary</span> }</div><p class="location-slug">/{{ location.slug }}</p>
+                  @if (location.address) { <p class="location-address">{{ location.address }}</p> }
+                  @if (location.phone) { <p class="location-phone">{{ location.phone }}</p> }
+                  @if (location.latitude !== null && location.longitude !== null) { <a class="map-link" [href]="'https://www.google.com/maps?q=' + location.latitude + ',' + location.longitude" target="_blank" rel="noopener noreferrer">Open map ↗</a> }
+                  @if (deleteConfirmId() === location.id) { <p class="delete-warning">Delete this location? Any menus attached to it must be moved or removed first.</p> }
+                  <div class="location-actions"><button type="button" class="business-secondary" (click)="edit(location)">Edit</button><button type="button" class="business-danger" (click)="requestDelete(location)">{{ deleteConfirmId() === location.id ? 'Confirm delete' : 'Delete' }}</button>@if (deleteConfirmId() === location.id) { <button type="button" class="business-secondary" (click)="deleteConfirmId.set(null)">Cancel</button> }</div>
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </section>
+
+      <section class="location-form-panel" aria-labelledby="location-form-title">
+        <div class="panel-heading"><div><span class="business-kicker">{{ editingId() ? 'UPDATE DETAILS' : 'GET STARTED' }}</span><h2 id="location-form-title">{{ editingId() ? 'Edit location' : 'New location' }}</h2></div></div>
+        <form (submit)="$event.preventDefault(); save()">
+          <label>Location name<input name="location-name" required maxlength="120" [value]="name()" (input)="onNameInput($any($event.target).value)" placeholder="e.g. Downtown café" /></label>
+          <label>URL slug<input name="location-slug" required maxlength="120" pattern="[a-z0-9]+(-[a-z0-9]+)*" [value]="slug()" (input)="slug.set($any($event.target).value)" placeholder="downtown-cafe" /><small>Used to distinguish this location from your other places.</small></label>
+          <label>Address<textarea name="location-address" rows="2" maxlength="500" [value]="address()" (input)="address.set($any($event.target).value)" placeholder="Street, city, country"></textarea></label>
+          <label>Phone number<input name="location-phone" type="tel" maxlength="40" [value]="phone()" (input)="phone.set($any($event.target).value)" placeholder="+212…" /></label>
+          <label>Google Place ID <span class="optional-label">Optional</span><input name="google-place-id" maxlength="255" [value]="googlePlaceId()" (input)="googlePlaceId.set($any($event.target).value)" placeholder="Google Maps place identifier" /></label>
+          <div class="coordinate-fields"><label>Latitude <span class="optional-label">Optional</span><input name="latitude" type="number" min="-90" max="90" step="any" [value]="latitude()" (input)="latitude.set($any($event.target).value)" placeholder="34.0209" /></label><label>Longitude <span class="optional-label">Optional</span><input name="longitude" type="number" min="-180" max="180" step="any" [value]="longitude()" (input)="longitude.set($any($event.target).value)" placeholder="-6.8416" /></label></div>
+          <label class="primary-checkbox"><input type="checkbox" [checked]="isPrimary()" (change)="isPrimary.set($any($event.target).checked)" /><span><strong>Set as primary location</strong><small>This location appears first on your public profile.</small></span></label>
+          @if (message()) { <p class="business-message" aria-live="polite">{{ message() }}</p> }
+          @if (error()) { <p class="business-error" role="alert">{{ error() }}</p> }
+          <div class="business-form-actions"><button type="submit" class="business-primary" [disabled]="saving()">{{ saving() ? 'Saving…' : (editingId() ? 'Save changes' : 'Create location') }}</button>@if (editingId()) { <button type="button" class="business-secondary" (click)="cancelEdit()">Cancel</button> }</div>
+        </form>
+      </section>
+    </div>
+  }
+</section>
