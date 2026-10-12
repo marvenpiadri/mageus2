@@ -37,9 +37,23 @@ function dto(row) {
 }
 async function snapshotRevision(client, row, userId) {
   await client.query(
-    `INSERT INTO article_revisions (article_id, revision, snapshot, edited_by)
-     VALUES ($1, $2, $3::jsonb, $4) ON CONFLICT (article_id, revision) DO NOTHING`,
-    [row.id, row.revision ?? 1, JSON.stringify(row), userId]
+    `INSERT INTO article_revisions (
+       article_id, revision, slug, title, subtitle, excerpt, category, language,
+       tags, cover_image_url, blocks, schema_version, status, seo_title,
+       seo_description, canonical_url, published_at, edited_by
+     )
+     VALUES (
+       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12, $13,
+       $14, $15, $16, $17, $18
+     )
+     ON CONFLICT (article_id, revision) DO NOTHING`,
+    [
+      row.id, row.revision ?? 1, row.slug, row.title, row.subtitle, row.excerpt,
+      row.category, row.language, row.tags, row.cover_image_url,
+      JSON.stringify(row.blocks ?? []), row.schema_version, row.status,
+      row.seo_title, row.seo_description, row.canonical_url, row.published_at,
+      userId
+    ]
   );
 }
 function publicationIssues(article) {
