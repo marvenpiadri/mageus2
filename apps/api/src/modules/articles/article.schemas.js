@@ -35,7 +35,20 @@ export const articleBlockSchema = z.discriminatedUnion('type', [
   z.object({ ...base, type: z.literal('magazine_ref'), magazineId: z.string().max(256) })
 ]);
 
-export const articleBlocksSchema = z.array(articleBlockSchema).max(300);
+// Stable, unique IDs are required for reliable Studio editing, reordering, and rendering.
+export const articleBlocksSchema = z.array(articleBlockSchema).max(300).superRefine((blocks, ctx) => {
+  const seen = new Set();
+  for (const [index, block] of blocks.entries()) {
+    if (seen.has(block.id)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [index, 'id'],
+        message: 'Each article block must have a unique ID.'
+      });
+    }
+    seen.add(block.id);
+  }
+});
 export const articleDraftInputSchema = z.object({
   title: z.string().trim().min(1).max(240),
   subtitle: z.string().max(500).default(''),
