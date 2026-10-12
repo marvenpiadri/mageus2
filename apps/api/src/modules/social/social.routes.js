@@ -47,16 +47,22 @@ socialRoutes.get('/profiles/:username', async (req, res, next) => {
         `SELECT s.id, s.name, s.slug, s.description, s.fulfillment_type, s.location_id,
                 l.name AS location_name, l.slug AS location_slug,
                 (SELECT count(*)::int FROM store_products p WHERE p.storefront_id = s.id AND p.status = 'published') AS product_count,
-                (SELECT count(*)::int FROM store_services v WHERE v.storefront_id = s.id AND v.status = 'published') AS service_count
+                (SELECT count(*)::int FROM store_services v WHERE v.storefront_id = s.id AND v.status = 'published') AS service_count,
+                (SELECT COALESCE(jsonb_agg(jsonb_build_object('id', p.id, 'name', p.name, 'slug', p.slug, 'description', p.description, 'image_url', p.image_url, 'price_amount', p.price_amount, 'currency', p.currency) ORDER BY p.created_at DESC), '[]'::jsonb)
+                   FROM store_products p WHERE p.storefront_id = s.id AND p.status = 'published') AS products,
+                (SELECT COALESCE(jsonb_agg(jsonb_build_object('id', v.id, 'name', v.name, 'slug', v.slug, 'description', v.description, 'image_url', v.image_url, 'price_amount', v.price_amount, 'currency', v.currency, 'booking_url', v.booking_url) ORDER BY v.created_at DESC), '[]'::jsonb)
+                   FROM store_services v WHERE v.storefront_id = s.id AND v.status = 'published') AS services
            FROM storefronts s
-           LEFT JOIN business_locations l ON l.id = s.location_id
+           LEFT JOIN business_locations l ON l.id = s.location_id AND l.channel_id = s.channel_id
           WHERE s.channel_id = $1 AND s.status = 'published'
           ORDER BY s.created_at DESC`,
         [profile.id]
       ),
       pool.query(
         `SELECT m.id, m.name, m.slug, m.description, m.pdf_url, m.location_id,
-                l.name AS location_name, l.slug AS location_slug
+                l.name AS location_name, l.slug AS location_slug,
+                (SELECT COALESCE(jsonb_agg(jsonb_build_object('id', i.id, 'name', i.name, 'description', i.description, 'image_url', i.image_url, 'price_amount', i.price_amount, 'currency', i.currency, 'category', i.category, 'is_available', i.is_available) ORDER BY i.sort_order, i.created_at), '[]'::jsonb)
+                   FROM location_menu_items i WHERE i.menu_id = m.id AND i.is_available) AS items
            FROM location_menus m
            JOIN business_locations l ON l.id = m.location_id AND l.channel_id = m.channel_id
           WHERE m.channel_id = $1 AND m.status = 'published'
