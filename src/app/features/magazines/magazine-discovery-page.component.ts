@@ -1,6 +1,7 @@
-import { CommonModule } from '@angular/common';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, PLATFORM_ID, computed, inject, signal } from '@angular/core';
+import { PLATFORM_ID, REQUEST, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 
@@ -27,6 +28,8 @@ interface Magazine {
 export class MagazineDiscoveryPageComponent {
   private readonly http = inject(HttpClient);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly request = inject(REQUEST, { optional: true });
+  private readonly apiBase = this.resolveApiBase();
   readonly auth = inject(AuthService);
   readonly items = signal<Magazine[]>([]);
   readonly loading = signal(true);
@@ -50,7 +53,7 @@ export class MagazineDiscoveryPageComponent {
   load(): void {
     this.loading.set(true);
     this.failed.set(false);
-    this.http.get<{ items: Magazine[] }>('/api/v1/magazines?limit=24').subscribe({
+    this.http.get<{ items: Magazine[] }>(this.apiBase + '?limit=24').subscribe({
       next: (result) => { this.items.set(result.items ?? []); this.loading.set(false); },
       error: () => { this.failed.set(true); this.loading.set(false); }
     });
@@ -62,12 +65,12 @@ export class MagazineDiscoveryPageComponent {
     if (!cleanSlug) { this.message.set('Add a short URL name for the magazine.'); return; }
     this.busy.set(true);
     this.message.set('');
-    this.http.post<{ magazine: { id: string } }>('/api/v1/magazines', {
+    this.http.post<{ magazine: { id: string } }>(this.apiBase, {
       title: this.title().trim(), slug: cleanSlug, description: this.description().trim(),
       coverImageUrl: this.coverImageUrl().trim() || null
     }, { headers: this.auth.authorizationHeaders() }).subscribe({
       next: (result) => {
-        this.http.patch('/api/v1/magazines/' + encodeURIComponent(result.magazine.id) + '/publish', {}, {
+        this.http.patch(this.apiBase + '/' + encodeURIComponent(result.magazine.id) + '/publish', {}, {
           headers: this.auth.authorizationHeaders()
         }).subscribe({
           next: () => {
