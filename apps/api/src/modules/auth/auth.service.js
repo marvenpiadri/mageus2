@@ -31,7 +31,7 @@ export async function issueAccessToken(user) {
     .setIssuer(env.AUTH_ISSUER || 'mageus-api')
     .setAudience(env.AUTH_AUDIENCE)
     .setIssuedAt()
-    .setExpirationTime(ACCESS_TTL_SECONDS)
+    .setExpirationTime('15m')
     .sign(signingKey());
 }
 
