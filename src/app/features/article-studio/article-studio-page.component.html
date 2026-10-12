@@ -2,11 +2,14 @@
   <header class="studio-header">
     <a class="back-link" routerLink="/">← <span>Back to Mageus</span></a>
     <div class="studio-title"><span class="studio-overline">MAGEUS / STUDIO</span><strong>{{ title() || 'Untitled article' }}</strong><small>{{ statusMessage() }}</small></div>
-    <button class="save-button" type="button" (click)="saveDraft()">Save draft</button>
+    <div class="studio-header-actions">
+      <button class="save-button" type="button" (click)="exportDraft()">Export draft</button>
+      <button class="save-button" type="button" (click)="saveDraft()">Save draft</button>
+    </div>
   </header>
   <div class="studio-layout">
     <aside class="block-catalogue">
-      <div class="panel-heading"><span class="panel-kicker">BUILD YOUR STORY</span><h2>Article blocks</h2><p>Choose a block to add it to your article.</p></div>
+      <div class="panel-heading"><span class="panel-kicker">BUILD YOUR STORY</span><h2>Article blocks</h2><p>Mix editorial content, visual storytelling, interactive blocks, and commerce references.</p></div>
       @for (tool of tools; track tool.type) {
         <button type="button" class="tool-item" (click)="addBlock(tool.type)">
           <span class="tool-icon">{{ tool.icon }}</span><span class="tool-copy"><strong>{{ tool.label }}</strong><small>{{ tool.description }}</small></span><span class="tool-add">＋</span>
@@ -16,8 +19,8 @@
     <main class="studio-canvas">
       <div class="canvas-topline"><span>EDITORIAL CANVAS</span><span>{{ blocks().length }} BLOCKS</span></div>
       <div class="article-metadata">
-        <label class="field-label">ARTICLE TITLE<input [ngModel]="title()" (ngModelChange)="title.set($event)" name="title" placeholder="Give your story a title" /></label>
-        <label class="field-label">SUBTITLE<textarea [ngModel]="subtitle()" (ngModelChange)="subtitle.set($event)" name="subtitle" rows="2" placeholder="A line that invites readers in"></textarea></label>
+        <label class="field-label">ARTICLE TITLE<input [ngModel]="title()" (ngModelChange)="title.set($event); saveDraft()" name="title" placeholder="Give your story a title" /></label>
+        <label class="field-label">SUBTITLE<textarea [ngModel]="subtitle()" (ngModelChange)="subtitle.set($event); saveDraft()" name="subtitle" rows="2" placeholder="A line that invites readers in"></textarea></label>
       </div>
       @if (blocks().length === 0) {
         <div class="empty-canvas"><span class="empty-mark">✦</span><h2>Your story starts here.</h2><p>Add a block from the catalogue. Build a rhythm of words, images, and interactive ideas.</p></div>
@@ -25,15 +28,96 @@
         <div class="block-list">
           @for (block of blocks(); track block.id; let i = $index) {
             <article class="block-card">
-              <header><span class="block-type">{{ block.type.replace('_', ' ') }}</span><div class="block-actions"><button type="button" [disabled]="i === 0" (click)="moveBlock(i, -1)" aria-label="Move block up">↑</button><button type="button" [disabled]="i === blocks().length - 1" (click)="moveBlock(i, 1)" aria-label="Move block down">↓</button><button type="button" (click)="removeBlock(block.id)" aria-label="Remove block">×</button></div></header>
+              <header><span class="block-type">{{ block.type.replace('_', ' ') }}</span><div class="block-actions"><button type="button" [disabled]="i === 0" (click)="moveBlock(i, -1)" aria-label="Move block up">↑</button><button type="button" [disabled]="i === blocks().length - 1" (click)="moveBlock(i, 1)" aria-label="Move block down">↓</button><button type="button" (click)="duplicateBlock(block.id)" aria-label="Duplicate block">⧉</button><button type="button" (click)="removeBlock(block.id)" aria-label="Remove block">×</button></div></header>
               <div class="block-preview">
                 @switch (block.type) {
-                  @case ('text') { <p class="text-preview">Text block · {{ block.html }}</p> }
-                  @case ('image') { <label>Image URL <input [value]="block.imageUrl" (input)="block.imageUrl = $any($event.target).value" placeholder="https://…" /></label><label>Alt text <input [value]="block.alt" (input)="block.alt = $any($event.target).value" placeholder="Describe the image" /></label> }
-                  @case ('quote') { <label>Quotation <textarea [value]="block.quote" (input)="block.quote = $any($event.target).value" placeholder="Write the quote…"></textarea></label> }
-                  @case ('embed') { <label>Embed URL <input [value]="block.url" (input)="block.url = $any($event.target).value" placeholder="https://…" /></label> }
-                  @case ('math') { <label>Formula <input [value]="block.formula" (input)="block.formula = $any($event.target).value" placeholder="Enter formula" /></label> }
-                  @default { <p>This block is added to the article structure. Its focused editor will be implemented with the corresponding block feature.</p> }
+                  @case ('text') {
+                    <label>Text content <textarea rows="6" [value]="block.html.replace(/<[^>]*>/g, '')" (input)="patchBlock(block.id, { html: '<p>' + $any($event.target).value + '</p>' })" placeholder="Write your paragraph…"></textarea></label>
+                    <small>Basic text editor for this first pass. A structured rich-text model will replace HTML-string editing.</small>
+                  }
+                  @case ('image') {
+                    <label>Image URL<input [value]="block.imageUrl" (input)="patchBlock(block.id, { imageUrl: $any($event.target).value })" placeholder="https://…" /></label>
+                    <label>Alternative text<input [value]="block.alt" (input)="patchBlock(block.id, { alt: $any($event.target).value })" placeholder="Describe the image for accessibility" /></label>
+                    <label>Caption<input [value]="block.caption || ''" (input)="patchBlock(block.id, { caption: $any($event.target).value })" placeholder="Optional caption" /></label>
+                    <label>Display width<select [value]="block.width" (change)="patchBlock(block.id, { width: $any($event.target).value })"><option value="normal">Normal</option><option value="wide">Wide</option><option value="full">Full bleed</option></select></label>
+                  }
+                  @case ('gallery') {
+                    <label>Gallery layout<select [value]="block.layout" (change)="patchBlock(block.id, { layout: $any($event.target).value })"><option value="grid">Grid</option><option value="masonry">Masonry</option><option value="strip">Strip</option><option value="carousel">Carousel</option></select></label>
+                    @for (image of block.images; track $index; let j = $index) {
+                      <div class="nested-editor"><strong>Image {{ j + 1 }}</strong><label>URL<input [value]="image.url" (input)="updateNestedItem(block, j, 'url', $any($event.target).value)" placeholder="https://…" /></label><label>Alt text<input [value]="image.alt" (input)="updateNestedItem(block, j, 'alt', $any($event.target).value)" placeholder="Describe this image" /></label><label>Caption<input [value]="image.caption || ''" (input)="updateNestedItem(block, j, 'caption', $any($event.target).value)" /></label><button type="button" (click)="removeNestedItem(block, j)">Remove image</button></div>
+                    }
+                    <button type="button" (click)="addNestedItem(block)">＋ Add image</button>
+                  }
+                  @case ('slide') {
+                    <label>Slide ratio<select [value]="block.ratio" (change)="patchBlock(block.id, { ratio: $any($event.target).value })"><option value="16:9">16:9</option><option value="1:1">1:1</option><option value="9:16">9:16</option></select></label>
+                    @for (slide of block.slides; track $index; let j = $index) {
+                      <div class="nested-editor"><strong>Slide {{ j + 1 }}</strong><label>Image URL<input [value]="slide.imageUrl" (input)="updateNestedItem(block, j, 'imageUrl', $any($event.target).value)" /></label><label>Label<input [value]="slide.label || ''" (input)="updateNestedItem(block, j, 'label', $any($event.target).value)" /></label><label>Link URL<input [value]="slide.href || ''" (input)="updateNestedItem(block, j, 'href', $any($event.target).value)" /></label><button type="button" (click)="removeNestedItem(block, j)">Remove slide</button></div>
+                    }
+                    <button type="button" (click)="addNestedItem(block)">＋ Add slide</button>
+                  }
+                  @case ('quote') {
+                    <label>Quotation<textarea rows="3" [value]="block.quote" (input)="patchBlock(block.id, { quote: $any($event.target).value })" placeholder="Write the quote…"></textarea></label>
+                    <label>Author<input [value]="block.author || ''" (input)="patchBlock(block.id, { author: $any($event.target).value })" /></label>
+                    <label>Source / citation<input [value]="block.citation || ''" (input)="patchBlock(block.id, { citation: $any($event.target).value })" /></label>
+                  }
+                  @case ('embed') {
+                    <label>Embed URL<input [value]="block.url" (input)="patchBlock(block.id, { url: $any($event.target).value })" placeholder="https://…" /></label>
+                    <label>Accessible title<input [value]="block.title || ''" (input)="patchBlock(block.id, { title: $any($event.target).value })" placeholder="Describe this embedded media" /></label>
+                    <small>Embeds must be resolved through a provider allowlist in the public renderer; never inject arbitrary iframe HTML.</small>
+                  }
+                  @case ('before_after') {
+                    <label>Before image URL<input [value]="block.beforeImage" (input)="patchBlock(block.id, { beforeImage: $any($event.target).value })" /></label><label>Before label<input [value]="block.beforeLabel || ''" (input)="patchBlock(block.id, { beforeLabel: $any($event.target).value })" /></label>
+                    <label>After image URL<input [value]="block.afterImage" (input)="patchBlock(block.id, { afterImage: $any($event.target).value })" /></label><label>After label<input [value]="block.afterLabel || ''" (input)="patchBlock(block.id, { afterLabel: $any($event.target).value })" /></label>
+                  }
+                  @case ('hotspot') {
+                    <label>Base image URL<input [value]="block.imageUrl" (input)="patchBlock(block.id, { imageUrl: $any($event.target).value })" /></label>
+                    @for (point of block.points; track point.id; let j = $index) {
+                      <div class="nested-editor"><strong>Hotspot {{ j + 1 }}</strong><label>Title<input [value]="point.title" (input)="updateNestedItem(block, j, 'title', $any($event.target).value)" /></label><label>Description<textarea [value]="point.description" (input)="updateNestedItem(block, j, 'description', $any($event.target).value)"></textarea></label><div class="field-pair"><label>X %<input type="number" min="0" max="100" [value]="point.x" (input)="updateNestedItem(block, j, 'x', +$any($event.target).value)" /></label><label>Y %<input type="number" min="0" max="100" [value]="point.y" (input)="updateNestedItem(block, j, 'y', +$any($event.target).value)" /></label></div><button type="button" (click)="removeNestedItem(block, j)">Remove hotspot</button></div>
+                    }
+                    <button type="button" (click)="addNestedItem(block)">＋ Add hotspot</button>
+                  }
+                  @case ('timeline') {
+                    <label>Section title<input [value]="block.title || ''" (input)="patchBlock(block.id, { title: $any($event.target).value })" /></label>
+                    @for (event of block.events; track $index; let j = $index) {
+                      <div class="nested-editor"><strong>Event {{ j + 1 }}</strong><label>Date / period<input [value]="event.date" (input)="updateNestedItem(block, j, 'date', $any($event.target).value)" /></label><label>Title<input [value]="event.title" (input)="updateNestedItem(block, j, 'title', $any($event.target).value)" /></label><label>Description<textarea [value]="event.description" (input)="updateNestedItem(block, j, 'description', $any($event.target).value)"></textarea></label><button type="button" (click)="removeNestedItem(block, j)">Remove event</button></div>
+                    }
+                    <button type="button" (click)="addNestedItem(block)">＋ Add event</button>
+                  }
+                  @case ('steps') {
+                    <label>Section title<input [value]="block.title || ''" (input)="patchBlock(block.id, { title: $any($event.target).value })" /></label>
+                    @for (step of block.steps; track $index; let j = $index) {
+                      <div class="nested-editor"><strong>Step {{ j + 1 }}</strong><label>Title<input [value]="step.title" (input)="updateNestedItem(block, j, 'title', $any($event.target).value)" /></label><label>Description<textarea [value]="step.description" (input)="updateNestedItem(block, j, 'description', $any($event.target).value)"></textarea></label><button type="button" (click)="removeNestedItem(block, j)">Remove step</button></div>
+                    }
+                    <button type="button" (click)="addNestedItem(block)">＋ Add step</button>
+                  }
+                  @case ('data_viz') {
+                    <label>Chart type<select [value]="block.chartType" (change)="patchBlock(block.id, { chartType: $any($event.target).value })"><option value="bar">Bar</option><option value="progress">Progress</option><option value="kpi">KPI</option><option value="comparison">Comparison</option><option value="table">Table</option></select></label>
+                    <label>Chart title<input [value]="block.title || ''" (input)="patchBlock(block.id, { title: $any($event.target).value })" /></label>
+                    @for (item of block.values; track $index; let j = $index) {
+                      <div class="nested-editor"><label>Label<input [value]="item.label" (input)="updateNestedItem(block, j, 'label', $any($event.target).value)" /></label><label>Value<input type="number" [value]="item.value" (input)="updateNestedItem(block, j, 'value', +$any($event.target).value)" /></label><button type="button" (click)="removeNestedItem(block, j)">Remove value</button></div>
+                    }
+                    <button type="button" (click)="addNestedItem(block)">＋ Add data point</button>
+                  }
+                  @case ('math') {
+                    <label>Formula<input [value]="block.formula" (input)="patchBlock(block.id, { formula: $any($event.target).value })" placeholder="Enter formula" /></label>
+                    <label>Explanation<textarea [value]="block.explanation || ''" (input)="patchBlock(block.id, { explanation: $any($event.target).value })" placeholder="Explain the formula for readers"></textarea></label>
+                  }
+                  @case ('product') {
+                    <label>Product reference ID<input [value]="block.productId" (input)="patchBlock(block.id, { productId: $any($event.target).value })" placeholder="Select from a connected Mageus shop when available" /></label>
+                    <label>Display style<select [value]="block.displayMode" (change)="patchBlock(block.id, { displayMode: $any($event.target).value })"><option value="card">Card</option><option value="compact">Compact</option><option value="featured">Featured</option></select></label>
+                    <small>Product picker will connect through a commerce adapter; no direct Dollareus database access.</small>
+                  }
+                  @case ('product_collection') {
+                    <label>Collection title<input [value]="block.title || ''" (input)="patchBlock(block.id, { title: $any($event.target).value })" /></label>
+                    <label>Layout<select [value]="block.layout" (change)="patchBlock(block.id, { layout: $any($event.target).value })"><option value="grid">Grid</option><option value="carousel">Carousel</option><option value="list">List</option></select></label>
+                    @for (productId of block.productIds; track $index; let j = $index) {
+                      <div class="nested-editor"><label>Product reference ID<input [value]="productId" (input)="patchBlock(block.id, { productIds: block.productIds.map((value, index) => index === j ? $any($event.target).value : value) })" /></label><button type="button" (click)="patchBlock(block.id, { productIds: block.productIds.filter((_, index) => index !== j) })">Remove product</button></div>
+                    }
+                    <button type="button" (click)="patchBlock(block.id, { productIds: [...block.productIds, ''] })">＋ Add product reference</button>
+                  }
+                  @case ('magazine_ref') {
+                    <label>Magazine / issue reference ID<input [value]="block.magazineId" (input)="patchBlock(block.id, { magazineId: $any($event.target).value })" placeholder="Choose a magazine or issue when connected" /></label>
+                  }
                 }
               </div>
             </article>
@@ -42,6 +126,9 @@
       }
       <button class="add-another" type="button" (click)="selectedTool.set(selectedTool() ? null : 'text')">＋ Add another block</button>
       @if (selectedTool()) { <div class="quick-add"><span>Quick add</span><button type="button" (click)="addBlock(selectedTool()!)">Text block</button><button type="button" (click)="selectedTool.set(null)">Cancel</button></div> }
+      @if (validationMessages().length) {
+        <section class="validation-panel" aria-live="polite"><strong>Before publishing</strong><ul>@for (issue of validationMessages(); track issue) { <li>{{ issue }}</li> }</ul></section>
+      }
     </main>
   </div>
 </section>
