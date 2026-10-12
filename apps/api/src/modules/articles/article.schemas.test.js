@@ -19,6 +19,10 @@ test('article block schema accepts a versioned text block', () => {
   assert.equal(parsed.type, 'text');
 });
 
+test('dedicated nested steps blocks are not part of the new flat block model', () => {
+  assert.equal(articleBlockSchema.safeParse({ id: 'steps-1', type: 'steps', title: 'Recipe', steps: [{ title: 'Mix', description: 'Mix ingredients' }] }).success, false);
+});
+
 test('text blocks accept optional regular or step presentation metadata', () => {
   const regular = articleBlockSchema.parse({ id: 'text-regular', type: 'text', html: '<p>Paragraph</p>', presentation: 'regular' });
   const step = articleBlockSchema.parse({ id: 'text-step', type: 'text', html: '<p>Prepare the ingredients</p>', presentation: 'step' });
