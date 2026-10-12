@@ -14,6 +14,14 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/auth-page.component').then((module) => module.AuthPageComponent)
   },
   {
+    path: 'feed',
+    loadComponent: () => import('./features/feed/feed-page.component').then((module) => module.FeedPageComponent)
+  },
+  {
+    path: 'notifications',
+    loadComponent: () => import('./features/notifications/notifications-page.component').then((module) => module.NotificationsPageComponent)
+  },
+  {
     // Public social profile; posts, shops, location menus, and services are grouped by channel.
     path: ':username',
     loadComponent: () => import('./features/profile/public-profile-page.component').then((module) => module.PublicProfilePageComponent)
