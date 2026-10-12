@@ -61,14 +61,17 @@ socialRoutes.get('/profiles/:username', async (req, res, next) => {
     );
     if (!rows[0]) return res.status(404).json({ error: { code: 'PROFILE_NOT_FOUND', message: 'Profile not found.' } });
     const profile = rows[0];
-    if (profile.profile_visibility === 'private') {
+    const visibility = profile.profile_visibility;
+    delete profile.profile_visibility;
+    if (visibility === 'private') {
       const authorization = req.headers.authorization ?? '';
       const match = /^Bearer\\s+(.+)$/i.exec(authorization);
       let viewerUserId = null;
       if (match) {
         try { viewerUserId = (await verifyAccessToken(match[1])).userId; } catch { /* Treat invalid tokens as anonymous visitors. */ }
       }
-      if (!viewerUserId || viewerUserId !== profile.id && viewerUserId !== (await pool.query('SELECT owner_user_id FROM channels WHERE id = $1', [profile.id])).rows[0]?.owner_user_id) {
+      const owner = await pool.query('SELECT owner_user_id FROM channels WHERE id = $1', [profile.id]);
+      if (!viewerUserId || viewerUserId !== owner.rows[0]?.owner_user_id) {
         return res.status(404).json({ error: { code: 'PROFILE_NOT_FOUND', message: 'Profile not found.' } });
       }
     }
