@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ArticleBlock, ArticleBlockType } from '../../domain/article.model';
 import { ARTICLE_BLOCK_TOOLS, createEmptyBlock } from './article-block-registry';
+import { ArticleBlockEditorComponent } from './article-block-editor.component';
 
 interface StudioDraft {
   version: 1;
@@ -18,7 +19,7 @@ const DRAFT_KEY = 'mageus:article-studio:draft:v1';
 @Component({
   standalone: true,
   selector: 'mageus-article-studio',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, ArticleBlockEditorComponent],
   templateUrl: './article-studio-page.component.html',
   styleUrl: './article-studio-page.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -55,6 +56,11 @@ export class ArticleStudioPageComponent {
     this.blocks.update((current) => current.map((block) =>
       block.id === id ? ({ ...block, ...patch } as ArticleBlock) : block
     ));
+    this.markChanged();
+  }
+
+  replaceBlock(updated: ArticleBlock): void {
+    this.blocks.update((current) => current.map((block) => block.id === updated.id ? updated : block));
     this.markChanged();
   }
 
