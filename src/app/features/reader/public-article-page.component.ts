@@ -4,13 +4,22 @@ import { ChangeDetectionStrategy, Component, DestroyRef, PLATFORM_ID, inject, si
 import { Meta, Title } from '@angular/platform-browser';
 import { REQUEST } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, debounceTime, distinctUntilChanged, of, Subject, switchMap } from 'rxjs';
 import { ArticleBlock } from '../../domain/article.model';
 import { MatSliderModule } from '@angular/material/slider';
 import { AuthService } from '../../core/auth/auth.service';
 import { ArticleBlockRendererComponent } from '../article-studio/article-block-renderer.component';
 import { ReadingMoodService } from '../../core/reading-mood.service';
+
+interface ArticleComment {
+  id: string;
+  parent_comment_id: string | null;
+  body: string;
+  created_at: string;
+  author_username: string;
+  author_name: string;
+}
 
 interface PublicArticle {
   id: string;
@@ -40,6 +49,7 @@ interface PublicArticle {
 })
 export class PublicArticlePageComponent {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly http = inject(HttpClient);
   private readonly titleService = inject(Title);
   private readonly meta = inject(Meta);
@@ -59,6 +69,11 @@ export class PublicArticlePageComponent {
   readonly notFound = signal(false);
   readonly moodMenuOpen = signal(false);
   readonly progress = signal(0);
+  readonly comments = signal<ArticleComment[]>([]);
+  readonly commentsLoading = signal(false);
+  readonly commentDraft = signal('');
+  readonly commentBusy = signal(false);
+  readonly commentMessage = signal('');
 
   private readonly apiBase = this.resolveApiBase();
 
@@ -100,10 +115,14 @@ export class PublicArticlePageComponent {
       this.article.set(article);
       this.voteValue.set(50);
       this.voteMessage.set('');
+      this.comments.set([]);
+      this.commentDraft.set('');
+      this.commentMessage.set('');
       this.loading.set(false);
       this.notFound.set(!article);
       if (article) {
         this.updateSeo(article);
+        this.loadComments(article.id);
         const voteEndpoint = `/api/v1/engagement/articles/${encodeURIComponent(article.id)}/votes`;
         this.http.get<{ average: number; count: number }>(voteEndpoint)
           .pipe(catchError(() => of({ average: 0, count: 0 })), takeUntilDestroyed(this.destroyRef))
@@ -150,6 +169,51 @@ export class PublicArticlePageComponent {
     let number = 1;
     for (let cursor = index - 1; cursor >= 0 && this.isStepBlock(blocks[cursor]); cursor--) number++;
     return number;
+  }
+
+
+  private loadComments(articleId: string): void {
+    this.commentsLoading.set(true);
+    this.http.get<{ comments: ArticleComment[] }>(
+      `/api/v1/engagement/articles/${encodeURIComponent(articleId)}/comments`
+    ).pipe(
+      catchError(() => of({ comments: [] })),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe((result) => {
+      if (this.article()?.id !== articleId) return;
+      this.comments.set(result.comments);
+      this.commentsLoading.set(false);
+    });
+  }
+
+  async submitComment(): Promise<void> {
+    const article = this.article();
+    const body = this.commentDraft().trim();
+    if (!article || !body || this.commentBusy()) return;
+    if (!this.auth.isAuthenticated()) {
+      await this.router.navigate(['/sign-in'], {
+        queryParams: { returnUrl: `/${article.author_username}/${article.slug}` }
+      });
+      return;
+    }
+    this.commentBusy.set(true);
+    this.commentMessage.set('');
+    this.http.post(
+      `/api/v1/engagement/articles/${encodeURIComponent(article.id)}/comments`,
+      { body },
+      { headers: this.auth.authorizationHeaders() }
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => {
+        this.commentDraft.set('');
+        this.commentMessage.set('Comment published.');
+        this.loadComments(article.id);
+        this.commentBusy.set(false);
+      },
+      error: (error) => {
+        this.commentMessage.set(error?.error?.error?.message || 'Your comment could not be published. Please try again.');
+        this.commentBusy.set(false);
+      }
+    });
   }
 
   private updateSeo(article: PublicArticle): void {
