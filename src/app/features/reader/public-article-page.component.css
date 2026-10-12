@@ -27,8 +27,8 @@
 
 /* Optional tutorial-step treatment for consecutive text blocks; the article remains a flat list. */
 .article-step { position: relative; display: grid; grid-template-columns: 2.25rem minmax(0, 1fr); column-gap: 1rem; align-items: stretch; }
-.article-step-marker { position: relative; z-index: 1; display: grid; place-items: center; width: 2rem; height: 2rem; border: 1px solid var(--accent, #a6a2ff); border-radius: 50%; color: var(--accent, #a6a2ff); background: rgba(8, 10, 14, .82); font: .75rem var(--font-mono, monospace); }
-.article-step.has-next::after { content: ''; position: absolute; z-index: 0; top: 2rem; bottom: -.15rem; left: .97rem; width: 1px; background: color-mix(in srgb, var(--accent, #a6a2ff) 48%, transparent); }
+.article-step-marker { position: relative; z-index: 1; display: grid; place-items: center; width: 2rem; height: 2rem; border: 1px solid var(--mood-accent, #a6a2ff); border-radius: 50%; color: var(--mood-accent, #a6a2ff); background: rgba(8, 10, 14, .82); font: .75rem var(--font-mono, monospace); }
+.article-step.has-next::after { content: ''; position: absolute; z-index: 0; top: 2rem; bottom: -.15rem; left: .97rem; width: 1px; background: color-mix(in srgb, var(--mood-accent, #a6a2ff) 48%, transparent); }
 .article-step-content { min-width: 0; padding: .1rem 0 1.5rem; }
 .article-step-content .rendered-block { min-width: 0; }
 .article-step-content .rich-text { margin-left: 0; margin-right: 0; }
