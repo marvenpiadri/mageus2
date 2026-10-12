@@ -227,6 +227,34 @@ export class ArticleStudioPageComponent {
     this.statusMessage.set(errors.length ? 'Local draft saved · resolve validation notes before publishing.' : 'Local draft saved. Use Sync draft to save it to your account.');
   }
 
+  async reloadServerDraft(): Promise<void> {
+    const id = this.serverArticleId();
+    if (!id) return;
+    if (isPlatformBrowser(this.platformId) &&
+        !globalThis.confirm('Replace the current editor contents with the latest server draft? Export your local draft first if you want to keep these unsynced changes.')) return;
+    try {
+      const draft = await this.api.loadDraft(id);
+      this.title.set(draft.title ?? '');
+      this.subtitle.set(draft.subtitle ?? '');
+      this.slug.set(draft.slug ?? '');
+      this.excerpt.set(draft.excerpt ?? '');
+      this.category.set(draft.category ?? '');
+      this.language.set(draft.language ?? 'en');
+      this.tags.set(draft.tags ?? []);
+      this.coverImageUrl.set(draft.cover_image_url ?? '');
+      this.seoTitle.set(draft.seo_title ?? '');
+      this.seoDescription.set(draft.seo_description ?? '');
+      this.canonicalUrl.set(draft.canonical_url ?? '');
+      this.blocks.set(draft.blocks ?? []);
+      this.serverRevision.set(draft.revision);
+      this.validationMessages.set([]);
+      this.persistDraft();
+      this.statusMessage.set('Loaded the latest server version. Your next sync will use its revision.');
+    } catch (error: any) {
+      this.statusMessage.set(error?.error?.error?.message || error?.message || 'Could not reload the server draft.');
+    }
+  }
+
   async syncDraft(): Promise<boolean> {
     this.persistDraft();
     if (!this.title().trim()) { this.statusMessage.set('Local draft saved · add a title before syncing.'); return false; }
