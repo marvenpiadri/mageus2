@@ -80,9 +80,15 @@ export class PublicArticlePageComponent {
       this.notFound.set(!article);
       if (article) {
         this.updateSeo(article);
-        this.http.get<{ average: number; count: number }>(`/api/v1/engagement/articles/${encodeURIComponent(article.id)}/votes`)
+        const voteEndpoint = `/api/v1/engagement/articles/${encodeURIComponent(article.id)}/votes`;
+        this.http.get<{ average: number; count: number }>(voteEndpoint)
           .pipe(catchError(() => of({ average: 0, count: 0 })), takeUntilDestroyed(this.destroyRef))
           .subscribe((votes) => { this.voteAverage.set(votes.average); this.voteCount.set(votes.count); });
+        if (this.auth.isAuthenticated()) {
+          this.http.get<{ userVote: number | null }>(`${voteEndpoint}/mine`, { headers: this.auth.authorizationHeaders() })
+            .pipe(catchError(() => of({ userVote: null })), takeUntilDestroyed(this.destroyRef))
+            .subscribe((vote) => { if (vote.userVote !== null) this.voteValue.set(vote.userVote); });
+        }
       }
     });
   }
