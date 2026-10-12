@@ -14,13 +14,16 @@ Mageus 2 owns its own Neon database. It does not share a database with Dollareus
 
 ## Apply schema migrations
 
-From `apps/api`:
+From `apps/api`, first create a local `.env` file from `.env.example` and set `DATABASE_URL` to the Neon connection string. The `.env` file is ignored by Git and must remain server-side.
 
 ```sh
 npm install
+npm run db:check
 npm run db:migrate
 npm test
 ```
+
+`db:check` makes a read-only connection and prints the database name, role, PostgreSQL version, and read-only status. It deliberately never prints the connection string or password. A successful check proves connectivity only; `db:migrate` and the migration tests are still required to establish the schema.
 
 Migrations run in lexical order and are recorded in `schema_migrations`:
 - `001_initial_publishing.sql`: users, channels, articles, public metadata, blocks, likes, comments, and media metadata.
