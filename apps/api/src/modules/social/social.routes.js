@@ -444,3 +444,92 @@ socialRoutes.delete('/me/business/locations/:locationId', socialWriteLimit, requ
     return next(error);
   } finally { client.release(); }
 });
+
+
+// Storefront management keeps every shop under its owner's channel. Archiving is preferred
+// over deletion so catalog history and article product references are not destroyed.
+const storefrontInput = z.object({
+  name: z.string().trim().min(1).max(120),
+  slug: z.string().trim().min(1).max(120).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  description: z.string().trim().max(3000).default(''),
+  fulfillmentType: z.enum(['physical', 'online', 'hybrid']).default('online'),
+  locationId: z.string().uuid().nullable().default(null),
+  status: z.enum(['draft', 'published', 'archived']).default('draft')
+}).strict();
+
+socialRoutes.get('/me/business/storefronts', requireVerifiedIdentity, async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT s.id, s.name, s.slug, s.description, s.fulfillment_type, s.location_id, s.status,
+              l.name AS location_name, s.created_at, s.updated_at,
+              (SELECT count(*)::int FROM store_products p WHERE p.storefront_id = s.id) AS product_count,
+              (SELECT count(*)::int FROM store_services v WHERE v.storefront_id = s.id) AS service_count
+         FROM storefronts s
+         JOIN channels c ON c.id = s.channel_id
+         LEFT JOIN business_locations l ON l.id = s.location_id AND l.channel_id = s.channel_id
+        WHERE c.owner_user_id = $1
+        ORDER BY s.updated_at DESC, s.name ASC`,
+      [req.auth.userId]
+    );
+    return res.json({ storefronts: rows });
+  } catch (error) { next(error); }
+});
+
+socialRoutes.post('/me/business/storefronts', socialWriteLimit, requireVerifiedIdentity, async (req, res, next) => {
+  const input = storefrontInput.safeParse(req.body);
+  if (!input.success) return res.status(400).json({ error: { code: 'INVALID_STOREFRONT', message: 'Check the shop name, URL slug, fulfillment type, and location.' } });
+  try {
+    const channel = await pool.query('SELECT id FROM channels WHERE owner_user_id = $1 ORDER BY created_at ASC LIMIT 1', [req.auth.userId]);
+    if (!channel.rows[0]) return res.status(404).json({ error: { code: 'PROFILE_NOT_FOUND', message: 'Your public profile could not be found.' } });
+    const channelId = channel.rows[0].id;
+    if (input.data.locationId) {
+      const location = await pool.query('SELECT 1 FROM business_locations WHERE id = $1 AND channel_id = $2', [input.data.locationId, channelId]);
+      if (!location.rowCount) return res.status(400).json({ error: { code: 'INVALID_LOCATION', message: 'Choose one of your own business locations.' } });
+    }
+    const { rows } = await pool.query(
+      `INSERT INTO storefronts (channel_id, location_id, name, slug, description, fulfillment_type, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, name, slug, description, fulfillment_type, location_id, status, created_at, updated_at`,
+      [channelId, input.data.locationId, input.data.name, input.data.slug, input.data.description, input.data.fulfillmentType, input.data.status]
+    );
+    return res.status(201).json({ storefront: rows[0] });
+  } catch (error) {
+    if (error?.code === '23505') return res.status(409).json({ error: { code: 'STOREFRONT_CONFLICT', message: 'A shop with this URL slug already exists on your profile.' } });
+    return next(error);
+  }
+});
+
+socialRoutes.patch('/me/business/storefronts/:storefrontId', socialWriteLimit, requireVerifiedIdentity, async (req, res, next) => {
+  const id = uuid.safeParse(req.params.storefrontId);
+  const input = storefrontInput.partial().strict().safeParse(req.body);
+  if (!id.success) return res.status(404).json({ error: { code: 'STOREFRONT_NOT_FOUND', message: 'Shop not found.' } });
+  if (!input.success || Object.keys(input.data ?? {}).length === 0) return res.status(400).json({ error: { code: 'INVALID_STOREFRONT', message: 'Provide valid shop fields to update.' } });
+  try {
+    const current = await pool.query(
+      `SELECT s.channel_id FROM storefronts s JOIN channels c ON c.id = s.channel_id
+        WHERE s.id = $1 AND c.owner_user_id = $2`,
+      [id.data, req.auth.userId]
+    );
+    if (!current.rows[0]) return res.status(404).json({ error: { code: 'STOREFRONT_NOT_FOUND', message: 'Shop not found.' } });
+    const fields = input.data;
+    if (fields.locationId) {
+      const location = await pool.query('SELECT 1 FROM business_locations WHERE id = $1 AND channel_id = $2', [fields.locationId, current.rows[0].channel_id]);
+      if (!location.rowCount) return res.status(400).json({ error: { code: 'INVALID_LOCATION', message: 'Choose one of your own business locations.' } });
+    }
+    const { rows } = await pool.query(
+      `UPDATE storefronts SET
+         name = COALESCE($3, name), slug = COALESCE($4, slug), description = COALESCE($5, description),
+         fulfillment_type = COALESCE($6, fulfillment_type),
+         location_id = CASE WHEN $7::boolean THEN $8::uuid ELSE location_id END,
+         status = COALESCE($9, status), updated_at = now()
+       WHERE id = $1 AND channel_id = $2
+       RETURNING id, name, slug, description, fulfillment_type, location_id, status, created_at, updated_at`,
+      [id.data, current.rows[0].channel_id, fields.name ?? null, fields.slug ?? null, fields.description ?? null,
+       fields.fulfillmentType ?? null, fields.locationId !== undefined, fields.locationId ?? null, fields.status ?? null]
+    );
+    return res.json({ storefront: rows[0] });
+  } catch (error) {
+    if (error?.code === '23505') return res.status(409).json({ error: { code: 'STOREFRONT_CONFLICT', message: 'A shop with this URL slug already exists on your profile.' } });
+    return next(error);
+  }
+});
