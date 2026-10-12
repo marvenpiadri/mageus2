@@ -21,3 +21,5 @@
 .create-link:hover { border-color: var(--accent); }
 @media (max-width: 640px) { .main-rail { width: 48px; padding-inline: .35rem; } .shell-content { width: calc(100% - 48px); margin-left: 48px; } .global-topbar { padding: 0 .75rem; } .topbar-context { display: none; } }
 @media (prefers-reduced-motion: reduce) { .mageus-shell,.mageus-shell::before { transition: none; } }
+.sign-in-link { border: 1px solid var(--glass-border, rgba(255,255,255,.16)); border-radius: 999px; padding: .55rem .85rem; background: transparent; color: var(--text-primary, #f4f5fa); text-decoration: none; font: inherit; font-size: .78rem; cursor: pointer; }
+.account-chip { color: var(--text-muted, #b3b8c8); font-size: .78rem; }
