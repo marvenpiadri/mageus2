@@ -49,3 +49,23 @@
 .rating-summary { color: var(--text-muted, #a8adbb); font-size: .75rem; }
 .vote-message { margin: .65rem 0 0; color: var(--text-muted, #a8adbb); font-size: .75rem; }
 @media (max-width: 640px) { .article-voting { grid-template-columns: 1fr; } }
+
+/* Public article conversation */
+.article-comments { margin-top: 2rem; padding: clamp(1.1rem, 3vw, 2rem); border: 1px solid var(--glass-border, rgba(255,255,255,.14)); border-radius: 1rem; background: var(--glass-surface, rgba(255,255,255,.025)); }
+.comments-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.comments-heading h2 { margin: .45rem 0 0; font-size: clamp(1.25rem, 2.5vw, 1.8rem); }
+.comments-count { display: grid; place-items: center; min-width: 2rem; height: 2rem; padding: 0 .5rem; border-radius: 99px; border: 1px solid var(--glass-border, rgba(255,255,255,.16)); color: var(--text-muted, #a8adbb); font-size: .8rem; }
+.comments-state { color: var(--text-muted, #a8adbb); font-size: .85rem; line-height: 1.6; }
+.comment-list { display: grid; gap: 1rem; margin: 1.25rem 0; }
+.comment-item { padding: 1rem 0; border-bottom: 1px solid var(--glass-border, rgba(255,255,255,.1)); }
+.comment-byline { display: flex; flex-wrap: wrap; align-items: center; gap: .7rem; }
+.comment-byline a { color: var(--accent, #66ccc3); font-weight: 650; text-decoration: none; }
+.comment-byline time { color: var(--text-muted, #a8adbb); font-size: .72rem; }
+.comment-item p { margin: .65rem 0 0; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+.comment-form { display: grid; gap: .65rem; margin-top: 1.5rem; }
+.comment-form label { font-size: .85rem; font-weight: 650; }
+.comment-form textarea { width: 100%; min-height: 6rem; padding: .85rem 1rem; resize: vertical; border: 1px solid var(--glass-border, rgba(255,255,255,.18)); border-radius: .7rem; color: var(--text-primary, #f6f6fb); background: rgba(0,0,0,.14); font: inherit; line-height: 1.55; }
+.comment-form textarea:focus-visible { outline: 2px solid var(--accent, #66ccc3); outline-offset: 2px; }
+.comment-form-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .75rem; color: var(--text-muted, #a8adbb); font-size: .75rem; }
+.comment-form-footer button { border: 1px solid var(--accent, #66ccc3); border-radius: 99px; padding: .65rem 1rem; color: var(--text-primary, #f6f6fb); background: color-mix(in srgb, var(--accent, #66ccc3) 16%, transparent); font: inherit; font-weight: 650; cursor: pointer; }
+.comment-form-footer button:disabled { opacity: .5; cursor: not-allowed; }
