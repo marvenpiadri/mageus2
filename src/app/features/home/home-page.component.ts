@@ -48,6 +48,7 @@ export class HomePageComponent {
   private readonly apiBase = this.resolveApiBase();
 
   constructor() {
+    this.exploration.registerContext('/', this.listKey);
     if (!this.listState().items.length && !this.listState().loading) {
       this.loadPage(true);
     }
