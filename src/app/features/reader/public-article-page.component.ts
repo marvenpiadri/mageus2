@@ -7,6 +7,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, of, switchMap } from 'rxjs';
 import { ArticleBlock } from '../../domain/article.model';
+import { MatSliderModule } from '@angular/material/slider';
+import { AuthService } from '../../core/auth/auth.service';
 import { ArticleBlockRendererComponent } from '../article-studio/article-block-renderer.component';
 import { ReadingMoodService } from '../../core/reading-mood.service';
 
@@ -31,7 +33,7 @@ interface PublicArticle {
 @Component({
   standalone: true,
   selector: 'mageus-public-article-page',
-  imports: [CommonModule, RouterLink, ArticleBlockRendererComponent],
+  imports: [CommonModule, RouterLink, MatSliderModule, ArticleBlockRendererComponent],
   templateUrl: './public-article-page.component.html',
   styleUrl: './public-article-page.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -46,6 +48,11 @@ export class PublicArticlePageComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly request = inject(REQUEST, { optional: true });
   readonly moods = inject(ReadingMoodService);
+  readonly auth = inject(AuthService);
+  readonly voteValue = signal(50);
+  readonly voteAverage = signal(0);
+  readonly voteCount = signal(0);
+  readonly voteMessage = signal('');
   readonly article = signal<PublicArticle | null>(null);
   readonly loading = signal(true);
   readonly notFound = signal(false);
@@ -71,7 +78,12 @@ export class PublicArticlePageComponent {
       this.article.set(article);
       this.loading.set(false);
       this.notFound.set(!article);
-      if (article) this.updateSeo(article);
+      if (article) {
+        this.updateSeo(article);
+        this.http.get<{ average: number; count: number }>(`/api/v1/engagement/articles/${encodeURIComponent(article.id)}/votes`)
+          .pipe(catchError(() => of({ average: 0, count: 0 })), takeUntilDestroyed(this.destroyRef))
+          .subscribe((votes) => { this.voteAverage.set(votes.average); this.voteCount.set(votes.count); });
+      }
     });
   }
 
@@ -85,6 +97,29 @@ export class PublicArticlePageComponent {
       return new URL('/api/v1/articles', this.request.url).toString();
     }
     return '/api/v1/articles';
+  }
+
+  submitVote(): void {
+    const article = this.article();
+    if (!article) return;
+    if (!this.auth.isAuthenticated()) {
+      this.voteMessage.set('Sign in to cast your vote.');
+      return;
+    }
+    this.voteMessage.set('Saving your vote…');
+    this.http.put<{ userVote: number; average: number; count: number }>(
+      `/api/v1/engagement/articles/${encodeURIComponent(article.id)}/votes`,
+      { value: this.voteValue() },
+      { headers: this.auth.authorizationHeaders() }
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (result) => {
+        this.voteValue.set(result.userVote);
+        this.voteAverage.set(result.average);
+        this.voteCount.set(result.count);
+        this.voteMessage.set('Your vote has been recorded.');
+      },
+      error: () => this.voteMessage.set('Your vote could not be saved. Please try again.')
+    });
   }
 
   isStepBlock(block: ArticleBlock | undefined): boolean {
