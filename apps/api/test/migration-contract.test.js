@@ -121,3 +121,16 @@ test('identity migration supports external sign-in, profile preferences, app dis
     'redirect_uris text[]'
   ]) assert.ok(sql.includes(token), `Missing identity/settings schema contract: ${token}`);
 });
+
+
+test('article vote summaries are backfilled and maintained transactionally', async () => {
+  const sql = await migration('011_article_vote_summaries.sql');
+  for (const token of [
+    'CREATE TABLE IF NOT EXISTS article_vote_summaries',
+    'SUM(value)::bigint',
+    'CREATE OR REPLACE FUNCTION maintain_article_vote_summary()',
+    'AFTER INSERT OR UPDATE OR DELETE ON article_votes',
+    'total_score = total_score - OLD.value + NEW.value',
+    'vote_count = article_vote_summaries.vote_count + 1'
+  ]) assert.ok(sql.includes(token), `Missing rating-summary contract: ${token}`);
+});
