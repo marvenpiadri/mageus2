@@ -8,6 +8,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ArticleApiService, ArticleDraftPayload } from '../../core/services/article-api.service';
 import { ArticleBlockEditorComponent } from './article-block-editor.component';
 import { ArticleBlockRendererComponent } from './article-block-renderer.component';
+import { ArticleDocument, validateArticleDocument } from './article-document';
 
 interface StudioDraft {
   version: 1;
@@ -341,18 +342,32 @@ export class ArticleStudioPageComponent {
   }
 
   private validateDraft(): string[] {
-    const issues: string[] = [];
-    if (!this.title().trim()) issues.push('Add a title.');
-    if (!this.slug().trim()) issues.push('Add a public URL slug.');
-    if (!this.blocks().length) issues.push('Add at least one content block.');
-    for (const [index, block] of this.blocks().entries()) {
-      if (block.type === 'image' && !block.imageUrl.trim()) issues.push(`Block ${index + 1}: add an image URL.`);
-      if (block.type === 'image' && !block.alt.trim()) issues.push(`Block ${index + 1}: add alternative text.`);
-      if (block.type === 'embed' && !/^https?:\/\//i.test(block.url)) issues.push(`Block ${index + 1}: add a valid HTTP(S) embed URL.`);
-      if (block.type === 'product' && !block.productId.trim()) issues.push(`Block ${index + 1}: select a product reference.`);
-      if (block.type === 'magazine_ref' && !block.magazineId.trim()) issues.push(`Block ${index + 1}: select a magazine reference.`);
-    }
-    return issues;
+    const document: ArticleDocument = {
+      documentType: 'mageus.article',
+      schemaVersion: 1,
+      id: this.serverArticleId(),
+      channelId: null,
+      status: 'draft',
+      metadata: {
+        title: this.title(),
+        subtitle: this.subtitle(),
+        slug: this.slug(),
+        excerpt: this.excerpt(),
+        coverImage: this.coverImageUrl(),
+        category: this.category(),
+        language: this.language(),
+        tags: this.tags(),
+        seoTitle: this.seoTitle(),
+        seoDescription: this.seoDescription(),
+        canonicalUrl: this.canonicalUrl()
+      },
+      blocks: this.blocks(),
+      revision: this.serverRevision() ?? 0,
+      updatedAt: new Date().toISOString()
+    };
+    return validateArticleDocument(document)
+      .filter((issue) => issue.severity === 'error')
+      .map((issue) => `${issue.path}: ${issue.message}`);
   }
 
   private slugify(value: string): string {
