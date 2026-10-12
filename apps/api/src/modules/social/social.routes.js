@@ -533,3 +533,157 @@ socialRoutes.patch('/me/business/storefronts/:storefrontId', socialWriteLimit, r
     return next(error);
   }
 });
+
+
+// Menu management is owner-scoped. Each menu belongs to one physical location.
+const menuItemInput = z.object({
+  name: z.string().trim().min(1).max(160),
+  description: z.string().trim().max(2000).default(''),
+  imageUrl: z.string().trim().url().max(2048).nullable().optional(),
+  priceAmount: z.number().finite().min(0).max(9999999999).nullable().optional(),
+  currency: z.string().trim().regex(/^[A-Za-z]{3}$/).default('USD').transform((value) => value.toUpperCase()),
+  category: z.string().trim().max(120).default(''),
+  sortOrder: z.number().int().min(0).max(10000).default(0),
+  isAvailable: z.boolean().default(true)
+}).strict();
+const menuInput = z.object({
+  locationId: uuid,
+  name: z.string().trim().min(1).max(160),
+  slug: z.string().trim().min(1).max(120).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  description: z.string().trim().max(2000).default(''),
+  pdfUrl: z.string().trim().url().max(2048).nullable().optional(),
+  status: z.enum(['draft', 'published', 'archived']).default('draft'),
+  items: z.array(menuItemInput).max(300).default([])
+}).strict();
+
+const menuSelect = `SELECT m.id, m.channel_id, m.location_id, l.name AS location_name, l.slug AS location_slug,
+       m.name, m.slug, m.description, m.pdf_url, m.status, m.created_at, m.updated_at,
+       COALESCE((SELECT jsonb_agg(jsonb_build_object(
+         'id', i.id, 'name', i.name, 'description', i.description, 'image_url', i.image_url,
+         'price_amount', i.price_amount, 'currency', i.currency, 'category', i.category,
+         'sort_order', i.sort_order, 'is_available', i.is_available
+       ) ORDER BY i.sort_order, i.created_at) FROM location_menu_items i WHERE i.menu_id = m.id), '[]'::jsonb) AS items
+  FROM location_menus m JOIN business_locations l ON l.id = m.location_id`;
+
+async function replaceMenuItems(client, menuId, items) {
+  await client.query('DELETE FROM location_menu_items WHERE menu_id = $1', [menuId]);
+  for (let index = 0; index < items.length; index += 1) {
+    const item = items[index];
+    await client.query(
+      `INSERT INTO location_menu_items
+        (menu_id, name, description, image_url, price_amount, currency, category, sort_order, is_available)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [menuId, item.name, item.description, item.imageUrl ?? null, item.priceAmount ?? null,
+       item.currency, item.category, item.sortOrder ?? index, item.isAvailable]
+    );
+  }
+}
+
+socialRoutes.get('/me/business/menus', requireVerifiedIdentity, async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      `${menuSelect} JOIN channels c ON c.id = m.channel_id
+        WHERE c.owner_user_id = $1 ORDER BY l.name, m.name`,
+      [req.auth.userId]
+    );
+    return res.json({ menus: rows });
+  } catch (error) { next(error); }
+});
+
+socialRoutes.post('/me/business/menus', socialWriteLimit, requireVerifiedIdentity, async (req, res, next) => {
+  const input = menuInput.safeParse(req.body);
+  if (!input.success) return res.status(400).json({ error: { code: 'INVALID_MENU', message: 'Check the menu details and each item.' } });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const location = await client.query(
+      `SELECT l.id, l.channel_id FROM business_locations l
+        JOIN channels c ON c.id = l.channel_id
+       WHERE l.id = $1 AND c.owner_user_id = $2 FOR UPDATE OF l`,
+      [input.data.locationId, req.auth.userId]
+    );
+    if (!location.rows[0]) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: { code: 'LOCATION_NOT_FOUND', message: 'Choose one of your own locations.' } });
+    }
+    const created = await client.query(
+      `INSERT INTO location_menus (channel_id, location_id, name, slug, description, pdf_url, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id`,
+      [location.rows[0].channel_id, input.data.locationId, input.data.name, input.data.slug,
+       input.data.description, input.data.pdfUrl ?? null, input.data.status]
+    );
+    await replaceMenuItems(client, created.rows[0].id, input.data.items);
+    const result = await client.query(`${menuSelect} WHERE m.id = $1`, [created.rows[0].id]);
+    await client.query('COMMIT');
+    return res.status(201).json({ menu: result.rows[0] });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    if (error?.code === '23505') return res.status(409).json({ error: { code: 'MENU_CONFLICT', message: 'A menu with this URL slug already exists at this location.' } });
+    return next(error);
+  } finally { client.release(); }
+});
+
+socialRoutes.patch('/me/business/menus/:menuId', socialWriteLimit, requireVerifiedIdentity, async (req, res, next) => {
+  const id = uuid.safeParse(req.params.menuId);
+  const input = menuInput.partial().strict().safeParse(req.body);
+  if (!id.success) return res.status(404).json({ error: { code: 'MENU_NOT_FOUND', message: 'Menu not found.' } });
+  if (!input.success || Object.keys(input.data ?? {}).length === 0) return res.status(400).json({ error: { code: 'INVALID_MENU', message: 'Provide valid menu fields to update.' } });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const owned = await client.query(
+      `SELECT m.id, m.channel_id, m.location_id
+         FROM location_menus m JOIN channels c ON c.id = m.channel_id
+        WHERE m.id = $1 AND c.owner_user_id = $2 FOR UPDATE OF m`,
+      [id.data, req.auth.userId]
+    );
+    if (!owned.rows[0]) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: { code: 'MENU_NOT_FOUND', message: 'Menu not found.' } });
+    }
+    if (input.data.locationId && input.data.locationId !== owned.rows[0].location_id) {
+      const location = await client.query(
+        `SELECT id FROM business_locations WHERE id = $1 AND channel_id = $2`,
+        [input.data.locationId, owned.rows[0].channel_id]
+      );
+      if (!location.rows[0]) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: { code: 'INVALID_LOCATION', message: 'Choose a location on your own channel.' } });
+      }
+    }
+    const d = input.data;
+    await client.query(
+      `UPDATE location_menus SET location_id = COALESCE($2, location_id),
+         name = COALESCE($3, name), slug = COALESCE($4, slug), description = COALESCE($5, description),
+         pdf_url = CASE WHEN $6::boolean THEN $7 ELSE pdf_url END,
+         status = COALESCE($8, status), updated_at = now()
+       WHERE id = $1`,
+      [id.data, d.locationId ?? null, d.name ?? null, d.slug ?? null, d.description ?? null,
+       d.pdfUrl !== undefined, d.pdfUrl ?? null, d.status ?? null]
+    );
+    if (d.items !== undefined) await replaceMenuItems(client, id.data, d.items);
+    const result = await client.query(`${menuSelect} WHERE m.id = $1`, [id.data]);
+    await client.query('COMMIT');
+    return res.json({ menu: result.rows[0] });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    if (error?.code === '23505') return res.status(409).json({ error: { code: 'MENU_CONFLICT', message: 'A menu with this URL slug already exists at this location.' } });
+    return next(error);
+  } finally { client.release(); }
+});
+
+socialRoutes.delete('/me/business/menus/:menuId', socialWriteLimit, requireVerifiedIdentity, async (req, res, next) => {
+  const id = uuid.safeParse(req.params.menuId);
+  if (!id.success) return res.status(404).json({ error: { code: 'MENU_NOT_FOUND', message: 'Menu not found.' } });
+  try {
+    const { rows } = await pool.query(
+      `DELETE FROM location_menus m USING channels c
+        WHERE m.id = $1 AND c.id = m.channel_id AND c.owner_user_id = $2
+        RETURNING m.id`,
+      [id.data, req.auth.userId]
+    );
+    if (!rows[0]) return res.status(404).json({ error: { code: 'MENU_NOT_FOUND', message: 'Menu not found.' } });
+    return res.json({ deleted: true, id: rows[0].id });
+  } catch (error) { next(error); }
+});
