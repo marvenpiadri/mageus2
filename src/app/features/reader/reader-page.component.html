@@ -1,0 +1,43 @@
+<section class="reader-page">
+  <header class="reader-bar">
+    <a routerLink="/" class="reader-back" aria-label="Back to articles">←</a>
+    <div class="reader-breadcrumb"><span>{{ article().author }}</span><span>/</span><span class="crumb-title">{{ article().title }}</span></div>
+    <div class="reader-actions">
+      <button type="button" class="mood-trigger" (click)="moodMenuOpen.set(!moodMenuOpen())" [attr.aria-expanded]="moodMenuOpen()">✦ <span>{{ moods.currentMood().name }}</span>⌄</button>
+      <a routerLink="/write" class="reader-edit">Edit</a>
+    </div>
+  </header>
+  @if (moodMenuOpen()) {
+    <div class="mood-backdrop" (click)="moodMenuOpen.set(false)">
+      <section class="mood-menu" aria-label="Choose a reading mood" (click)="$event.stopPropagation()">
+        <header><div><span>READING EXPERIENCE</span><h2>Choose a mood</h2></div><button type="button" (click)="moodMenuOpen.set(false)" aria-label="Close moods">×</button></header>
+        @for (mood of moods.moods; track mood.id) {
+          <button type="button" class="mood-option" [class.active]="moods.currentMood().id === mood.id" (click)="moods.selectMood(mood.id); moodMenuOpen.set(false)">
+            <span class="mood-icon" [style.color]="mood.accent">{{ mood.icon }}</span><span><strong>{{ mood.name }}</strong><small>{{ mood.description }}</small></span><span class="mood-check">{{ moods.currentMood().id === mood.id ? '✓' : '' }}</span>
+          </button>
+        }
+      </section>
+    </div>
+  }
+  <div class="reading-progress"><span [style.width.%]="progress()"></span></div>
+  <div class="reader-scroll" (scroll)="onScroll($event)">
+    <article class="article-paper">
+      <div class="article-category">FIELD NOTES · EDITORIAL DESIGN</div>
+      <h1>{{ article().title }}</h1>
+      <p class="article-subtitle">{{ article().subtitle }}</p>
+      <div class="byline"><span class="author-seal">M</span><span><strong>{{ article().author }}</strong><small>Curated stories for curious minds</small></span><span class="byline-rule"></span><span class="reading-time">8 MIN READ</span></div>
+      <figure class="hero-image"><img [src]="article().cover" [alt]="article().title" /><figcaption>Visual notes from the Mageus archive.</figcaption></figure>
+      <div class="article-body">
+        <p class="lead">The best reading experiences are not built by adding more interface. They emerge when the interface knows when to become quiet—when the page gives an idea room to breathe.</p>
+        <h2>A page with a sense of place</h2>
+        <p>Every story has its own rhythm. Some ask for a sequence of images, others for careful paragraphs, diagrams, quotations, or a product that belongs naturally within the narrative. Mageus is being rebuilt around that flexibility without sacrificing the calm, tactile quality of its reading surface.</p>
+        <blockquote>Good design is not decoration around an idea. It is the space that lets the idea become clear.</blockquote>
+        <p>The wallpaper remains outside the page, while the foreground surface carries the words. A reading mood changes the light and character of that surface, not the meaning of the story or the reader's place in it.</p>
+        <h2>More than a feed</h2>
+        <p>Articles can become living compositions: text and image, slides and galleries, timelines and visual data, with product references and magazine connections where they genuinely add context.</p>
+      </div>
+      <footer class="article-end"><span>END OF ARTICLE</span><a routerLink="/">Discover another story ↗</a></footer>
+    </article>
+  </div>
+  <div class="reading-dock"><button type="button" (click)="moodMenuOpen.set(true)">✦ <span>Mood</span></button><span class="dock-divider"></span><span class="dock-progress">{{ progress() }}%</span><div class="dock-track"><span [style.width.%]="progress()"></span></div><button type="button" (click)="scrollTop()" aria-label="Back to top">↑</button></div>
+</section>
