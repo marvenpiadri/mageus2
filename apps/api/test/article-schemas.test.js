@@ -42,3 +42,42 @@ test('accepts expanded editorial and direct-media block families', () => {
   ];
   assert.equal(articleBlocksSchema.safeParse(blocks).success, true);
 });
+
+test('accepts every currently supported Mageus 2 block type as a versioned draft document', () => {
+  const blocks = [
+    { id: 'text-a', type: 'text', html: '<p>Story</p>' },
+    { id: 'heading-a', type: 'heading', text: 'Section', level: 2 },
+    { id: 'divider-a', type: 'divider', style: 'line' },
+    { id: 'callout-a', type: 'callout', body: 'Note', tone: 'note' },
+    { id: 'table-a', type: 'table', headers: ['Name'], rows: [['Value']] },
+    { id: 'code-a', type: 'code', language: 'text', code: 'example' },
+    { id: 'video-a', type: 'video', url: '', title: 'Video' },
+    { id: 'audio-a', type: 'audio', url: '', title: 'Audio' },
+    { id: 'image-a', type: 'image', imageUrl: '', alt: '', width: 'normal' },
+    { id: 'gallery-a', type: 'gallery', images: [], layout: 'grid' },
+    { id: 'slide-a', type: 'slide', slides: [], ratio: '16:9' },
+    { id: 'quote-a', type: 'quote', quote: 'Words' },
+    { id: 'embed-a', type: 'embed', url: '' },
+    { id: 'comparison-a', type: 'before_after', beforeImage: '', afterImage: '' },
+    { id: 'hotspot-a', type: 'hotspot', imageUrl: '', points: [] },
+    { id: 'timeline-a', type: 'timeline', events: [] },
+    { id: 'steps-a', type: 'steps', steps: [] },
+    { id: 'data-a', type: 'data_viz', chartType: 'bar', values: [] },
+    { id: 'math-a', type: 'math', formula: '' },
+    { id: 'product-a', type: 'product', productId: '', displayMode: 'card' },
+    { id: 'products-a', type: 'product_collection', productIds: [], layout: 'grid' },
+    { id: 'magazine-a', type: 'magazine_ref', magazineId: '' }
+  ];
+
+  const result = articleBlocksSchema.safeParse(blocks);
+  assert.equal(result.success, true, result.success ? '' : JSON.stringify(result.error.issues));
+  assert.equal(result.data.length, 22);
+  assert.ok(result.data.every((block) => block.version === 1));
+});
+
+test('rejects malformed table rows with more cells than the schema permits', () => {
+  const result = articleBlockSchema.safeParse({
+    id: 'table-invalid', type: 'table', headers: ['One'], rows: [['A', 'unexpected']]
+  });
+  assert.equal(result.success, false);
+});
