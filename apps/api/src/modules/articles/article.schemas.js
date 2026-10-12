@@ -27,7 +27,6 @@ export const articleBlockSchema = z.discriminatedUnion('type', [
   z.object({ ...base, type: z.literal('before_after'), beforeImage: urlOrEmpty, afterImage: urlOrEmpty, beforeLabel: shortText.optional(), afterLabel: shortText.optional() }),
   z.object({ ...base, type: z.literal('hotspot'), imageUrl: urlOrEmpty, points: z.array(z.object({ id: z.string().min(1).max(128), x: z.number().min(0).max(100), y: z.number().min(0).max(100), title: shortText, description: z.string().max(5000) })).max(100) }),
   z.object({ ...base, type: z.literal('timeline'), title: shortText.optional(), events: z.array(z.object({ date: shortText, title: shortText, description: z.string().max(5000) })).max(200) }),
-  z.object({ ...base, type: z.literal('steps'), title: shortText.optional(), steps: z.array(z.object({ title: shortText, description: z.string().max(5000) })).max(200) }),
   z.object({ ...base, type: z.literal('data_viz'), title: shortText.optional(), chartType: z.enum(['bar', 'progress', 'kpi', 'comparison', 'table']), values: z.array(z.object({ label: shortText, value: z.number().finite() })).max(500) }),
   z.object({ ...base, type: z.literal('math'), formula: z.string().max(10_000), explanation: z.string().max(10_000).optional() }),
   z.object({ ...base, type: z.literal('product'), productId: z.string().max(256), displayMode: z.enum(['card', 'compact', 'featured']) }),
