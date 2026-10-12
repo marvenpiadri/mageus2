@@ -2,7 +2,13 @@ import { z } from 'zod';
 
 const base = { id: z.string().min(1).max(128), version: z.number().int().positive().default(1) };
 const shortText = z.string().max(2000);
-const urlOrEmpty = z.string().max(2048).refine((value) => value === '' || /^https?:\/\//i.test(value), 'URL must use HTTP or HTTPS.');
+const urlOrEmpty = z.string().max(2048).refine((value) => {
+  if (value === '') return true;
+  try {
+    const url = new URL(value);
+    return (url.protocol === 'http:' || url.protocol === 'https:') && Boolean(url.hostname);
+  } catch { return false; }
+}, 'URL must be a valid HTTP or HTTPS URL.');
 
 export const articleBlockSchema = z.discriminatedUnion('type', [
   z.object({ ...base, type: z.literal('text'), html: z.string().max(100_000) }),
