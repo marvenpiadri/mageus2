@@ -17,6 +17,30 @@ const socialWriteLimit = rateLimit({
   message: { error: { code: 'RATE_LIMITED', message: 'Too many social actions. Try again later.' } }
 });
 
+socialRoutes.get('/feed', requireVerifiedIdentity, async (req, res, next) => {
+  const query = z.object({ limit: z.coerce.number().int().min(1).max(50).default(30) }).safeParse(req.query);
+  if (!query.success) return res.status(400).json({ error: { code: 'INVALID_QUERY', message: 'Invalid feed limit.' } });
+  try {
+    const { rows } = await pool.query(
+      `SELECT a.id, a.slug, a.title, a.subtitle, a.excerpt, a.category, a.language, a.tags,
+              a.cover_image_url, a.published_at, a.updated_at,
+              c.username AS author_username, c.display_name AS author_name, c.avatar_url AS author_avatar_url
+         FROM articles a
+         JOIN channels c ON c.id = a.channel_id
+        WHERE a.status = 'published' AND a.published_at IS NOT NULL
+          AND (c.owner_user_id = $1 OR EXISTS (
+            SELECT 1 FROM channel_follows f
+             WHERE f.follower_user_id = $1 AND f.followed_channel_id = c.id
+          ))
+        ORDER BY a.published_at DESC, a.id DESC
+        LIMIT $2`,
+      [req.auth.userId, query.data.limit]
+    );
+    res.set('Cache-Control', 'private, no-store');
+    return res.json({ items: rows });
+  } catch (error) { next(error); }
+});
+
 // Public profile data is readable without a session. Draft and archived business content is never exposed.
 socialRoutes.get('/profiles/:username', async (req, res, next) => {
   const username = String(req.params.username ?? '').toLowerCase();
