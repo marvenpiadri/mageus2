@@ -12,10 +12,16 @@ export class AuthService {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly api = '/api/v1/auth';
   private readonly tokenState = signal<string | null>(null);
+  private readonly tokenExpiresAt = signal(0);
   private readonly expiresAt = signal<number>(0);
   readonly user = signal<MageusUser | null>(null);
   readonly isAuthenticated = computed(() => !!this.tokenState() && !!this.user());
   get accessToken(): string | null { return this.tokenState(); }
+
+  async ensureAccessToken(): Promise<boolean> {
+    if (this.tokenState() && this.tokenExpiresAt() > Date.now() + 30_000) return true;
+    return this.restoreSession();
+  }
 
   async ensureSession(): Promise<boolean> {
     if (this.tokenState() && this.expiresAt() > Date.now() + 30_000) return true;
