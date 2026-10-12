@@ -134,3 +134,19 @@ test('article vote summaries are backfilled and maintained transactionally', asy
     'vote_count = article_vote_summaries.vote_count + 1'
   ]) assert.ok(sql.includes(token), `Missing rating-summary contract: ${token}`);
 });
+
+
+test('magazines contain ordered issues and reuse published articles without duplicating content', async () => {
+  const sql = await migration('012_magazines_and_issues.sql');
+  for (const token of [
+    'CREATE TABLE IF NOT EXISTS magazines',
+    'CREATE TABLE IF NOT EXISTS magazine_issues',
+    'CREATE TABLE IF NOT EXISTS magazine_issue_articles',
+    'UNIQUE (channel_id, slug)',
+    'UNIQUE (magazine_id, issue_number)',
+    'PRIMARY KEY (issue_id, article_id)',
+    'sort_order integer NOT NULL DEFAULT 0',
+    "status IN ('draft', 'published', 'archival')"
+  ]) assert.ok(sql.includes(token), `Missing magazine/issue contract: ${token}`);
+  assert.match(sql, /article_id uuid NOT NULL REFERENCES articles\(id\) ON DELETE CASCADE/);
+});
