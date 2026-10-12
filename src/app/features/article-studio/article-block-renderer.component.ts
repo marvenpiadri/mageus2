@@ -10,4 +10,9 @@ import { ArticleBlock } from '../../domain/article.model';
 })
 export class ArticleBlockRendererComponent {
   readonly block = input.required<ArticleBlock>();
+
+  barWidth(value: number, values: readonly { value: number }[]): number {
+    const maximum = Math.max(1, ...values.map((item) => item.value));
+    return Math.max(0, Math.min(100, value / maximum * 100));
+  }
 }
