@@ -31,6 +31,7 @@ export const articleBlockSchema = z.discriminatedUnion('type', [
   z.object({ ...base, type: z.literal('math'), formula: z.string().max(10_000), explanation: z.string().max(10_000).optional() }),
   z.object({ ...base, type: z.literal('product'), productId: z.string().max(256), displayMode: z.enum(['card', 'compact', 'featured']) }),
   z.object({ ...base, type: z.literal('product_collection'), productIds: z.array(z.string().max(256)).max(100), title: shortText.optional(), layout: z.enum(['grid', 'carousel', 'list']) }),
+  z.object({ ...base, type: z.literal('commerce_collection'), itemType: z.enum(['product', 'service', 'menu_item']), itemIds: z.array(z.string().uuid()).max(30), title: shortText.optional() }),
   z.object({ ...base, type: z.literal('magazine_ref'), magazineId: z.string().max(256) })
 ]);
 
