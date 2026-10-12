@@ -1,0 +1,51 @@
+<section class="public-reader-page">
+  <header class="public-reader-bar">
+    <a routerLink="/" class="reader-back" aria-label="Back to Mageus">←</a>
+    @if (article(); as item) {
+      <div class="reader-breadcrumb"><a [routerLink]="['/', item.author_username]">{{ item.author_name }}</a><span>/</span><span class="crumb-title">{{ item.title }}</span></div>
+    } @else {
+      <div class="reader-breadcrumb"><span>MAGEUS</span><span>/</span><span>ARTICLE</span></div>
+    }
+    <div class="reader-actions">
+      <button type="button" class="mood-trigger" (click)="moodMenuOpen.set(!moodMenuOpen())" [attr.aria-expanded]="moodMenuOpen()">✦ <span>{{ moods.currentMood().name }}</span>⌄</button>
+    </div>
+  </header>
+  @if (moodMenuOpen()) {
+    <div class="mood-backdrop" (click)="moodMenuOpen.set(false)">
+      <section class="mood-menu" aria-label="Choose a reading mood" (click)="$event.stopPropagation()">
+        <header><div><span>READING EXPERIENCE</span><h2>Choose a mood</h2></div><button type="button" (click)="moodMenuOpen.set(false)" aria-label="Close moods">×</button></header>
+        @for (mood of moods.moods; track mood.id) {
+          <button type="button" class="mood-option" [class.active]="moods.currentMood().id === mood.id" (click)="moods.selectMood(mood.id); moodMenuOpen.set(false)">
+            <span class="mood-icon" [style.color]="mood.accent">{{ mood.icon }}</span><span><strong>{{ mood.name }}</strong><small>{{ mood.description }}</small></span><span class="mood-check">{{ moods.currentMood().id === mood.id ? '✓' : '' }}</span>
+          </button>
+        }
+      </section>
+    </div>
+  }
+  <div class="reading-progress"><span [style.width.%]="progress()"></span></div>
+  <div class="public-reader-scroll" (scroll)="onScroll($event)">
+    @if (loading()) {
+      <div class="public-reader-state"><span class="empty-mark">✦</span><p>Opening story…</p></div>
+    } @else if (notFound() || !article()) {
+      <div class="public-reader-state"><span class="empty-mark">↗</span><h1>Story not found</h1><p>This article may be unpublished, moved, or no longer available.</p><a routerLink="/">Explore Mageus</a></div>
+    } @else {
+      @if (article(); as item) {
+        <article class="public-article-paper">
+          <div class="article-category">MAGEUS · FIELD NOTES</div>
+          <h1>{{ item.title }}</h1>
+          @if (item.subtitle) { <p class="article-subtitle">{{ item.subtitle }}</p> }
+          <div class="byline">
+            @if (item.author_avatar_url) { <img class="public-author-avatar" [src]="item.author_avatar_url" [alt]="item.author_name" /> } @else { <span class="author-seal">M</span> }
+            <span><strong>{{ item.author_name }}</strong><small>{{ item.author_username }} · Published {{ item.published_at | date:'longDate' }}</small></span>
+          </div>
+          @if (item.cover_image_url) { <figure class="hero-image"><img [src]="item.cover_image_url" [alt]="item.title" fetchpriority="high" /><figcaption>{{ item.title }}</figcaption></figure> }
+          <div class="article-body">
+            @for (block of item.blocks; track block.id) { <mageus-article-block-renderer [block]="block" /> }
+          </div>
+          <footer class="article-end"><span>END OF ARTICLE</span><a routerLink="/">Discover another story ↗</a></footer>
+        </article>
+      }
+    }
+  </div>
+  <div class="reading-dock"><button type="button" (click)="moodMenuOpen.set(true)">✦ <span>Mood</span></button><span class="dock-divider"></span><span class="dock-progress">{{ progress() }}%</span><div class="dock-track"><span [style.width.%]="progress()"></span></div><button type="button" (click)="scrollTop()" aria-label="Back to top">↑</button></div>
+</section>
