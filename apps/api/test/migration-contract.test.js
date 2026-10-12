@@ -99,8 +99,7 @@ test('social and business foundations support follows, notifications, views, sto
     'CREATE TABLE IF NOT EXISTS location_menu_items'
   ]) assert.ok(sql.includes(token), `Missing social/business schema contract: ${token}`);
   assert.match(sql, /latitude IS NOT NULL AND longitude IS NOT NULL/);
-  assert.match(sql, /CONSTRAINT location_menus_slug_format CHECK \(slug ~ '\^\[a-z0-9\]\+\(-\[a-z0-9\]\+\)\*\
-\)/);
+  assert.ok(sql.includes("CONSTRAINT location_menus_slug_format CHECK (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$')"));
   assert.equal((sql.match(/CREATE TABLE IF NOT EXISTS location_menus/g) ?? []).length, 1);
   assert.equal((sql.match(/CREATE TABLE IF NOT EXISTS location_menu_items/g) ?? []).length, 1);
   assert.match(sql, /UNIQUE \(location_id, slug\),\s+CONSTRAINT location_menus_same_channel FOREIGN KEY \(location_id, channel_id\)/);
