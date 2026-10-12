@@ -18,9 +18,24 @@ const socialWriteLimit = rateLimit({
 });
 
 socialRoutes.get('/feed', requireVerifiedIdentity, async (req, res, next) => {
-  const query = z.object({ limit: z.coerce.number().int().min(1).max(50).default(30) }).safeParse(req.query);
-  if (!query.success) return res.status(400).json({ error: { code: 'INVALID_QUERY', message: 'Invalid feed limit.' } });
+  const query = z.object({
+    limit: z.coerce.number().int().min(1).max(50).default(30),
+    cursor: z.string().min(1).max(512).regex(/^[A-Za-z0-9_-]+$/).optional()
+  }).safeParse(req.query);
+  if (!query.success) return res.status(400).json({ error: { code: 'INVALID_QUERY', message: 'Invalid feed pagination parameters.' } });
   try {
+    const values = [req.auth.userId, query.data.limit + 1];
+    let cursorClause = '';
+    if (query.data.cursor) {
+      let decoded;
+      try { decoded = JSON.parse(Buffer.from(query.data.cursor, 'base64url').toString('utf8')); } catch { decoded = null; }
+      if (!decoded || typeof decoded.publishedAt !== 'string' || !Number.isFinite(Date.parse(decoded.publishedAt)) ||
+          typeof decoded.id !== 'string' || !uuid.safeParse(decoded.id).success) {
+        return res.status(400).json({ error: { code: 'INVALID_CURSOR', message: 'Invalid feed pagination cursor.' } });
+      }
+      values.push(decoded.publishedAt, decoded.id);
+      cursorClause = 'AND (a.published_at, a.id) < ($3::timestamptz, $4::uuid)';
+    }
     const { rows } = await pool.query(
       `SELECT a.id, a.slug, a.title, a.subtitle, a.excerpt, a.category, a.language, a.tags,
               a.cover_image_url, a.published_at, a.updated_at,
@@ -32,12 +47,19 @@ socialRoutes.get('/feed', requireVerifiedIdentity, async (req, res, next) => {
             SELECT 1 FROM channel_follows f
              WHERE f.follower_user_id = $1 AND f.followed_channel_id = c.id
           ))
+          ${cursorClause}
         ORDER BY a.published_at DESC, a.id DESC
         LIMIT $2`,
-      [req.auth.userId, query.data.limit]
+      values
     );
+    const hasMore = rows.length > query.data.limit;
+    const items = rows.slice(0, query.data.limit);
+    const last = items.at(-1);
+    const nextCursor = hasMore && last
+      ? Buffer.from(JSON.stringify({ publishedAt: last.published_at, id: last.id })).toString('base64url')
+      : null;
     res.set('Cache-Control', 'private, no-store');
-    return res.json({ items: rows });
+    return res.json({ items, nextCursor });
   } catch (error) { next(error); }
 });
 
