@@ -1,15 +1,27 @@
 import { ChangeDetectionStrategy, Component, PLATFORM_ID, inject, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ArticleBlock, ArticleBlockType } from '../../domain/article.model';
 import { ARTICLE_BLOCK_TOOLS, createEmptyBlock } from './article-block-registry';
+import { AuthService } from '../../core/auth/auth.service';
+import { ArticleApiService, ArticleDraftPayload } from '../../core/services/article-api.service';
 import { ArticleBlockEditorComponent } from './article-block-editor.component';
 
 interface StudioDraft {
   version: 1;
   title: string;
   subtitle: string;
+  slug?: string;
+  excerpt?: string;
+  category?: string;
+  language?: string;
+  tags?: string[];
+  coverImageUrl?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  canonicalUrl?: string;
+  serverArticleId?: string | null;
   blocks: ArticleBlock[];
   savedAt: string;
 }
@@ -26,8 +38,21 @@ const DRAFT_KEY = 'mageus:article-studio:draft:v1';
 })
 export class ArticleStudioPageComponent {
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly api = inject(ArticleApiService);
+  readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
   readonly title = signal('');
   readonly subtitle = signal('');
+  readonly slug = signal('');
+  readonly excerpt = signal('');
+  readonly category = signal('');
+  readonly language = signal('en');
+  readonly tags = signal<string[]>([]);
+  readonly coverImageUrl = signal('');
+  readonly seoTitle = signal('');
+  readonly seoDescription = signal('');
+  readonly canonicalUrl = signal('');
+  readonly serverArticleId = signal<string | null>(null);
   readonly selectedTool = signal<ArticleBlockType | null>(null);
   readonly blocks = signal<ArticleBlock[]>([]);
   readonly statusMessage = signal('Draft stored on this device when you edit');
@@ -42,8 +67,22 @@ export class ArticleStudioPageComponent {
 
   plainText(html: string): string { return html.replace(/<[^>]*>/g, ''); }
 
-  setTitle(value: string): void { this.title.set(value); this.markChanged(); }
+  setTitle(value: string): void {
+    const previousSlug = this.slugify(this.title());
+    this.title.set(value);
+    if (!this.slug() || this.slug() === previousSlug) this.slug.set(this.slugify(value));
+    this.markChanged();
+  }
   setSubtitle(value: string): void { this.subtitle.set(value); this.markChanged(); }
+  setSlug(value: string): void { this.slug.set(this.slugify(value)); this.markChanged(); }
+  setTags(value: string): void { this.tags.set([...new Set(value.split(',').map((tag) => tag.trim()).filter(Boolean))].slice(0, 30)); this.markChanged(); }
+  setExcerpt(value: string): void { this.excerpt.set(value); this.markChanged(); }
+  setCategory(value: string): void { this.category.set(value); this.markChanged(); }
+  setLanguage(value: string): void { this.language.set(value); this.markChanged(); }
+  setCoverImageUrl(value: string): void { this.coverImageUrl.set(value); this.markChanged(); }
+  setSeoTitle(value: string): void { this.seoTitle.set(value); this.markChanged(); }
+  setSeoDescription(value: string): void { this.seoDescription.set(value); this.markChanged(); }
+  setCanonicalUrl(value: string): void { this.canonicalUrl.set(value); this.markChanged(); }
 
   addBlock(type: ArticleBlockType): void {
     const id = globalThis.crypto?.randomUUID?.() ?? `block-${Date.now()}-${this.blocks().length}`;
@@ -153,6 +192,37 @@ export class ArticleStudioPageComponent {
     this.statusMessage.set(errors.length ? 'Draft saved locally · fix validation warnings before publishing' : 'Draft saved on this device · server sync is not connected yet');
   }
 
+  async syncDraft(): Promise<void> {
+    this.persistDraft();
+    if (!this.title().trim()) { this.statusMessage.set('Local draft saved · add a title before syncing.'); return; }
+    if (!this.auth.isAuthenticated()) { await this.router.navigateByUrl('/sign-in'); return; }
+    try {
+      const payload: ArticleDraftPayload = {
+        title: this.title().trim(), subtitle: this.subtitle(), slug: this.slug().trim() || this.slugify(this.title()),
+        excerpt: this.excerpt(), category: this.category(), language: this.language(), tags: this.tags(),
+        coverImageUrl: this.coverImageUrl(), blocks: this.blocks(), schemaVersion: 1,
+        seoTitle: this.seoTitle(), seoDescription: this.seoDescription(), canonicalUrl: this.canonicalUrl().trim() || undefined
+      };
+      const id = await this.api.saveDraft(payload, this.serverArticleId());
+      this.serverArticleId.set(id); this.persistDraft(); this.statusMessage.set('Draft synced to your Mageus account.');
+    } catch (error: any) { this.statusMessage.set(error?.error?.error?.message || error?.message || 'Could not sync. Your local recovery copy is safe.'); }
+  }
+
+  async publishArticle(): Promise<void> {
+    const errors = this.validateDraft(); this.validationMessages.set(errors);
+    if (errors.length) { this.statusMessage.set('Resolve the validation notes before publishing.'); return; }
+    if (!this.auth.isAuthenticated()) { await this.router.navigateByUrl('/sign-in'); return; }
+    if (!this.serverArticleId()) await this.syncDraft();
+    const id = this.serverArticleId(); if (!id) return;
+    try {
+      const path = await this.api.publish(id); this.statusMessage.set('Article published successfully.');
+      await this.router.navigateByUrl(path);
+    } catch (error: any) {
+      const issues = error?.error?.error?.issues; if (Array.isArray(issues)) this.validationMessages.set(issues);
+      this.statusMessage.set(error?.error?.error?.message || 'Publishing failed. Your draft remains saved.');
+    }
+  }
+
   exportDraft(): void {
     if (!isPlatformBrowser(this.platformId)) return;
     const payload = this.toDraft();
@@ -191,6 +261,16 @@ export class ArticleStudioPageComponent {
       if (draft.version !== 1 || !Array.isArray(draft.blocks)) return;
       this.title.set(draft.title ?? '');
       this.subtitle.set(draft.subtitle ?? '');
+      this.slug.set(draft.slug ?? this.slugify(draft.title ?? ''));
+      this.excerpt.set(draft.excerpt ?? '');
+      this.category.set(draft.category ?? '');
+      this.language.set(draft.language ?? 'en');
+      this.tags.set(draft.tags ?? []);
+      this.coverImageUrl.set(draft.coverImageUrl ?? '');
+      this.seoTitle.set(draft.seoTitle ?? '');
+      this.seoDescription.set(draft.seoDescription ?? '');
+      this.canonicalUrl.set(draft.canonicalUrl ?? '');
+      this.serverArticleId.set(draft.serverArticleId ?? null);
       this.blocks.set(draft.blocks);
       this.lastSavedAt.set(draft.savedAt ?? null);
       this.statusMessage.set('Recovered a local draft');
@@ -204,6 +284,16 @@ export class ArticleStudioPageComponent {
       version: 1,
       title: this.title(),
       subtitle: this.subtitle(),
+      slug: this.slug(),
+      excerpt: this.excerpt(),
+      category: this.category(),
+      language: this.language(),
+      tags: this.tags(),
+      coverImageUrl: this.coverImageUrl(),
+      seoTitle: this.seoTitle(),
+      seoDescription: this.seoDescription(),
+      canonicalUrl: this.canonicalUrl(),
+      serverArticleId: this.serverArticleId(),
       blocks: this.blocks(),
       savedAt: new Date().toISOString()
     };
@@ -212,9 +302,11 @@ export class ArticleStudioPageComponent {
   private validateDraft(): string[] {
     const issues: string[] = [];
     if (!this.title().trim()) issues.push('Add a title.');
+    if (!this.slug().trim()) issues.push('Add a public URL slug.');
     if (!this.blocks().length) issues.push('Add at least one content block.');
     for (const [index, block] of this.blocks().entries()) {
       if (block.type === 'image' && !block.imageUrl.trim()) issues.push(`Block ${index + 1}: add an image URL.`);
+      if (block.type === 'image' && !block.alt.trim()) issues.push(`Block ${index + 1}: add alternative text.`);
       if (block.type === 'embed' && !/^https?:\/\//i.test(block.url)) issues.push(`Block ${index + 1}: add a valid HTTP(S) embed URL.`);
       if (block.type === 'product' && !block.productId.trim()) issues.push(`Block ${index + 1}: select a product reference.`);
       if (block.type === 'magazine_ref' && !block.magazineId.trim()) issues.push(`Block ${index + 1}: select a magazine reference.`);
