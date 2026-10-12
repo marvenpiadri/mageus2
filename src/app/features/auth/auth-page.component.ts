@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
@@ -14,6 +14,7 @@ import { AuthService } from '../../core/auth/auth.service';
 export class AuthPageComponent {
   readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   readonly mode = signal<'login' | 'register'>('login');
   readonly credential = signal('');
   readonly email = signal('');
@@ -34,7 +35,9 @@ export class AuthPageComponent {
         email: this.email().trim().toLowerCase(),
         password: this.password()
       });
-      await this.router.navigateByUrl('/write');
+      const requestedReturn = this.route.snapshot.queryParamMap.get('returnUrl');
+      const returnUrl = requestedReturn?.startsWith('/') && !requestedReturn.startsWith('//') ? requestedReturn : '/write';
+      await this.router.navigateByUrl(returnUrl);
     } catch (error: any) {
       this.errorMessage.set(error?.error?.message || 'Could not sign in. Check your details and try again.');
     } finally { this.busy.set(false); }
