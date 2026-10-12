@@ -45,5 +45,53 @@
         </form>
       </section>
     </div>
+
+    @if (selectedStoreId(); as selectedId) {
+      <section class="item-manager">
+        <header class="item-manager-header"><div><span class="catalog-kicker">SHOP CATALOG</span><h2>{{ selectedStoreName() }}</h2><p>Manage products and services for this shop. Public items appear only when both the shop and item are published.</p></div><button type="button" class="catalog-secondary" (click)="selectedStoreId.set(null)">Close catalog</button></header>
+        @if (catalogLoading()) { <p class="catalog-state">Loading items…</p> } @else {
+          <div class="item-manager-grid">
+            <section class="item-list-panel">
+              <div class="item-list-heading"><h3>Products</h3><button type="button" class="catalog-secondary" (click)="startItem('product')">＋ Product</button></div>
+              @if (!products().length) { <p class="catalog-muted">No products in this shop yet.</p> }
+              @for (item of products(); track item.id) {
+                <article class="catalog-item-row">
+                  @if (item.image_url) { <img class="catalog-item-image" [src]="item.image_url" [alt]="item.name" loading="lazy" /> } @else { <span class="catalog-item-image catalog-item-placeholder">▧</span> }
+                  <div class="catalog-item-copy"><strong>{{ item.name }}</strong><small>{{ item.price_amount == null ? 'Price not set' : (item.price_amount + ' ' + item.currency) }} · {{ item.status }}</small><span>{{ item.slug }}</span></div>
+                  <div class="catalog-item-actions"><button type="button" class="catalog-secondary" (click)="editItem('product', item)">Edit</button>@if (item.status !== 'archived') { <button type="button" class="catalog-danger" (click)="archiveItem('product', item)">Archive</button> }</div>
+                </article>
+              }
+            </section>
+            <section class="item-list-panel">
+              <div class="item-list-heading"><h3>Services</h3><button type="button" class="catalog-secondary" (click)="startItem('service')">＋ Service</button></div>
+              @if (!services().length) { <p class="catalog-muted">No services in this shop yet.</p> }
+              @for (item of services(); track item.id) {
+                <article class="catalog-item-row">
+                  @if (item.image_url) { <img class="catalog-item-image" [src]="item.image_url" [alt]="item.name" loading="lazy" /> } @else { <span class="catalog-item-image catalog-item-placeholder">◇</span> }
+                  <div class="catalog-item-copy"><strong>{{ item.name }}</strong><small>{{ item.price_amount == null ? 'Price not set' : (item.price_amount + ' ' + item.currency) }} · {{ item.status }}</small><span>{{ item.slug }}</span></div>
+                  <div class="catalog-item-actions"><button type="button" class="catalog-secondary" (click)="editItem('service', item)">Edit</button>@if (item.status !== 'archived') { <button type="button" class="catalog-danger" (click)="archiveItem('service', item)">Archive</button> }</div>
+                </article>
+              }
+            </section>
+          </div>
+          <section class="catalog-form-panel catalog-item-form-panel">
+            <div class="catalog-panel-heading"><div><span class="catalog-kicker">{{ editingItemId() ? 'UPDATE ITEM' : 'NEW ITEM' }}</span><h2>{{ editingItemId() ? 'Edit ' + itemKind() : 'Create ' + itemKind() }}</h2></div><div class="item-kind-switch"><button type="button" [class.item-kind-active]="itemKind() === 'product'" (click)="startItem('product')">Product</button><button type="button" [class.item-kind-active]="itemKind() === 'service'" (click)="startItem('service')">Service</button></div></div>
+            <form (submit)="$event.preventDefault(); saveItem()">
+              <label>Name<input name="item-name" required maxlength="160" [value]="itemName()" (input)="onItemNameInput($any($event.target).value)" placeholder="e.g. Handmade leather wallet" /></label>
+              <label>URL slug<input name="item-slug" required maxlength="160" pattern="[a-z0-9]+(-[a-z0-9]+)*" [value]="itemSlug()" (input)="itemSlug.set($any($event.target).value)" placeholder="handmade-leather-wallet" /></label>
+              <label>Description<textarea name="item-description" rows="3" maxlength="5000" [value]="itemDescription()" (input)="itemDescription.set($any($event.target).value)" placeholder="Describe this item clearly."></textarea></label>
+              <label>Image URL<input name="item-image" type="url" [value]="itemImageUrl()" (input)="itemImageUrl.set($any($event.target).value)" placeholder="https://…" /><small>Use a public HTTPS image URL. Images are displayed in a square 1:1 frame.</small></label>
+              @if (itemImageUrl().startsWith('https://')) { <img class="item-image-preview" [src]="itemImageUrl()" alt="Item image preview" /> }
+              <div class="catalog-price-fields"><label>Price<input name="item-price" type="number" min="0" step="0.01" [value]="itemPrice()" (input)="itemPrice.set($any($event.target).value)" placeholder="0.00" /></label><label>Currency<input name="item-currency" required minlength="3" maxlength="3" [value]="itemCurrency()" (input)="itemCurrency.set($any($event.target).value.toUpperCase())" placeholder="MAD" /></label></div>
+              @if (itemKind() === 'service') { <label>Booking link<input name="item-booking-url" type="url" [value]="itemBookingUrl()" (input)="itemBookingUrl.set($any($event.target).value)" placeholder="https://…" /><small>Optional. Use an HTTPS link to your booking page.</small></label> }
+              <label>Visibility<select name="item-status" [value]="itemStatus()" (change)="itemStatus.set($any($event.target).value)"><option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option></select></label>
+              @if (message()) { <p class="catalog-message" aria-live="polite">{{ message() }}</p> }
+              @if (error()) { <p class="catalog-error" role="alert">{{ error() }}</p> }
+              <div class="catalog-form-actions"><button type="submit" class="catalog-primary" [disabled]="itemSaving()">{{ itemSaving() ? 'Saving…' : (editingItemId() ? 'Save item' : 'Create item') }}</button><button type="button" class="catalog-secondary" (click)="startItem(itemKind())">Clear form</button></div>
+            </form>
+          </section>
+        }
+      </section>
+    }
   }
 </section>
