@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { ArticleBlock } from '../../domain/article.model';
+import { createStudioItemId } from './block-id';
 
 @Component({
   standalone: true,
@@ -89,7 +90,7 @@ export class ArticleBlockEditorComponent {
       case 'timeline': this.patch({ events: [...block.events, { date: '', title: '', description: '' }] }); break;
       case 'steps': this.patch({ steps: [...block.steps, { title: '', description: '' }] }); break;
       case 'data_viz': this.patch({ values: [...block.values, { label: '', value: 0 }] }); break;
-      case 'hotspot': this.patch({ points: [...block.points, { id: globalThis.crypto?.randomUUID?.() ?? `point-${Date.now()}`, x: 50, y: 50, title: '', description: '' }] }); break;
+      case 'hotspot': this.patch({ points: [...block.points, { id: createStudioItemId('point'), x: 50, y: 50, title: '', description: '' }] }); break;
       default: break;
     }
   }
