@@ -5,11 +5,13 @@ import { env } from './config/env.js';
 import { pool, requireDatabase } from './db/pool.js';
 import { articleRoutes } from './modules/articles/article.routes.js';
 import { engagementRoutes } from './modules/engagement/engagement.routes.js';
+import { authRoutes } from './modules/auth/auth.routes.js';
 
 export const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', env.NODE_ENV === 'production' ? 1 : false);
 app.use(helmet());
+app.locals.allowedOrigins = env.corsOrigins;
 app.use(cors({
   origin(origin, callback) {
     if (!origin || env.corsOrigins.includes(origin)) return callback(null, true);
@@ -17,6 +19,7 @@ app.use(cors({
   },
   methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
   maxAge: 600
 }));
 app.use(express.json({ limit: '256kb', strict: true }));
@@ -33,6 +36,7 @@ app.get('/ready', async (_req, res) => {
   }
 });
 
+app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/articles', articleRoutes);
 app.use('/api/v1/engagement', engagementRoutes);
 
