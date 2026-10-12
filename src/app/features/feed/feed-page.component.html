@@ -5,7 +5,7 @@
   } @else if (loading()) {
     <div class="feed-empty"><span>✦</span><p>Gathering stories from your network…</p></div>
   } @else if (failed() && !items().length) {
-    <div class="feed-empty"><span>↻</span><h2>Your feed could not load</h2><p>Try again in a moment, or explore public stories.</p><a routerLink="/">Explore Mageus ↗</a></div>
+    <div class="feed-empty"><span>↻</span><h2>Your feed could not load</h2><p>Try again in a moment, or explore public stories.</p><button type="button" (click)="loadMore()">Try again</button><a routerLink="/">Explore Mageus ↗</a></div>
   } @else if (items().length) {
     <div class="feed-list">
       @for (article of items(); track article.id) {
