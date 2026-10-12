@@ -138,7 +138,7 @@ export class PublicProfilePageComponent {
     const profile = this.profileData()?.profile;
     if (!profile || this.followBusy()) return;
     if (!this.auth.isAuthenticated()) {
-      void this.router.navigateByUrl('/sign-in');
+      void this.router.navigate(['/sign-in'], { queryParams: { returnUrl: '/' + profile.username } });
       return;
     }
     this.followBusy.set(true);
