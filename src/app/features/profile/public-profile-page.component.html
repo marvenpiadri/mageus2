@@ -70,7 +70,7 @@
             @for (store of data.storefronts; track store.id) {
               <article class="store-card">
                 <div class="store-heading"><div class="store-icon">◇</div><div><span class="store-type">{{ store.fulfillment_type === 'online' ? 'ONLINE SHOP' : store.fulfillment_type === 'physical' ? 'PHYSICAL STORE' : 'ONLINE + PHYSICAL' }}</span><h2>{{ store.name }}</h2><p>{{ store.description }}</p></div></div>
-                @if (store.location_name) { <a class="store-location" [routerLink]="['/', data.profile.username]" (click)="section.set('locations')">⌖ {{ store.location_name }} <span>View location ↗</span></a> }
+                @if (store.location_name) { <button type="button" class="store-location" (click)="section.set('locations')">⌖ {{ store.location_name }} <span>View location ↗</span></button> }
                 @if (store.products.length) {
                   <div class="product-grid">
                     @for (product of store.products; track product.id) {
@@ -120,7 +120,7 @@
                 @if (location.address) { <p>{{ location.address }}</p> }
                 @if (location.phone) { <a class="location-phone" [href]="'tel:' + location.phone">{{ location.phone }}</a> }
                 <a class="map-link" [href]="mapUrl(location)" target="_blank" rel="noopener noreferrer">Open in Google Maps ↗</a>
-                @if (data.menus.some(menu => menu.location_id === location.id)) { <button type="button" class="location-menu-link" (click)="section.set('menus')">View this location's menu →</button> }
+                @if (hasMenuForLocation(location.id, data.menus)) { <button type="button" class="location-menu-link" (click)="section.set('menus')">View this location's menu →</button> }
               </article>
             }
           </div>
