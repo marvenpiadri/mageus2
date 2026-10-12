@@ -19,7 +19,7 @@ This roadmap is the release checklist. A phase is **not complete because its cod
 | Phase | Status | Current evidence / gap |
 | --- | --- | --- |
 | 0. Audit and baseline | In progress | Legacy route inventory and backend migration notes exist. Full UI/source-to-target comparison and a consolidated baseline are still needed. |
-| 1. Application foundation | Needs verification | Angular 22 SSR shell, mood system, and shared renderer exist. Re-run production CI after recent Article Studio changes; verify SSR/browser behavior and visual parity. |
+| 1. Application foundation | Needs verification | Production build passed on commit `9ed826b` (run [38279510822](https://github.com/marvenpiadri/mageus2/actions/runs/38279510822)). SSR/browser behavior, mood interaction, and visual parity still need manual verification. |
 | 2. Article Studio core | In progress | Typed block model, registry, editor component, renderer, and draft workflow exist. Expanded block types were added; editor completeness, migration/versioning, accessibility, and acceptance tests remain. |
 | 3. Neon and API | In progress | API modules, schema validation, migrations, and Neon connection scaffold exist. No live Neon project/credentials have been configured or verified here. |
 | 4. Public reader and SEO | Needs verification | Public read API and reader foundation exist. End-to-end public SSR pages, canonical URLs, structured data, sitemap, and search indexing need verification. |
