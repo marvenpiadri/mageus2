@@ -7,8 +7,9 @@ const source = async (path) => readFile(new URL(path, import.meta.url), 'utf8');
 test('public article read routes remain independent from authentication middleware', async () => {
   const routes = await source('../src/modules/articles/article.routes.js');
   assert.doesNotMatch(routes, /requireVerifiedIdentity/);
-  assert.match(routes, /status = 'published'/);
-  assert.match(routes, /published_at/);
+  const repository = await source('../src/modules/articles/article.repository.js');
+  assert.match(repository, /status = 'published'/);
+  assert.match(repository, /published_at/);
 });
 
 test('authoring operations require identity, channel ownership, and revision checks', async () => {
