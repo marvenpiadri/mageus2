@@ -120,6 +120,20 @@ export class PublicProfilePageComponent {
     return this.auth.user()?.username === username;
   }
 
+  private refreshFollowing(username: string): void {
+    this.http.get<{ following: boolean }>(
+      `/api/v1/social/profiles/${encodeURIComponent(username)}/following`,
+      { headers: this.auth.authorizationHeaders() }
+    ).pipe(
+      catchError(() => of({ following: false })),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe((result) => this.following.set(result.following));
+  }
+
+  hasMenuForLocation(locationId: string, menus: ProfileMenu[]): boolean {
+    return menus.some((menu) => menu.location_id === locationId);
+  }
+
   toggleFollow(): void {
     const profile = this.profileData()?.profile;
     if (!profile || this.followBusy()) return;
