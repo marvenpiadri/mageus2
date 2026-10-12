@@ -11,14 +11,17 @@ articleRoutes.get('/', requireDatabase, async (req, res, next) => {
   try {
     const query = z.object({
       limit: z.coerce.number().int().min(1).max(50).default(20),
-      cursor: z.string().datetime().optional()
+      cursor: z.string().min(1).max(512).regex(/^[A-Za-z0-9_-]+$/).optional()
     }).safeParse(req.query);
     if (!query.success) {
       return res.status(400).json({ error: { code: 'INVALID_QUERY', message: 'Invalid pagination parameters.' } });
     }
     res.set('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=600');
     res.json(await listPublishedArticles(query.data));
-  } catch (error) { next(error); }
+  } catch (error) {
+    if (error?.name === 'InvalidCursorError') return res.status(400).json({ error: { code: 'INVALID_CURSOR', message: 'Invalid pagination cursor.' } });
+    next(error);
+  }
 });
 
 articleRoutes.get('/:username/:slug', requireDatabase, async (req, res, next) => {
