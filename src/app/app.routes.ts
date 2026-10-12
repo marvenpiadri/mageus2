@@ -7,6 +7,18 @@ export const routes: Routes = [
     loadComponent: () => import('./features/home/home-page.component').then((module) => module.HomePageComponent)
   },
   {
+    path: 'magazines',
+    loadComponent: () => import('./features/magazines/magazine-discovery-page.component').then((module) => module.MagazineDiscoveryPageComponent)
+  },
+  {
+    path: ':username/magazines/:magazineSlug/issues/:issueSlug',
+    loadComponent: () => import('./features/magazines/magazine-detail-page.component').then((module) => module.MagazineDetailPageComponent)
+  },
+  {
+    path: ':username/magazines/:magazineSlug',
+    loadComponent: () => import('./features/magazines/magazine-detail-page.component').then((module) => module.MagazineDetailPageComponent)
+  },
+  {
     path: 'write',
     loadComponent: () => import('./features/article-studio/article-studio-page.component').then((module) => module.ArticleStudioPageComponent)
   },
