@@ -3,7 +3,7 @@
     @if (unreadCount()) { <button type="button" (click)="markAllRead()" [disabled]="busy()">{{ busy() ? 'Updating…' : 'Mark all read' }}</button> }
   </header>
   @if (!auth.isAuthenticated()) {
-    <div class="notifications-empty"><span>♧</span><h2>Your inbox lives here.</h2><p>Sign in to see new followers and activity around your content.</p><a routerLink="/sign-in">Sign in ↗</a></div>
+    <div class="notifications-empty"><span>♧</span><h2>Your inbox lives here.</h2><p>Sign in to see new followers and activity around your content.</p><a routerLink="/sign-in" [queryParams]="{ returnUrl: '/notifications' }">Sign in ↗</a></div>
   } @else if (loading()) {
     <div class="notifications-empty"><span>✦</span><p>Checking your notifications…</p></div>
   } @else if (failed()) {
