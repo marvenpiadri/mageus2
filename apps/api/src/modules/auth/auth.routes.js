@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import rateLimit from 'express-rate-limit';
 import { pool, requireDatabase } from '../../db/pool.js';
 import {
   clearRefreshCookie, createRefreshToken, hashPassword, hashRefreshToken,
@@ -12,8 +13,22 @@ const usernamePattern = /^[a-z0-9][a-z0-9._-]{1,29}$/;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 authRoutes.use(requireDatabase);
+authRoutes.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && !req.app.locals.allowedOrigins?.includes(origin)) {
+    return res.status(403).json({ error: { code: 'ORIGIN_NOT_ALLOWED', message: 'Origin not allowed.' } });
+  }
+  next();
+});
+const authWriteLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: { code: 'RATE_LIMITED', message: 'Too many authentication attempts. Try again later.' } }
+});
 
-authRoutes.post('/register', requireAuthConfiguration, async (req, res, next) => {
+authRoutes.post('/register', authWriteLimit, requireAuthConfiguration, async (req, res, next) => {
   const parsed = z.object({
     username: z.string().trim().toLowerCase().regex(usernamePattern),
     displayName: z.string().trim().min(1).max(100),
@@ -53,7 +68,7 @@ authRoutes.post('/register', requireAuthConfiguration, async (req, res, next) =>
   } finally { client.release(); }
 });
 
-authRoutes.post('/login', requireAuthConfiguration, async (req, res, next) => {
+authRoutes.post('/login', authWriteLimit, requireAuthConfiguration, async (req, res, next) => {
   const parsed = z.object({
     credential: z.string().trim().min(1).max(254),
     password: z.string().min(1).max(128)
@@ -85,7 +100,7 @@ authRoutes.post('/login', requireAuthConfiguration, async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
-authRoutes.post('/refresh', requireAuthConfiguration, async (req, res, next) => {
+authRoutes.post('/refresh', authWriteLimit, requireAuthConfiguration, async (req, res, next) => {
   const token = readRefreshCookie(req);
   if (!token) return res.status(401).json({ error: { code: 'REFRESH_REQUIRED', message: 'Sign in to continue.' } });
   const client = await pool.connect();
@@ -105,7 +120,7 @@ authRoutes.post('/refresh', requireAuthConfiguration, async (req, res, next) => 
     }
     const user = current.rows[0];
     const nextToken = createRefreshToken();
-    await client.query('UPDATE auth_sessions SET revoked_at = now(), last_used_at = now() WHERE id = $1', [user.id === null ? null : current.rows[0].id]);
+    await client.query('UPDATE auth_sessions SET revoked_at = now(), last_used_at = now() WHERE id = $1', [current.rows[0].id]);
     await client.query(
       'INSERT INTO auth_sessions (user_id, refresh_token_hash, expires_at) VALUES ($1, $2, $3)',
       [user.user_id, hashRefreshToken(nextToken), refreshExpiry()]
