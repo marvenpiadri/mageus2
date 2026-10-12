@@ -62,3 +62,17 @@ test('draft patch requires an optimistic concurrency revision', () => {
 test('blank canonical URL is allowed so the public canonical can be generated', () => {
   assert.equal(articleDraftInputSchema.safeParse({ title: 'A story', canonicalUrl: '' }).success, true);
 });
+
+test('commerce slider block references products, services, or menu items by UUID', () => {
+  const validId = '123e4567-e89b-42d3-a456-426614174000';
+  for (const itemType of ['product', 'service', 'menu_item']) {
+    const parsed = articleBlockSchema.parse({
+      id: 'commerce-' + itemType, type: 'commerce_collection', itemType, itemIds: [validId], title: 'Explore'
+    });
+    assert.equal(parsed.itemType, itemType);
+    assert.deepEqual(parsed.itemIds, [validId]);
+  }
+  assert.equal(articleBlockSchema.safeParse({
+    id: 'commerce-invalid', type: 'commerce_collection', itemType: 'menu', itemIds: ['not-a-uuid']
+  }).success, false);
+});
