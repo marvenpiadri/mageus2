@@ -9,3 +9,13 @@
 .nested-editor button, .block-editor > button { justify-self: start; border: 1px solid var(--glass-border, rgba(255,255,255,.16)); border-radius: 999px; padding: .45rem .75rem; color: inherit; background: rgba(255,255,255,.05); cursor: pointer; }
 .field-pair { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .7rem; }
 @media (max-width: 640px) { .field-pair { grid-template-columns: 1fr; } }
+
+
+.table-editor { display: grid; gap: .65rem; min-width: 0; }
+.table-editor-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) auto; gap: .5rem; align-items: end; }
+.table-editor-header { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: .65rem; border: 1px solid var(--glass-border, rgba(255,255,255,.14)); border-radius: .7rem; background: rgba(255,255,255,.035); }
+.table-editor-row > div { min-width: 0; display: grid; gap: .4rem; }
+.table-editor-row button,.inline-actions button { border: 1px solid var(--glass-border, rgba(255,255,255,.15)); border-radius: .6rem; padding: .55rem .65rem; color: var(--text-muted, #b9bdc9); background: rgba(255,255,255,.04); cursor: pointer; font-size: .7rem; white-space: nowrap; }
+.table-editor-row button:disabled { opacity: .4; cursor: not-allowed; }
+.inline-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+@media (max-width: 600px) { .table-editor-row { grid-template-columns: minmax(0,1fr); } .table-editor-header { grid-template-columns: minmax(0,1fr); } }
