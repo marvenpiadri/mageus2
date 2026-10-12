@@ -147,13 +147,15 @@ Article content remains a flat, ordered list of independently editable blocks. A
 - Public article pages backed by the API, article SEO metadata/canonical/JSON-LD, reading progress, mood controls, and the 0–100 community rating slider.
 - Authenticated API routes for article drafts/publishing, with ownership and revision checks; public article reads remain available without login.
 - Public profile/channel pages with article lists, follow/unfollow, follower counts, location links, location-specific menus, storefronts, products, and services.
+- Owner-facing location management with address, contact, optional map coordinates, primary-location selection, and owner-scoped create/edit/delete APIs. Locations with attached menus cannot be deleted until those menus are moved or removed.
+- Owner-facing storefront management with online/physical/hybrid fulfillment, location association, draft/published/archived visibility, plus owner-scoped product and service APIs. Catalog forms use ordinary fields and square 1:1 image previews rather than JSON editing.
 - Personalized feed and notification inbox.
 - The single 0–100 article vote with score-based emoji feedback, public comments plus authenticated comment creation, and browser-side view recording. Anonymous view identifiers use a server-secret HMAC of the request IP rather than storing raw IP addresses; repeat views are suppressed for a 30-minute window.
 - Social/business migration for follows, notifications, privacy-preserving view records, locations, storefronts, products, services, and location-specific menus. The menu schema and its migration contract are covered by the API test suite.
 
 ### Remaining work before release
 
-- Owner-facing forms and authorization-safe CRUD APIs for channel/profile settings, business locations, storefronts, products, services, menus, and menu items. Public business data is currently read-only.
+- Owner-facing menu and menu-item management forms/APIs, including location-specific menus, item categories/prices/availability, and optional menu PDF links. Public business data remains read-only to visitors.
 - Apply and verify database migrations against a real configured database; no live database migration has been confirmed.
 - Persist reading moods and wallpaper preferences safely; improve media upload/selection and focused block editors where needed.
 - Finish magazine/issue flows and the store management/public product experience without adding a parallel post system.
