@@ -7,6 +7,7 @@ import { ARTICLE_BLOCK_TOOLS, createEmptyBlock } from './article-block-registry'
 import { AuthService } from '../../core/auth/auth.service';
 import { ArticleApiService, ArticleDraftPayload } from '../../core/services/article-api.service';
 import { ArticleBlockEditorComponent } from './article-block-editor.component';
+import { ArticleBlockRendererComponent } from './article-block-renderer.component';
 
 interface StudioDraft {
   version: 1;
@@ -32,7 +33,7 @@ const DRAFT_KEY = 'mageus:article-studio:draft:v1';
 @Component({
   standalone: true,
   selector: 'mageus-article-studio',
-  imports: [FormsModule, RouterLink, ArticleBlockEditorComponent],
+  imports: [FormsModule, RouterLink, ArticleBlockEditorComponent, ArticleBlockRendererComponent],
   templateUrl: './article-studio-page.component.html',
   styleUrl: './article-studio-page.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -57,6 +58,9 @@ export class ArticleStudioPageComponent {
   readonly serverRevision = signal<number | null>(null);
   readonly selectedTool = signal<ArticleBlockType | null>(null);
   readonly blocks = signal<ArticleBlock[]>([]);
+  readonly draggedBlockId = signal<string | null>(null);
+  readonly dropTargetBlockId = signal<string | null>(null);
+  readonly previewBlockIds = signal<string[]>([]);
   readonly statusMessage = signal('Draft stored on this device when you edit');
   readonly validationMessages = signal<string[]>([]);
   readonly lastSavedAt = signal<string | null>(null);
@@ -103,6 +107,38 @@ export class ArticleStudioPageComponent {
   replaceBlock(updated: ArticleBlock): void {
     this.blocks.update((current) => current.map((block) => block.id === updated.id ? updated : block));
     this.markChanged();
+  }
+
+  startBlockDrag(id: string, event: DragEvent): void {
+    this.draggedBlockId.set(id);
+    if (event.dataTransfer) { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', id); }
+  }
+
+  onBlockDragOver(event: DragEvent, targetId: string): void {
+    event.preventDefault();
+    if (this.draggedBlockId() && this.draggedBlockId() !== targetId) this.dropTargetBlockId.set(targetId);
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+  }
+
+  dropBlock(event: DragEvent, targetId: string): void {
+    event.preventDefault();
+    const movingId = this.draggedBlockId() || event.dataTransfer?.getData('text/plain') || '';
+    if (!movingId || movingId === targetId) { this.endBlockDrag(); return; }
+    const current = [...this.blocks()];
+    const sourceIndex = current.findIndex((block) => block.id === movingId);
+    if (sourceIndex < 0) { this.endBlockDrag(); return; }
+    const [moving] = current.splice(sourceIndex, 1);
+    const targetIndex = current.findIndex((block) => block.id === targetId);
+    current.splice(targetIndex < 0 ? current.length : targetIndex, 0, moving);
+    this.blocks.set(current);
+    this.endBlockDrag();
+    this.markChanged();
+  }
+
+  endBlockDrag(): void { this.draggedBlockId.set(null); this.dropTargetBlockId.set(null); }
+
+  toggleBlockPreview(id: string): void {
+    this.previewBlockIds.update((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]);
   }
 
   removeBlock(id: string): void {
