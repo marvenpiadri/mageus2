@@ -101,3 +101,9 @@
 .profile-edit-actions { display: flex; justify-content: flex-end; }
 .profile-edit-actions button:disabled { opacity: .6; cursor: wait; }
 .profile-edit-message { margin: 0; color: var(--text-muted, #a8adbb); font-size: .8rem; }
+
+.profile-article-pagination { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: .75rem; padding: 1.5rem 0; }
+.profile-article-pagination p { color: var(--text-muted,#a8adbb); font-size: .8rem; }
+.profile-article-pagination button { border: 1px solid var(--glass-border); border-radius: 999px; padding: .7rem 1.1rem; background: rgba(0,0,0,.18); color: var(--text-primary,#fff); font: inherit; font-size: .78rem; cursor: pointer; }
+.profile-article-pagination button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.profile-article-pagination button:disabled { opacity: .55; cursor: wait; }
