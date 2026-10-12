@@ -129,9 +129,9 @@ export class PublicArticlePageComponent {
       datePublished: article.published_at,
       mainEntityOfPage: canonical,
       image: article.cover_image_url ? [article.cover_image_url] : undefined,
-      author: { '@type': 'Person', name: article.author_name, url: new URL(`/${encodeURIComponent(article.author_username)}`, canonical).toString() },
+      author: { '@type': 'Person', name: article.author_name, url: canonical.startsWith('http') ? new URL(`/${encodeURIComponent(article.author_username)}`, canonical).toString() : `/${encodeURIComponent(article.author_username)}` },
       publisher: { '@type': 'Organization', name: 'Mageus' }
-    });
+    }).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
   }
 
   onScroll(event: Event): void {
