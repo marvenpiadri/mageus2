@@ -88,6 +88,7 @@ export class BusinessCatalogPageComponent {
   }
 
   newStorefront(): void {
+    this.selectedStoreId.set(null);
     this.editingId.set(null); this.name.set(''); this.slug.set(''); this.description.set('');
     this.fulfillmentType.set('online'); this.locationId.set(''); this.status.set('draft');
     this.message.set(''); this.error.set('');
