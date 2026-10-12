@@ -105,3 +105,15 @@ test('business menu CRUD is authenticated and validates location ownership', asy
   assert.match(routes, /Choose one of your own locations/);
   assert.match(routes, /location_menu_items/);
 });
+
+
+test('location menus and menu items are managed only through the authenticated owner channel', async () => {
+  const routes = await source('../src/modules/social/social.routes.js');
+  assert.match(routes, /get\('\/me\/business\/menus', requireVerifiedIdentity/);
+  assert.match(routes, /post\('\/me\/business\/menus', socialWriteLimit, requireVerifiedIdentity/);
+  assert.match(routes, /patch\('\/me\/business\/menus\/:menuId', socialWriteLimit, requireVerifiedIdentity/);
+  assert.match(routes, /post\('\/me\/business\/menus\/:menuId\/items', socialWriteLimit, requireVerifiedIdentity/);
+  assert.match(routes, /patch\('\/me\/business\/menu-items\/:itemId', socialWriteLimit, requireVerifiedIdentity/);
+  assert.match(routes, /Menus must belong to one of your own locations/);
+  assert.match(routes, /Menu PDF URLs must use HTTPS/);
+});
