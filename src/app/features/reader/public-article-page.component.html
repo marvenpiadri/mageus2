@@ -51,6 +51,13 @@
               }
             }
           </div>
+          <div class="article-like-row">
+            <button type="button" class="article-like-button" [class.liked]="liked()" [attr.aria-pressed]="liked()" [disabled]="likeBusy()" (click)="toggleLike()">
+              <span aria-hidden="true">{{ liked() ? '♥' : '♡' }}</span>
+              {{ liked() ? 'Liked' : 'Like this article' }}
+            </button>
+            <span>{{ likeCount() }} {{ likeCount() === 1 ? 'like' : 'likes' }}</span>
+          </div>
           <section class="article-voting" aria-labelledby="article-voting-title">
             <div class="voting-copy">
               <span class="voting-eyebrow">COMMUNITY RATING</span>
