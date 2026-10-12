@@ -1,0 +1,131 @@
+<section class="profile-page">
+  @if (loading()) {
+    <div class="profile-state"><span class="profile-spark">✦</span><p>Opening profile…</p></div>
+  } @else if (notFound() || !profileData()) {
+    <div class="profile-state"><span class="profile-spark">↗</span><h1>Profile not found</h1><p>This channel may have moved or is not available.</p><a routerLink="/">Explore Mageus</a></div>
+  } @else {
+    @if (profileData(); as data) {
+      <section class="profile-hero">
+        <div class="profile-identity">
+          @if (data.profile.avatar_url) {
+            <img class="profile-avatar" [src]="data.profile.avatar_url" [alt]="data.profile.display_name + ' profile picture'" />
+          } @else {
+            <div class="profile-avatar profile-avatar-fallback">{{ (data.profile.display_name || data.profile.username).charAt(0).toUpperCase() }}</div>
+          }
+          <div class="profile-heading">
+            <span class="profile-kicker">MAGEUS CHANNEL</span>
+            <h1>{{ data.profile.display_name || data.profile.username }}</h1>
+            <p class="profile-handle">@{{ data.profile.username }}</p>
+            @if (data.profile.bio) { <p class="profile-bio">{{ data.profile.bio }}</p> }
+            <div class="profile-stats">
+              <span><strong>{{ data.profile.follower_count }}</strong> followers</span>
+              <span><strong>{{ data.profile.following_count }}</strong> following</span>
+              <span><strong>{{ data.articles.length }}</strong> posts</span>
+            </div>
+          </div>
+          <div class="profile-actions">
+            @if (!isOwnProfile(data.profile.username)) {
+              <button class="follow-button" type="button" [disabled]="followBusy()" [class.is-following]="following()" (click)="toggleFollow()">
+                {{ followBusy() ? 'Please wait…' : following() ? 'Following ✓' : '＋ Follow' }}
+              </button>
+            } @else {
+              <a class="follow-button own-profile-link" routerLink="/write">＋ Create post</a>
+            }
+          </div>
+        </div>
+        @if (data.menus.length) {
+          <div class="profile-menu-shortcuts">
+            <span class="shortcut-label">MENUS NEAR YOU</span>
+            @for (menu of data.menus.slice(0, 3); track menu.id) {
+              <button type="button" (click)="section.set('menus')"><span>☷</span><span><strong>{{ menu.name }}</strong><small>{{ menu.location_name }}</small></span><span class="shortcut-arrow">↗</span></button>
+            }
+            @if (data.menus.length > 3) { <button type="button" class="more-menus" (click)="section.set('menus')">+{{ data.menus.length - 3 }} more menus</button> }
+          </div>
+        }
+        @if (followMessage()) { <p class="follow-message" aria-live="polite">{{ followMessage() }}</p> }
+      </section>
+
+      <nav class="profile-tabs" aria-label="Profile sections">
+        <button type="button" [class.active]="section() === 'posts'" (click)="section.set('posts')"><span>▤</span> Posts <small>{{ data.articles.length }}</small></button>
+        <button type="button" [class.active]="section() === 'shops'" (click)="section.set('shops')"><span>◇</span> Shops <small>{{ data.storefronts.length }}</small></button>
+        <button type="button" [class.active]="section() === 'menus'" (click)="section.set('menus')"><span>☷</span> Menus <small>{{ data.menus.length }}</small></button>
+        <button type="button" [class.active]="section() === 'locations'" (click)="section.set('locations')"><span>⌖</span> Locations <small>{{ data.locations.length }}</small></button>
+      </nav>
+
+      @if (section() === 'posts') {
+        @if (data.articles.length) {
+          <div class="profile-article-grid">
+            @for (article of data.articles; track article.id) {
+              <a class="profile-article-card" [routerLink]="['/', data.profile.username, article.slug]">
+                @if (article.cover_image_url) { <img [src]="article.cover_image_url" [alt]="article.title" loading="lazy" /> }
+                @else { <div class="article-cover-placeholder">✦</div> }
+                <div class="article-card-copy"><span>{{ article.category || 'STORY' }} · {{ article.published_at | date:'mediumDate' }}</span><h2>{{ article.title }}</h2><p>{{ article.excerpt || article.subtitle }}</p></div>
+              </a>
+            }
+          </div>
+        } @else { <div class="profile-empty"><span>✦</span><h2>No posts yet</h2><p>Published articles and future videos will appear here.</p></div> }
+      } @else if (section() === 'shops') {
+        @if (data.storefronts.length) {
+          <div class="store-list">
+            @for (store of data.storefronts; track store.id) {
+              <article class="store-card">
+                <div class="store-heading"><div class="store-icon">◇</div><div><span class="store-type">{{ store.fulfillment_type === 'online' ? 'ONLINE SHOP' : store.fulfillment_type === 'physical' ? 'PHYSICAL STORE' : 'ONLINE + PHYSICAL' }}</span><h2>{{ store.name }}</h2><p>{{ store.description }}</p></div></div>
+                @if (store.location_name) { <a class="store-location" [routerLink]="['/', data.profile.username]" (click)="section.set('locations')">⌖ {{ store.location_name }} <span>View location ↗</span></a> }
+                @if (store.products.length) {
+                  <div class="product-grid">
+                    @for (product of store.products; track product.id) {
+                      <div class="product-card">
+                        @if (product.image_url) { <img [src]="product.image_url" [alt]="product.name" loading="lazy" /> } @else { <div class="product-image-placeholder">◇</div> }
+                        <strong>{{ product.name }}</strong><span>{{ formatPrice(product.price_amount, product.currency) }}</span>
+                      </div>
+                    }
+                  </div>
+                }
+                @if (store.services.length) {
+                  <div class="service-list"><h3>Services</h3>@for (service of store.services; track service.id) { <div class="service-row"><span><strong>{{ service.name }}</strong><small>{{ service.description }}</small></span><span>{{ formatPrice(service.price_amount, service.currency) }}</span>@if (service.booking_url) { <a [href]="service.booking_url" target="_blank" rel="noopener noreferrer">Book ↗</a> }</div> }</div>
+                }
+                @if (!store.products.length && !store.services.length) { <p class="store-empty">This shop is being prepared.</p> }
+              </article>
+            }
+          </div>
+        } @else { <div class="profile-empty"><span>◇</span><h2>No shops yet</h2><p>Products and services will appear here when this channel opens a storefront.</p></div> }
+      } @else if (section() === 'menus') {
+        @if (data.menus.length) {
+          <div class="menu-list">
+            @for (menu of data.menus; track menu.id) {
+              <article class="menu-card">
+                <header class="menu-card-heading"><div><span class="store-type">MENU · {{ menu.location_name }}</span><h2>{{ menu.name }}</h2><p>{{ menu.description }}</p></div>@if (menu.pdf_url) { <a class="pdf-link" [href]="menu.pdf_url" target="_blank" rel="noopener noreferrer">PDF ↗</a> }</header>
+                @if (menu.items.length) {
+                  <div class="menu-items">
+                    @for (item of menu.items; track item.id) {
+                      <div class="menu-item">
+                        @if (item.image_url) { <img [src]="item.image_url" [alt]="item.name" loading="lazy" /> }
+                        <div><span class="menu-category">{{ item.category || 'MENU' }}</span><h3>{{ item.name }}</h3>@if (item.description) { <p>{{ item.description }}</p> }</div>
+                        <strong>{{ formatPrice(item.price_amount, item.currency) }}</strong>
+                      </div>
+                    }
+                  </div>
+                } @else { <p class="store-empty">Menu items will appear here soon.</p> }
+              </article>
+            }
+          </div>
+        } @else { <div class="profile-empty"><span>☷</span><h2>No menus yet</h2><p>Menus can be attached to individual locations, each with its own dishes, prices, and PDF.</p></div> }
+      } @else {
+        @if (data.locations.length) {
+          <div class="location-grid">
+            @for (location of data.locations; track location.id) {
+              <article class="location-card">
+                <div class="location-card-top"><span class="location-pin">⌖</span>@if (location.is_primary) { <span class="primary-location">MAIN LOCATION</span> }</div>
+                <h2>{{ location.name }}</h2>
+                @if (location.address) { <p>{{ location.address }}</p> }
+                @if (location.phone) { <a class="location-phone" [href]="'tel:' + location.phone">{{ location.phone }}</a> }
+                <a class="map-link" [href]="mapUrl(location)" target="_blank" rel="noopener noreferrer">Open in Google Maps ↗</a>
+                @if (data.menus.some(menu => menu.location_id === location.id)) { <button type="button" class="location-menu-link" (click)="section.set('menus')">View this location's menu →</button> }
+              </article>
+            }
+          </div>
+        } @else { <div class="profile-empty"><span>⌖</span><h2>No physical locations</h2><p>This channel can still operate online-only shops and services.</p></div> }
+      }
+    }
+  }
+</section>
