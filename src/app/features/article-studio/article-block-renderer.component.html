@@ -2,6 +2,56 @@
 <section class="rendered-block">
   @switch (current.type) {
     @case ('text') { <div class="rich-text" [innerHTML]="current.html"></div> }
+    @case ('heading') {
+      @switch (current.level) {
+        @case (2) { <h2 class="story-heading" [attr.id]="current.anchor || null">{{ current.text }}</h2> }
+        @case (3) { <h3 class="story-heading" [attr.id]="current.anchor || null">{{ current.text }}</h3> }
+        @default { <h4 class="story-heading" [attr.id]="current.anchor || null">{{ current.text }}</h4> }
+      }
+    }
+    @case ('divider') {
+      @if (current.style === 'space') { <div class="story-divider story-divider-space" aria-hidden="true"></div> }
+      @else if (current.style === 'dots') { <div class="story-divider story-divider-dots" aria-hidden="true">•••</div> }
+      @else { <hr class="story-divider" /> }
+    }
+    @case ('callout') {
+      <aside class="story-callout" [class.callout-tip]="current.tone === 'tip'" [class.callout-warning]="current.tone === 'warning'" [class.callout-success]="current.tone === 'success'">
+        @if (current.title) { <strong>{{ current.title }}</strong> }
+        <p>{{ current.body }}</p>
+      </aside>
+    }
+    @case ('table') {
+      <figure class="story-table-wrap">
+        <div class="story-table-scroll"><table class="story-table">
+          <thead><tr>@for (header of current.headers; track $index) { <th scope="col">{{ header }}</th> }</tr></thead>
+          <tbody>@for (row of current.rows; track $index) { <tr>@for (cell of row; track $index) { <td>{{ cell }}</td> }</tr> }</tbody>
+        </table></div>
+        @if (current.caption) { <figcaption>{{ current.caption }}</figcaption> }
+      </figure>
+    }
+    @case ('code') {
+      <figure class="story-code">
+        <div class="code-language">{{ current.language || 'text' }}</div>
+        <pre><code>{{ current.code }}</code></pre>
+        @if (current.caption) { <figcaption>{{ current.caption }}</figcaption> }
+      </figure>
+    }
+    @case ('video') {
+      <figure class="story-video">
+        @if (current.url) { <video controls preload="metadata" [src]="current.url" [poster]="current.posterUrl || null" [attr.aria-label]="current.title || 'Article video'"></video> }
+        @else { <div class="media-placeholder">Add a hosted video URL in the editor.</div> }
+        @if (current.title) { <strong>{{ current.title }}</strong> }
+        @if (current.caption) { <figcaption>{{ current.caption }}</figcaption> }
+      </figure>
+    }
+    @case ('audio') {
+      <figure class="story-audio">
+        @if (current.url) { <audio controls preload="metadata" [src]="current.url" [attr.aria-label]="current.title || 'Article audio'"></audio> }
+        @else { <div class="media-placeholder">Add a hosted audio URL in the editor.</div> }
+        @if (current.title) { <strong>{{ current.title }}</strong> }
+        @if (current.caption) { <figcaption>{{ current.caption }}</figcaption> }
+      </figure>
+    }
     @case ('image') {
       <figure class="single-image">
         @if (current.imageUrl) { <img [src]="current.imageUrl" [alt]="current.alt" loading="lazy" /> }
