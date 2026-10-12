@@ -28,13 +28,9 @@
       <div class="byline"><span class="author-seal">M</span><span><strong>{{ article().author }}</strong><small>Curated stories for curious minds</small></span><span class="byline-rule"></span><span class="reading-time">8 MIN READ</span></div>
       <figure class="hero-image"><img [src]="article().cover" [alt]="article().title" /><figcaption>Visual notes from the Mageus archive.</figcaption></figure>
       <div class="article-body">
-        <p class="lead">The best reading experiences are not built by adding more interface. They emerge when the interface knows when to become quiet—when the page gives an idea room to breathe.</p>
-        <h2>A page with a sense of place</h2>
-        <p>Every story has its own rhythm. Some ask for a sequence of images, others for careful paragraphs, diagrams, quotations, or a product that belongs naturally within the narrative. Mageus is being rebuilt around that flexibility without sacrificing the calm, tactile quality of its reading surface.</p>
-        <blockquote>Good design is not decoration around an idea. It is the space that lets the idea become clear.</blockquote>
-        <p>The wallpaper remains outside the page, while the foreground surface carries the words. A reading mood changes the light and character of that surface, not the meaning of the story or the reader's place in it.</p>
-        <h2>More than a feed</h2>
-        <p>Articles can become living compositions: text and image, slides and galleries, timelines and visual data, with product references and magazine connections where they genuinely add context.</p>
+        @for (block of blocks; track block.id) {
+          <mageus-article-block-renderer [block]="block" />
+        }
       </div>
       <footer class="article-end"><span>END OF ARTICLE</span><a routerLink="/">Discover another story ↗</a></footer>
     </article>
