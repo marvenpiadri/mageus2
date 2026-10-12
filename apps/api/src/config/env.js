@@ -7,6 +7,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url().optional(),
   CORS_ORIGINS: z.string().default('http://localhost:4200'),
   AUTH_JWT_SECRET: z.string().min(32).optional(),
+  ANALYTICS_HASH_SECRET: z.string().min(32).optional(),
   AUTH_ISSUER: z.string().optional(),
   AUTH_AUDIENCE: z.string().default('mageus')
 });
