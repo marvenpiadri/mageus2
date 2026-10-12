@@ -1,0 +1,47 @@
+<section class="studio-page">
+  <header class="studio-header">
+    <a class="back-link" routerLink="/">← <span>Back to Mageus</span></a>
+    <div class="studio-title"><span class="studio-overline">MAGEUS / STUDIO</span><strong>{{ title() || 'Untitled article' }}</strong><small>{{ statusMessage() }}</small></div>
+    <button class="save-button" type="button" (click)="saveDraft()">Save draft</button>
+  </header>
+  <div class="studio-layout">
+    <aside class="block-catalogue">
+      <div class="panel-heading"><span class="panel-kicker">BUILD YOUR STORY</span><h2>Article blocks</h2><p>Choose a block to add it to your article.</p></div>
+      @for (tool of tools; track tool.type) {
+        <button type="button" class="tool-item" (click)="addBlock(tool.type)">
+          <span class="tool-icon">{{ tool.icon }}</span><span class="tool-copy"><strong>{{ tool.label }}</strong><small>{{ tool.description }}</small></span><span class="tool-add">＋</span>
+        </button>
+      }
+    </aside>
+    <main class="studio-canvas">
+      <div class="canvas-topline"><span>EDITORIAL CANVAS</span><span>{{ blocks().length }} BLOCKS</span></div>
+      <div class="article-metadata">
+        <label class="field-label">ARTICLE TITLE<input [ngModel]="title()" (ngModelChange)="title.set($event)" name="title" placeholder="Give your story a title" /></label>
+        <label class="field-label">SUBTITLE<textarea [ngModel]="subtitle()" (ngModelChange)="subtitle.set($event)" name="subtitle" rows="2" placeholder="A line that invites readers in"></textarea></label>
+      </div>
+      @if (blocks().length === 0) {
+        <div class="empty-canvas"><span class="empty-mark">✦</span><h2>Your story starts here.</h2><p>Add a block from the catalogue. Build a rhythm of words, images, and interactive ideas.</p></div>
+      } @else {
+        <div class="block-list">
+          @for (block of blocks(); track block.id; let i = $index) {
+            <article class="block-card">
+              <header><span class="block-type">{{ block.type.replace('_', ' ') }}</span><div class="block-actions"><button type="button" [disabled]="i === 0" (click)="moveBlock(i, -1)" aria-label="Move block up">↑</button><button type="button" [disabled]="i === blocks().length - 1" (click)="moveBlock(i, 1)" aria-label="Move block down">↓</button><button type="button" (click)="removeBlock(block.id)" aria-label="Remove block">×</button></div></header>
+              <div class="block-preview">
+                @switch (block.type) {
+                  @case ('text') { <p class="text-preview">Text block · {{ block.html }}</p> }
+                  @case ('image') { <label>Image URL <input [value]="block.imageUrl" (input)="block.imageUrl = $any($event.target).value" placeholder="https://…" /></label><label>Alt text <input [value]="block.alt" (input)="block.alt = $any($event.target).value" placeholder="Describe the image" /></label> }
+                  @case ('quote') { <label>Quotation <textarea [value]="block.quote" (input)="block.quote = $any($event.target).value" placeholder="Write the quote…"></textarea></label> }
+                  @case ('embed') { <label>Embed URL <input [value]="block.url" (input)="block.url = $any($event.target).value" placeholder="https://…" /></label> }
+                  @case ('math') { <label>Formula <input [value]="block.formula" (input)="block.formula = $any($event.target).value" placeholder="Enter formula" /></label> }
+                  @default { <p>This block is added to the article structure. Its focused editor will be implemented with the corresponding block feature.</p> }
+                }
+              </div>
+            </article>
+          }
+        </div>
+      }
+      <button class="add-another" type="button" (click)="selectedTool.set(selectedTool() ? null : 'text')">＋ Add another block</button>
+      @if (selectedTool()) { <div class="quick-add"><span>Quick add</span><button type="button" (click)="addBlock(selectedTool()!)">Text block</button><button type="button" (click)="selectedTool.set(null)">Cancel</button></div> }
+    </main>
+  </div>
+</section>
