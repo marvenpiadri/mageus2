@@ -16,6 +16,40 @@ const engagementWriteLimit = rateLimit({
 
 const uuid = z.string().uuid();
 
+// Like totals are public; the viewer's own state is only available to an authenticated account.
+engagementRoutes.get('/articles/:articleId/likes', async (req, res, next) => {
+  const id = uuid.safeParse(req.params.articleId);
+  if (!id.success) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
+  try {
+    const { rows } = await pool.query(
+      `SELECT count(l.user_id)::int AS count
+         FROM article_likes l
+         JOIN articles a ON a.id = l.article_id
+        WHERE l.article_id = $1 AND a.status = 'published'`,
+      [id.data]
+    );
+    const article = await pool.query("SELECT 1 FROM articles WHERE id = $1 AND status = 'published'", [id.data]);
+    if (!article.rowCount) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
+    return res.json({ likeCount: rows[0].count });
+  } catch (error) { next(error); }
+});
+
+engagementRoutes.get('/articles/:articleId/likes/mine', requireVerifiedIdentity, async (req, res, next) => {
+  const id = uuid.safeParse(req.params.articleId);
+  if (!id.success) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
+  try {
+    const { rows } = await pool.query(
+      `SELECT EXISTS (
+         SELECT 1 FROM article_likes l
+         JOIN articles a ON a.id = l.article_id
+         WHERE l.article_id = $1 AND l.user_id = $2 AND a.status = 'published'
+       ) AS liked`,
+      [id.data, req.auth.userId]
+    );
+    return res.json({ liked: rows[0].liked });
+  } catch (error) { next(error); }
+});
+
 engagementRoutes.post('/articles/:articleId/likes', engagementWriteLimit, requireVerifiedIdentity, async (req, res, next) => {
   const id = uuid.safeParse(req.params.articleId);
   if (!id.success) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
