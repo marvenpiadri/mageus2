@@ -7,16 +7,25 @@
     </div>
     <a class="studio-shortcut" routerLink="/write"><span class="shortcut-icon">↗</span><span><strong>Enter the studio</strong><small>Compose an article</small></span></a>
   </div>
-  <div class="section-heading"><div><span class="section-kicker">CURATED FOR YOU</span><h2>Stories worth staying for</h2></div><span class="count-label">01 — 03</span></div>
-  <div class="article-grid">
-    @for (article of articles; track article.title; let i = $index) {
-      <article class="article-card">
-        <div class="card-image" [style.background-image]="'url(' + article.image + ')'"><span class="card-number">0{{ i + 1 }}</span></div>
-        <div class="card-meta"><span>{{ article.category }}</span><span>{{ article.time }}</span></div>
-        <h3>{{ article.title }}</h3><p>{{ article.subtitle }}</p>
-        <div class="card-author"><span class="author-mark">M</span><span>{{ article.author }}</span><span class="author-rule"></span></div>
-      </article>
-    }
-  </div>
+  <div class="section-heading"><div><span class="section-kicker">RECENTLY PUBLISHED</span><h2>Stories worth staying for</h2></div><span class="count-label">{{ articles().length }} STORIES</span></div>
+  @if (loading()) {
+    <p class="home-state" role="status">Finding stories…</p>
+  } @else if (articles().length) {
+    <div class="article-grid">
+      @for (article of articles(); track article.id; let i = $index) {
+        <a class="article-card" [routerLink]="['/', article.author_username, article.slug]">
+          <div class="card-image" [style.background-image]="article.cover_image_url ? 'url(' + article.cover_image_url + ')' : null"><span class="card-number">0{{ i + 1 }}</span><span class="card-open" aria-hidden="true">↗</span></div>
+          <div class="card-meta"><span>{{ article.category || 'STORY' }}</span><span>{{ article.author_username }}</span></div>
+          <h3>{{ article.title }}</h3><p>{{ article.excerpt || article.subtitle }}</p>
+          <div class="card-author"><span class="author-mark">{{ article.author_name.charAt(0) || 'M' }}</span><span>{{ article.author_name }}</span><span class="author-rule"></span></div>
+        </a>
+      }
+    </div>
+  } @else {
+    <div class="home-state" role="status">
+      <span>{{ loadFailed() ? 'The reading room is temporarily unavailable.' : 'Your reading room is ready.' }}</span>
+      <p>{{ loadFailed() ? 'Published stories could not be loaded right now. Please try again shortly.' : 'Published articles will appear here as creators share their work.' }}</p>
+    </div>
+  }
   <footer class="home-footer"><span>READ WITH INTENTION</span><span>SCROLL SLOWLY · STAY CURIOUS</span></footer>
 </section>
