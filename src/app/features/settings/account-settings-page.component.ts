@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 
@@ -121,6 +121,7 @@ interface ExternalIdentity { provider: string; provider_email: string | null; em
 export class AccountSettingsPageComponent {
   private readonly http = inject(HttpClient);
   readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
   readonly loading = signal(true);
   readonly busy = signal(false);
   readonly message = signal('');
@@ -136,7 +137,7 @@ export class AccountSettingsPageComponent {
 
   async load(): Promise<void> {
     try {
-      if (!(await this.auth.ensureSession())) { this.message.set('Please sign in to manage your account.'); return; }
+      if (!(await this.auth.ensureSession())) { await this.router.navigate(['/sign-in'], { queryParams: { returnUrl: '/settings' } }); return; }
       const headers = this.auth.authorizationHeaders();
       const [profile, settings, connections] = await Promise.all([
         firstValueFrom(this.http.get<{profile:AccountProfile}>('/api/v1/account/profile',{headers})),
@@ -159,6 +160,8 @@ export class AccountSettingsPageComponent {
       },{headers:this.auth.authorizationHeaders()}));
       this.profile=result.profile;
       this.avatarDraft=result.profile.avatar_url || '';
+      const user = this.auth.user();
+      if (user) this.auth.user.set({ ...user, username: result.profile.username, displayName: result.profile.display_name });
       this.message.set('Profile saved.');
     });
   }
