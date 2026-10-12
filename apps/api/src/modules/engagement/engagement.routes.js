@@ -74,8 +74,6 @@ engagementRoutes.post('/articles/:articleId/views', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
-const uuid = z.string().uuid();
-
 // Like totals are public; the viewer's own state is only available to an authenticated account.
 engagementRoutes.get('/articles/:articleId/likes', async (req, res, next) => {
   const id = uuid.safeParse(req.params.articleId);
