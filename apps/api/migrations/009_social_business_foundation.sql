@@ -63,9 +63,10 @@ CREATE TABLE IF NOT EXISTS business_locations (
   CONSTRAINT business_locations_slug_format CHECK (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
   CONSTRAINT business_locations_coordinates CHECK (
     (latitude IS NULL AND longitude IS NULL) OR
-    (latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180)
+    (latitude IS NOT NULL AND longitude IS NOT NULL AND latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180)
   ),
-  UNIQUE (channel_id, slug)
+  UNIQUE (channel_id, slug),
+  UNIQUE (id, channel_id)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS business_locations_google_place_unique
   ON business_locations (channel_id, google_place_id) WHERE google_place_id IS NOT NULL;
@@ -140,8 +141,30 @@ CREATE TABLE IF NOT EXISTS location_menus (
   status text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT location_menus_slug_format CHECK (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
-  UNIQUE (location_id, slug)
+  CONSTRAINT location_menus_slug_format CHECK (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*
+CREATE INDEX IF NOT EXISTS location_menus_public_idx
+  ON location_menus (location_id, status, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS location_menu_items (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  menu_id uuid NOT NULL REFERENCES location_menus(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  description text NOT NULL DEFAULT '',
+  image_url text,
+  price_amount numeric(12,2) CHECK (price_amount IS NULL OR price_amount >= 0),
+  currency char(3) NOT NULL DEFAULT 'USD',
+  category text NOT NULL DEFAULT '',
+  sort_order integer NOT NULL DEFAULT 0,
+  is_available boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS location_menu_items_order_idx
+  ON location_menu_items (menu_id, sort_order, created_at);
+),
+  UNIQUE (location_id, slug),
+  CONSTRAINT location_menus_same_channel FOREIGN KEY (location_id, channel_id)
+    REFERENCES business_locations(id, channel_id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS location_menus_public_idx
   ON location_menus (location_id, status, created_at DESC);
