@@ -68,7 +68,7 @@ export function setRefreshCookie(res, token) {
     `Max-Age=${REFRESH_TTL_DAYS * 24 * 60 * 60}`
   ];
   if (env.NODE_ENV === 'production') parts.push('Secure');
-  res.setHeader('Set-Cookie', parts.join('; '));
+  res.append('Set-Cookie', parts.join('; '));
 }
 
 export function clearRefreshCookie(res) {
