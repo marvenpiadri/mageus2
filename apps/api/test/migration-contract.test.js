@@ -25,20 +25,18 @@ test('article revision migration provides optimistic concurrency and history', a
   assert.ok(sql.includes('UNIQUE (article_id, revision)'));
 });
 
-test('article JSONB document is complete and synchronized by PostgreSQL', async () => {
-  const sql = await migration('004_article_jsonb_document.sql');
-  for (const token of [
-    'ADD COLUMN IF NOT EXISTS document jsonb',
-    'CREATE OR REPLACE FUNCTION sync_article_document()',
-    "'article_id', NEW.id",
-    "'title', NEW.title",
-    "'sub_title', NEW.subtitle",
-    "'blocks', NEW.blocks",
-    "'seo_description', NEW.seo_description",
-    'CREATE TRIGGER articles_sync_document',
-    'BEFORE INSERT OR UPDATE ON articles',
-    'UPDATE articles SET updated_at = updated_at'
-  ]) {
-    assert.ok(sql.includes(token), `Missing article JSONB document contract: ${token}`);
-  }
+test('article blocks remain JSONB and article metadata remains relational', async () => {
+  const sql = await migration('001_initial_publishing.sql');
+  assert.match(sql, /blocks\s+jsonb/i);
+  assert.match(sql, /title\s+text/i);
+  assert.match(sql, /channel_id\s+uuid/i);
+  assert.doesNotMatch(sql, /document\s+jsonb/i);
+});
+
+test('corrective migration removes the accidental whole-document JSONB column', async () => {
+  const sql = await migration('005_keep_article_metadata_relational.sql');
+  assert.ok(sql.includes('DROP TRIGGER IF EXISTS articles_sync_document ON articles'));
+  assert.ok(sql.includes('DROP FUNCTION IF EXISTS sync_article_document()'));
+  assert.ok(sql.includes('DROP COLUMN IF EXISTS document'));
+  assert.ok(sql.includes('blocks'));
 });
