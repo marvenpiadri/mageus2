@@ -2,7 +2,7 @@ import { pool } from '../../db/pool.js';
 
 const publicFields = `
   a.id, a.slug, a.title, a.subtitle, a.excerpt, a.category, a.language, a.tags, a.cover_image_url,
-  a.blocks, a.document, a.schema_version, a.published_at, a.updated_at,
+  a.blocks, a.schema_version, a.published_at, a.updated_at,
   a.seo_title, a.seo_description, a.canonical_url,
   c.username AS author_username, c.display_name AS author_name,
   c.avatar_url AS author_avatar_url
