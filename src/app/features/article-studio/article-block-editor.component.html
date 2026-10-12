@@ -1,0 +1,91 @@
+<div class="block-preview">
+  @switch (block.type) {
+    @case ('text') {
+      <label>Text content <textarea rows="6" [value]="plainText(block.html)" (input)="patchBlock({ html: '<p>' + $any($event.target).value + '</p>' })" placeholder="Write your paragraph…"></textarea></label>
+      <small>Basic text editor for this first pass. A structured rich-text model will replace HTML-string editing.</small>
+    }
+    @case ('image') {
+      <label>Image URL<input [value]="block.imageUrl" (input)="patchBlock({ imageUrl: $any($event.target).value })" placeholder="https://…" /></label>
+      <label>Alternative text<input [value]="block.alt" (input)="patchBlock({ alt: $any($event.target).value })" placeholder="Describe the image for accessibility" /></label>
+      <label>Caption<input [value]="block.caption || ''" (input)="patchBlock({ caption: $any($event.target).value })" placeholder="Optional caption" /></label>
+      <label>Display width<select [value]="block.width" (change)="patchBlock({ width: $any($event.target).value })"><option value="normal">Normal</option><option value="wide">Wide</option><option value="full">Full bleed</option></select></label>
+    }
+    @case ('gallery') {
+      <label>Gallery layout<select [value]="block.layout" (change)="patchBlock({ layout: $any($event.target).value })"><option value="grid">Grid</option><option value="masonry">Masonry</option><option value="strip">Strip</option><option value="carousel">Carousel</option></select></label>
+      @for (image of block.images; track $index; let j = $index) {
+        <div class="nested-editor"><strong>Image {{ j + 1 }}</strong><label>URL<input [value]="image.url" (input)="updateNestedItem(j, 'url', $any($event.target).value)" placeholder="https://…" /></label><label>Alt text<input [value]="image.alt" (input)="updateNestedItem(j, 'alt', $any($event.target).value)" placeholder="Describe this image" /></label><label>Caption<input [value]="image.caption || ''" (input)="updateNestedItem(j, 'caption', $any($event.target).value)" /></label><button type="button" (click)="removeNestedItem(j)">Remove image</button></div>
+      }
+      <button type="button" (click)="addNestedItem()">＋ Add image</button>
+    }
+    @case ('slide') {
+      <label>Slide ratio<select [value]="block.ratio" (change)="patchBlock({ ratio: $any($event.target).value })"><option value="16:9">16:9</option><option value="1:1">1:1</option><option value="9:16">9:16</option></select></label>
+      @for (slide of block.slides; track $index; let j = $index) {
+        <div class="nested-editor"><strong>Slide {{ j + 1 }}</strong><label>Image URL<input [value]="slide.imageUrl" (input)="updateNestedItem(j, 'imageUrl', $any($event.target).value)" /></label><label>Label<input [value]="slide.label || ''" (input)="updateNestedItem(j, 'label', $any($event.target).value)" /></label><label>Link URL<input [value]="slide.href || ''" (input)="updateNestedItem(j, 'href', $any($event.target).value)" /></label><button type="button" (click)="removeNestedItem(j)">Remove slide</button></div>
+      }
+      <button type="button" (click)="addNestedItem()">＋ Add slide</button>
+    }
+    @case ('quote') {
+      <label>Quotation<textarea rows="3" [value]="block.quote" (input)="patchBlock({ quote: $any($event.target).value })" placeholder="Write the quote…"></textarea></label>
+      <label>Author<input [value]="block.author || ''" (input)="patchBlock({ author: $any($event.target).value })" /></label>
+      <label>Source / citation<input [value]="block.citation || ''" (input)="patchBlock({ citation: $any($event.target).value })" /></label>
+    }
+    @case ('embed') {
+      <label>Embed URL<input [value]="block.url" (input)="patchBlock({ url: $any($event.target).value })" placeholder="https://…" /></label>
+      <label>Accessible title<input [value]="block.title || ''" (input)="patchBlock({ title: $any($event.target).value })" placeholder="Describe this embedded media" /></label>
+      <small>Embeds must be resolved through a provider allowlist in the public renderer; never inject arbitrary iframe HTML.</small>
+    }
+    @case ('before_after') {
+      <label>Before image URL<input [value]="block.beforeImage" (input)="patchBlock({ beforeImage: $any($event.target).value })" /></label><label>Before label<input [value]="block.beforeLabel || ''" (input)="patchBlock({ beforeLabel: $any($event.target).value })" /></label>
+      <label>After image URL<input [value]="block.afterImage" (input)="patchBlock({ afterImage: $any($event.target).value })" /></label><label>After label<input [value]="block.afterLabel || ''" (input)="patchBlock({ afterLabel: $any($event.target).value })" /></label>
+    }
+    @case ('hotspot') {
+      <label>Base image URL<input [value]="block.imageUrl" (input)="patchBlock({ imageUrl: $any($event.target).value })" /></label>
+      @for (point of block.points; track point.id; let j = $index) {
+        <div class="nested-editor"><strong>Hotspot {{ j + 1 }}</strong><label>Title<input [value]="point.title" (input)="updateNestedItem(j, 'title', $any($event.target).value)" /></label><label>Description<textarea [value]="point.description" (input)="updateNestedItem(j, 'description', $any($event.target).value)"></textarea></label><div class="field-pair"><label>X %<input type="number" min="0" max="100" [value]="point.x" (input)="updateNestedItem(j, 'x', +$any($event.target).value)" /></label><label>Y %<input type="number" min="0" max="100" [value]="point.y" (input)="updateNestedItem(j, 'y', +$any($event.target).value)" /></label></div><button type="button" (click)="removeNestedItem(j)">Remove hotspot</button></div>
+      }
+      <button type="button" (click)="addNestedItem()">＋ Add hotspot</button>
+    }
+    @case ('timeline') {
+      <label>Section title<input [value]="block.title || ''" (input)="patchBlock({ title: $any($event.target).value })" /></label>
+      @for (event of block.events; track $index; let j = $index) {
+        <div class="nested-editor"><strong>Event {{ j + 1 }}</strong><label>Date / period<input [value]="event.date" (input)="updateNestedItem(j, 'date', $any($event.target).value)" /></label><label>Title<input [value]="event.title" (input)="updateNestedItem(j, 'title', $any($event.target).value)" /></label><label>Description<textarea [value]="event.description" (input)="updateNestedItem(j, 'description', $any($event.target).value)"></textarea></label><button type="button" (click)="removeNestedItem(j)">Remove event</button></div>
+      }
+      <button type="button" (click)="addNestedItem()">＋ Add event</button>
+    }
+    @case ('steps') {
+      <label>Section title<input [value]="block.title || ''" (input)="patchBlock({ title: $any($event.target).value })" /></label>
+      @for (step of block.steps; track $index; let j = $index) {
+        <div class="nested-editor"><strong>Step {{ j + 1 }}</strong><label>Title<input [value]="step.title" (input)="updateNestedItem(j, 'title', $any($event.target).value)" /></label><label>Description<textarea [value]="step.description" (input)="updateNestedItem(j, 'description', $any($event.target).value)"></textarea></label><button type="button" (click)="removeNestedItem(j)">Remove step</button></div>
+      }
+      <button type="button" (click)="addNestedItem()">＋ Add step</button>
+    }
+    @case ('data_viz') {
+      <label>Chart type<select [value]="block.chartType" (change)="patchBlock({ chartType: $any($event.target).value })"><option value="bar">Bar</option><option value="progress">Progress</option><option value="kpi">KPI</option><option value="comparison">Comparison</option><option value="table">Table</option></select></label>
+      <label>Chart title<input [value]="block.title || ''" (input)="patchBlock({ title: $any($event.target).value })" /></label>
+      @for (item of block.values; track $index; let j = $index) {
+        <div class="nested-editor"><label>Label<input [value]="item.label" (input)="updateNestedItem(j, 'label', $any($event.target).value)" /></label><label>Value<input type="number" [value]="item.value" (input)="updateNestedItem(j, 'value', +$any($event.target).value)" /></label><button type="button" (click)="removeNestedItem(j)">Remove value</button></div>
+      }
+      <button type="button" (click)="addNestedItem()">＋ Add data point</button>
+    }
+    @case ('math') {
+      <label>Formula<input [value]="block.formula" (input)="patchBlock({ formula: $any($event.target).value })" placeholder="Enter formula" /></label>
+      <label>Explanation<textarea [value]="block.explanation || ''" (input)="patchBlock({ explanation: $any($event.target).value })" placeholder="Explain the formula for readers"></textarea></label>
+    }
+    @case ('product') {
+      <label>Product reference ID<input [value]="block.productId" (input)="patchBlock({ productId: $any($event.target).value })" placeholder="Select from a connected Mageus shop when available" /></label>
+      <label>Display style<select [value]="block.displayMode" (change)="patchBlock({ displayMode: $any($event.target).value })"><option value="card">Card</option><option value="compact">Compact</option><option value="featured">Featured</option></select></label>
+      <small>Product picker will connect through a commerce adapter; no direct Dollareus database access.</small>
+    }
+    @case ('product_collection') {
+      <label>Collection title<input [value]="block.title || ''" (input)="patchBlock({ title: $any($event.target).value })" /></label>
+      <label>Layout<select [value]="block.layout" (change)="patchBlock({ layout: $any($event.target).value })"><option value="grid">Grid</option><option value="carousel">Carousel</option><option value="list">List</option></select></label>
+      @for (productId of block.productIds; track $index; let j = $index) {
+        <div class="nested-editor"><label>Product reference ID<input [value]="productId" (input)="patchBlock({ productIds: block.productIds.map((value, index) => index === j ? $any($event.target).value : value) })" /></label><button type="button" (click)="patchBlock({ productIds: block.productIds.filter((_, index) => index !== j) })">Remove product</button></div>
+      }
+      <button type="button" (click)="patchBlock({ productIds: [...block.productIds, ''] })">＋ Add product reference</button>
+    }
+    @case ('magazine_ref') {
+      <label>Magazine / issue reference ID<input [value]="block.magazineId" (input)="patchBlock({ magazineId: $any($event.target).value })" placeholder="Choose a magazine or issue when connected" /></label>
+    }
+  }
+</div>
