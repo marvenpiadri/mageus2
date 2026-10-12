@@ -2,6 +2,48 @@
 <div class="block-editor">
   @switch (current.type) {
     @case ('text') { <label>Text content<textarea rows="7" [value]="plainText(current.html)" (input)="patch({ html: '<p>' + $any($event.target).value + '</p>' })" placeholder="Write your paragraph…"></textarea></label><small>Structured rich-text controls can be added without changing the reader contract.</small> }
+    @case ('heading') {
+      <label>Heading text<input [value]="current.text" (input)="patch({ text: $any($event.target).value })" placeholder="Section heading" /></label>
+      <label>Heading level<select [value]="current.level" (change)="patch({ level: +$any($event.target).value })"><option [value]="2">Heading 2</option><option [value]="3">Heading 3</option><option [value]="4">Heading 4</option></select></label>
+      <label>Anchor ID (optional)<input [value]="current.anchor || ''" (input)="patch({ anchor: $any($event.target).value })" placeholder="section-name" /></label>
+    }
+    @case ('divider') {
+      <label>Divider style<select [value]="current.style" (change)="patch({ style: $any($event.target).value })"><option value="line">Line</option><option value="dots">Dots</option><option value="space">Whitespace</option></select></label>
+    }
+    @case ('callout') {
+      <label>Callout title<input [value]="current.title || ''" (input)="patch({ title: $any($event.target).value })" placeholder="Optional heading" /></label>
+      <label>Message<textarea rows="4" [value]="current.body" (input)="patch({ body: $any($event.target).value })" placeholder="Write the note, tip, or warning…"></textarea></label>
+      <label>Tone<select [value]="current.tone" (change)="patch({ tone: $any($event.target).value })"><option value="note">Note</option><option value="tip">Tip</option><option value="warning">Warning</option><option value="success">Success</option></select></label>
+    }
+    @case ('table') {
+      <label>Caption<input [value]="current.caption || ''" (input)="patch({ caption: $any($event.target).value })" placeholder="Optional table caption" /></label>
+      <div class="table-editor">
+        <div class="table-editor-row table-editor-header">@for (header of current.headers; track $index; let column = $index) {
+          <div><label>Column {{ column + 1 }}<input [value]="header" (input)="updateTableHeader(column, $any($event.target).value)" /></label><button type="button" (click)="removeTableColumn(column)" [disabled]="current.headers.length <= 1">Remove column</button></div>
+        }</div>
+        @for (row of current.rows; track $index; let rowIndex = $index) {
+          <div class="table-editor-row">@for (cell of row; track $index; let column = $index) { <input [attr.aria-label]="'Row ' + (rowIndex + 1) + ', column ' + (column + 1)" [value]="cell" (input)="updateTableCell(rowIndex, column, $any($event.target).value)" placeholder="Cell value" /> }<button type="button" (click)="removeTableRow(rowIndex)">Remove row</button></div>
+        }
+      </div>
+      <div class="inline-actions"><button type="button" (click)="addTableColumn()">＋ Add column</button><button type="button" (click)="addTableRow()">＋ Add row</button></div>
+    }
+    @case ('code') {
+      <label>Language<select [value]="current.language" (change)="patch({ language: $any($event.target).value })"><option value="text">Plain text</option><option value="javascript">JavaScript</option><option value="typescript">TypeScript</option><option value="html">HTML</option><option value="css">CSS</option><option value="python">Python</option><option value="sql">SQL</option><option value="json">JSON</option><option value="bash">Bash</option></select></label>
+      <label>Code sample<textarea rows="8" spellcheck="false" [value]="current.code" (input)="patch({ code: $any($event.target).value })" placeholder="Paste a code sample…"></textarea></label>
+      <label>Caption<input [value]="current.caption || ''" (input)="patch({ caption: $any($event.target).value })" /></label>
+    }
+    @case ('video') {
+      <label>Hosted video URL<input [value]="current.url" (input)="patch({ url: $any($event.target).value })" placeholder="https://…/video.mp4" /></label>
+      <label>Video title<input [value]="current.title" (input)="patch({ title: $any($event.target).value })" /></label>
+      <label>Poster image URL<input [value]="current.posterUrl || ''" (input)="patch({ posterUrl: $any($event.target).value })" placeholder="Optional preview image" /></label>
+      <label>Caption<input [value]="current.caption || ''" (input)="patch({ caption: $any($event.target).value })" /></label>
+      <small>Use a direct hosted video file URL. Platform embeds should use the provider-validated Embed block.</small>
+    }
+    @case ('audio') {
+      <label>Hosted audio URL<input [value]="current.url" (input)="patch({ url: $any($event.target).value })" placeholder="https://…/audio.mp3" /></label>
+      <label>Audio title<input [value]="current.title" (input)="patch({ title: $any($event.target).value })" /></label>
+      <label>Caption / transcript note<textarea rows="3" [value]="current.caption || ''" (input)="patch({ caption: $any($event.target).value })"></textarea></label>
+    }
     @case ('image') { <label>Image URL<input [value]="current.imageUrl" (input)="patch({ imageUrl: $any($event.target).value })" placeholder="https://…" /></label><label>Alternative text<input [value]="current.alt" (input)="patch({ alt: $any($event.target).value })" placeholder="Describe the image for accessibility" /></label><label>Caption<input [value]="current.caption || ''" (input)="patch({ caption: $any($event.target).value })" /></label><label>Credit<input [value]="current.credit || ''" (input)="patch({ credit: $any($event.target).value })" /></label><label>Display width<select [value]="current.width" (change)="patch({ width: $any($event.target).value })"><option value="normal">Normal</option><option value="wide">Wide</option><option value="full">Full bleed</option></select></label> }
     @case ('gallery') { <label>Gallery layout<select [value]="current.layout" (change)="patch({ layout: $any($event.target).value })"><option value="grid">Grid</option><option value="masonry">Masonry</option><option value="strip">Strip</option><option value="carousel">Carousel</option></select></label>@for (image of current.images; track $index; let i = $index) { <div class="nested-editor"><strong>Image {{ i + 1 }}</strong><label>URL<input [value]="image.url" (input)="updateNestedItem(i, 'url', $any($event.target).value)" /></label><label>Alt text<input [value]="image.alt" (input)="updateNestedItem(i, 'alt', $any($event.target).value)" /></label><label>Caption<input [value]="image.caption || ''" (input)="updateNestedItem(i, 'caption', $any($event.target).value)" /></label><button type="button" (click)="removeNestedItem(i)">Remove image</button></div> }<button type="button" (click)="addNestedItem()">＋ Add image</button> }
     @case ('slide') { <label>Slide ratio<select [value]="current.ratio" (change)="patch({ ratio: $any($event.target).value })"><option value="16:9">16:9</option><option value="1:1">1:1</option><option value="9:16">9:16</option></select></label>@for (slide of current.slides; track $index; let i = $index) { <div class="nested-editor"><strong>Slide {{ i + 1 }}</strong><label>Image URL<input [value]="slide.imageUrl" (input)="updateNestedItem(i, 'imageUrl', $any($event.target).value)" /></label><label>Label<input [value]="slide.label || ''" (input)="updateNestedItem(i, 'label', $any($event.target).value)" /></label><label>Link URL<input [value]="slide.href || ''" (input)="updateNestedItem(i, 'href', $any($event.target).value)" /></label><button type="button" (click)="removeNestedItem(i)">Remove slide</button></div> }<button type="button" (click)="addNestedItem()">＋ Add slide</button> }
