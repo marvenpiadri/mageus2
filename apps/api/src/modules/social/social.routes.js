@@ -687,3 +687,152 @@ socialRoutes.delete('/me/business/menus/:menuId', socialWriteLimit, requireVerif
     return res.json({ deleted: true, id: rows[0].id });
   } catch (error) { next(error); }
 });
+
+
+const publicImageUrl = z.union([
+  z.string().url().max(2048).refine((value) => value.startsWith('https://'), 'Image URLs must use HTTPS.'),
+  z.null()
+]);
+const catalogProductInput = z.object({
+  name: z.string().trim().min(1).max(160),
+  slug: z.string().trim().min(1).max(160).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  description: z.string().trim().max(5000).default(''),
+  imageUrl: publicImageUrl.default(null),
+  priceAmount: z.number().finite().min(0).nullable().default(null),
+  currency: z.string().trim().length(3).regex(/^[A-Z]{3}$/).default('USD'),
+  status: z.enum(['draft', 'published', 'archived']).default('draft')
+}).strict();
+const catalogServiceInput = catalogProductInput.extend({
+  bookingUrl: z.union([
+    z.string().url().max(2048).refine((value) => value.startsWith('https://'), 'Booking URLs must use HTTPS.'),
+    z.null()
+  ]).default(null)
+}).strict();
+
+socialRoutes.get('/me/business/storefronts/:storefrontId/catalog', requireVerifiedIdentity, async (req, res, next) => {
+  const id = uuid.safeParse(req.params.storefrontId);
+  if (!id.success) return res.status(404).json({ error: { code: 'STOREFRONT_NOT_FOUND', message: 'Shop not found.' } });
+  try {
+    const owner = await pool.query(
+      `SELECT s.id FROM storefronts s JOIN channels c ON c.id = s.channel_id
+        WHERE s.id = $1 AND c.owner_user_id = $2`,
+      [id.data, req.auth.userId]
+    );
+    if (!owner.rowCount) return res.status(404).json({ error: { code: 'STOREFRONT_NOT_FOUND', message: 'Shop not found.' } });
+    const [products, services] = await Promise.all([
+      pool.query(`SELECT id, storefront_id, name, slug, description, image_url, price_amount, currency, status, created_at, updated_at
+                    FROM store_products WHERE storefront_id = $1 ORDER BY updated_at DESC, name ASC`, [id.data]),
+      pool.query(`SELECT id, storefront_id, name, slug, description, image_url, price_amount, currency, booking_url, status, created_at, updated_at
+                    FROM store_services WHERE storefront_id = $1 ORDER BY updated_at DESC, name ASC`, [id.data])
+    ]);
+    return res.json({ products: products.rows, services: services.rows });
+  } catch (error) { next(error); }
+});
+
+socialRoutes.post('/me/business/storefronts/:storefrontId/products', socialWriteLimit, requireVerifiedIdentity, async (req, res, next) => {
+  const id = uuid.safeParse(req.params.storefrontId);
+  const input = catalogProductInput.safeParse(req.body);
+  if (!id.success) return res.status(404).json({ error: { code: 'STOREFRONT_NOT_FOUND', message: 'Shop not found.' } });
+  if (!input.success) return res.status(400).json({ error: { code: 'INVALID_PRODUCT', message: 'Check the product name, slug, image URL, price, currency, and visibility.' } });
+  try {
+    const owner = await pool.query(
+      `SELECT s.id FROM storefronts s JOIN channels c ON c.id = s.channel_id
+        WHERE s.id = $1 AND c.owner_user_id = $2`,
+      [id.data, req.auth.userId]
+    );
+    if (!owner.rowCount) return res.status(404).json({ error: { code: 'STOREFRONT_NOT_FOUND', message: 'Shop not found.' } });
+    const { rows } = await pool.query(
+      `INSERT INTO store_products (storefront_id, name, slug, description, image_url, price_amount, currency, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id, storefront_id, name, slug, description, image_url, price_amount, currency, status, created_at, updated_at`,
+      [id.data, input.data.name, input.data.slug, input.data.description, input.data.imageUrl, input.data.priceAmount, input.data.currency, input.data.status]
+    );
+    return res.status(201).json({ product: rows[0] });
+  } catch (error) {
+    if (error?.code === '23505') return res.status(409).json({ error: { code: 'PRODUCT_CONFLICT', message: 'A product with this slug already exists in this shop.' } });
+    return next(error);
+  }
+});
+
+socialRoutes.patch('/me/business/products/:productId', socialWriteLimit, requireVerifiedIdentity, async (req, res, next) => {
+  const id = uuid.safeParse(req.params.productId);
+  const input = catalogProductInput.partial().strict().safeParse(req.body);
+  if (!id.success) return res.status(404).json({ error: { code: 'PRODUCT_NOT_FOUND', message: 'Product not found.' } });
+  if (!input.success || Object.keys(input.data ?? {}).length === 0) return res.status(400).json({ error: { code: 'INVALID_PRODUCT', message: 'Provide valid product fields to update.' } });
+  try {
+    const fields = input.data;
+    const { rows } = await pool.query(
+      `UPDATE store_products p SET
+         name = COALESCE($3, p.name), slug = COALESCE($4, p.slug), description = COALESCE($5, p.description),
+         image_url = CASE WHEN $6::boolean THEN $7 ELSE p.image_url END,
+         price_amount = CASE WHEN $8::boolean THEN $9::numeric ELSE p.price_amount END,
+         currency = COALESCE($10, p.currency), status = COALESCE($11, p.status), updated_at = now()
+       FROM storefronts s JOIN channels c ON c.id = s.channel_id
+       WHERE p.id = $1 AND p.storefront_id = s.id AND c.owner_user_id = $2
+       RETURNING p.id, p.storefront_id, p.name, p.slug, p.description, p.image_url, p.price_amount, p.currency, p.status, p.created_at, p.updated_at`,
+      [id.data, req.auth.userId, fields.name ?? null, fields.slug ?? null, fields.description ?? null,
+       fields.imageUrl !== undefined, fields.imageUrl ?? null, fields.priceAmount !== undefined, fields.priceAmount ?? null,
+       fields.currency ?? null, fields.status ?? null]
+    );
+    if (!rows[0]) return res.status(404).json({ error: { code: 'PRODUCT_NOT_FOUND', message: 'Product not found.' } });
+    return res.json({ product: rows[0] });
+  } catch (error) {
+    if (error?.code === '23505') return res.status(409).json({ error: { code: 'PRODUCT_CONFLICT', message: 'A product with this slug already exists in this shop.' } });
+    return next(error);
+  }
+});
+
+socialRoutes.post('/me/business/storefronts/:storefrontId/services', socialWriteLimit, requireVerifiedIdentity, async (req, res, next) => {
+  const id = uuid.safeParse(req.params.storefrontId);
+  const input = catalogServiceInput.safeParse(req.body);
+  if (!id.success) return res.status(404).json({ error: { code: 'STOREFRONT_NOT_FOUND', message: 'Shop not found.' } });
+  if (!input.success) return res.status(400).json({ error: { code: 'INVALID_SERVICE', message: 'Check the service name, slug, image URL, price, currency, booking link, and visibility.' } });
+  try {
+    const owner = await pool.query(
+      `SELECT s.id FROM storefronts s JOIN channels c ON c.id = s.channel_id
+        WHERE s.id = $1 AND c.owner_user_id = $2`,
+      [id.data, req.auth.userId]
+    );
+    if (!owner.rowCount) return res.status(404).json({ error: { code: 'STOREFRONT_NOT_FOUND', message: 'Shop not found.' } });
+    const { rows } = await pool.query(
+      `INSERT INTO store_services (storefront_id, name, slug, description, image_url, price_amount, currency, booking_url, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING id, storefront_id, name, slug, description, image_url, price_amount, currency, booking_url, status, created_at, updated_at`,
+      [id.data, input.data.name, input.data.slug, input.data.description, input.data.imageUrl, input.data.priceAmount, input.data.currency, input.data.bookingUrl, input.data.status]
+    );
+    return res.status(201).json({ service: rows[0] });
+  } catch (error) {
+    if (error?.code === '23505') return res.status(409).json({ error: { code: 'SERVICE_CONFLICT', message: 'A service with this slug already exists in this shop.' } });
+    return next(error);
+  }
+});
+
+socialRoutes.patch('/me/business/services/:serviceId', socialWriteLimit, requireVerifiedIdentity, async (req, res, next) => {
+  const id = uuid.safeParse(req.params.serviceId);
+  const input = catalogServiceInput.partial().strict().safeParse(req.body);
+  if (!id.success) return res.status(404).json({ error: { code: 'SERVICE_NOT_FOUND', message: 'Service not found.' } });
+  if (!input.success || Object.keys(input.data ?? {}).length === 0) return res.status(400).json({ error: { code: 'INVALID_SERVICE', message: 'Provide valid service fields to update.' } });
+  try {
+    const fields = input.data;
+    const { rows } = await pool.query(
+      `UPDATE store_services v SET
+         name = COALESCE($3, v.name), slug = COALESCE($4, v.slug), description = COALESCE($5, v.description),
+         image_url = CASE WHEN $6::boolean THEN $7 ELSE v.image_url END,
+         price_amount = CASE WHEN $8::boolean THEN $9::numeric ELSE v.price_amount END,
+         currency = COALESCE($10, v.currency),
+         booking_url = CASE WHEN $11::boolean THEN $12 ELSE v.booking_url END,
+         status = COALESCE($13, v.status), updated_at = now()
+       FROM storefronts s JOIN channels c ON c.id = s.channel_id
+       WHERE v.id = $1 AND v.storefront_id = s.id AND c.owner_user_id = $2
+       RETURNING v.id, v.storefront_id, v.name, v.slug, v.description, v.image_url, v.price_amount, v.currency, v.booking_url, v.status, v.created_at, v.updated_at`,
+      [id.data, req.auth.userId, fields.name ?? null, fields.slug ?? null, fields.description ?? null,
+       fields.imageUrl !== undefined, fields.imageUrl ?? null, fields.priceAmount !== undefined, fields.priceAmount ?? null,
+       fields.currency ?? null, fields.bookingUrl !== undefined, fields.bookingUrl ?? null, fields.status ?? null]
+    );
+    if (!rows[0]) return res.status(404).json({ error: { code: 'SERVICE_NOT_FOUND', message: 'Service not found.' } });
+    return res.json({ service: rows[0] });
+  } catch (error) {
+    if (error?.code === '23505') return res.status(409).json({ error: { code: 'SERVICE_CONFLICT', message: 'A service with this slug already exists in this shop.' } });
+    return next(error);
+  }
+});
