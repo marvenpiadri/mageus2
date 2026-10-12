@@ -42,7 +42,8 @@
 .voting-copy p { margin: 0; color: var(--text-muted, #a8adbb); font-size: .85rem; line-height: 1.6; }
 .voting-range { min-width: 0; align-self: center; }
 .range-labels { display: flex; justify-content: space-between; gap: .5rem; color: var(--text-muted, #a8adbb); font-size: .7rem; }
-.range-labels strong { color: var(--accent, #66ccc3); font-size: .85rem; font-variant-numeric: tabular-nums; }
+.range-labels strong { color: var(--accent, #66ccc3); font-size: .85rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.vote-emoji { display: inline-block; margin-right: .2rem; font-size: 1.25rem; vertical-align: -0.12em; }
 .voting-range mat-slider { display: block; width: 100%; margin: .8rem 0 .2rem; --mdc-slider-handle-color: var(--accent, #66ccc3); --mdc-slider-focus-handle-color: var(--accent, #66ccc3); --mdc-slider-hover-handle-color: var(--accent, #66ccc3); --mdc-slider-active-track-color: var(--accent, #66ccc3); --mdc-slider-inactive-track-color: var(--glass-border, rgba(255,255,255,.2)); }
 .voting-status { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .75rem; }
 .voting-status a { color: var(--accent, #66ccc3); font-size: .78rem; text-decoration-color: color-mix(in srgb, var(--accent, #66ccc3) 45%, transparent); text-underline-offset: .2rem; }
@@ -69,12 +70,3 @@
 .comment-form-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .75rem; color: var(--text-muted, #a8adbb); font-size: .75rem; }
 .comment-form-footer button { border: 1px solid var(--accent, #66ccc3); border-radius: 99px; padding: .65rem 1rem; color: var(--text-primary, #f6f6fb); background: color-mix(in srgb, var(--accent, #66ccc3) 16%, transparent); font: inherit; font-weight: 650; cursor: pointer; }
 .comment-form-footer button:disabled { opacity: .5; cursor: not-allowed; }
-
-/* Lightweight social appreciation action, separate from the 0–100 community rating. */
-.article-like-row { display: flex; align-items: center; gap: .8rem; margin-top: 2.25rem; color: var(--text-muted, #a8adbb); font-size: .8rem; }
-.article-like-button { display: inline-flex; align-items: center; gap: .55rem; border: 1px solid var(--glass-border, rgba(255,255,255,.18)); border-radius: 99px; padding: .7rem 1rem; color: var(--text-primary, #f6f6fb); background: var(--glass-surface, rgba(255,255,255,.04)); font: inherit; cursor: pointer; transition: border-color .18s ease, background .18s ease, color .18s ease; }
-.article-like-button span { color: var(--accent, #66ccc3); font-size: 1.1rem; }
-.article-like-button.liked { border-color: var(--accent, #66ccc3); background: color-mix(in srgb, var(--accent, #66ccc3) 14%, transparent); }
-.article-like-button:disabled { opacity: .65; cursor: wait; }
-.article-like-button:focus-visible { outline: 2px solid var(--accent, #66ccc3); outline-offset: 3px; }
-@media (prefers-reduced-motion: reduce) { .article-like-button { transition: none; } }
