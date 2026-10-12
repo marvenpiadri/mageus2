@@ -112,8 +112,8 @@ test('location menus and menu items are managed only through the authenticated o
   assert.match(routes, /get\('\/me\/business\/menus', requireVerifiedIdentity/);
   assert.match(routes, /post\('\/me\/business\/menus', socialWriteLimit, requireVerifiedIdentity/);
   assert.match(routes, /patch\('\/me\/business\/menus\/:menuId', socialWriteLimit, requireVerifiedIdentity/);
-  assert.match(routes, /post\('\/me\/business\/menus\/:menuId\/items', socialWriteLimit, requireVerifiedIdentity/);
-  assert.match(routes, /patch\('\/me\/business\/menu-items\/:itemId', socialWriteLimit, requireVerifiedIdentity/);
-  assert.match(routes, /Menus must belong to one of your own locations/);
-  assert.match(routes, /Menu PDF URLs must use HTTPS/);
+  assert.match(routes, /delete\('\/me\/business\/menus\/:menuId', socialWriteLimit, requireVerifiedIdentity/);
+  assert.match(routes, /items: z\.array\(menuItemInput\)/);
+  assert.match(routes, /replaceMenuItems\(client, created\.rows\[0\]\.id, input\.data\.items\)/);
+  assert.match(routes, /Choose one of your own locations/);
 });
