@@ -74,6 +74,9 @@ export class PublicArticlePageComponent {
   readonly commentDraft = signal('');
   readonly commentBusy = signal(false);
   readonly commentMessage = signal('');
+  readonly liked = signal(false);
+  readonly likeCount = signal(0);
+  readonly likeBusy = signal(false);
 
   private readonly apiBase = this.resolveApiBase();
 
@@ -118,11 +121,21 @@ export class PublicArticlePageComponent {
       this.comments.set([]);
       this.commentDraft.set('');
       this.commentMessage.set('');
+      this.liked.set(false);
+      this.likeCount.set(0);
       this.loading.set(false);
       this.notFound.set(!article);
       if (article) {
         this.updateSeo(article);
         this.loadComments(article.id);
+        const likesEndpoint = `/api/v1/engagement/articles/${encodeURIComponent(article.id)}/likes`;
+        this.http.get<{ likeCount: number }>(likesEndpoint).pipe(catchError(() => of({ likeCount: 0 })), takeUntilDestroyed(this.destroyRef))
+          .subscribe((result) => { if (this.article()?.id === article.id) this.likeCount.set(result.likeCount); });
+        if (this.auth.isAuthenticated()) {
+          this.http.get<{ liked: boolean }>(`${likesEndpoint}/mine`, { headers: this.auth.authorizationHeaders() })
+            .pipe(catchError(() => of({ liked: false })), takeUntilDestroyed(this.destroyRef))
+            .subscribe((result) => { if (this.article()?.id === article.id) this.liked.set(result.liked); });
+        }
         const voteEndpoint = `/api/v1/engagement/articles/${encodeURIComponent(article.id)}/votes`;
         this.http.get<{ average: number; count: number }>(voteEndpoint)
           .pipe(catchError(() => of({ average: 0, count: 0 })), takeUntilDestroyed(this.destroyRef))
@@ -171,6 +184,27 @@ export class PublicArticlePageComponent {
     return number;
   }
 
+
+
+  async toggleLike(): Promise<void> {
+    const article = this.article();
+    if (!article || this.likeBusy()) return;
+    if (!this.auth.isAuthenticated()) {
+      await this.router.navigate(['/sign-in'], {
+        queryParams: { returnUrl: `/${article.author_username}/${article.slug}` }
+      });
+      return;
+    }
+    this.likeBusy.set(true);
+    const endpoint = `/api/v1/engagement/articles/${encodeURIComponent(article.id)}/likes`;
+    const request = this.liked()
+      ? this.http.delete<{ liked: boolean; likeCount: number }>(endpoint, { headers: this.auth.authorizationHeaders() })
+      : this.http.post<{ liked: boolean; likeCount: number }>(endpoint, {}, { headers: this.auth.authorizationHeaders() });
+    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (result) => { this.liked.set(result.liked); this.likeCount.set(result.likeCount); this.likeBusy.set(false); },
+      error: () => { this.likeBusy.set(false); }
+    });
+  }
 
   private loadComments(articleId: string): void {
     this.commentsLoading.set(true);
