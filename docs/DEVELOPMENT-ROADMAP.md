@@ -1,6 +1,6 @@
 # Mageus 2 development roadmap
 
-Last reviewed: 2026-10-12  
+Last reviewed: 2026-10-13  
 Working branch: `main` (direct commits, as requested)  
 Product rule: public article reading is anonymous; authenticated identity is required only for private authoring and protected actions.
 
@@ -21,12 +21,12 @@ This roadmap is the release checklist. A phase is **not complete because its cod
 | 0. Audit and baseline | In progress | Legacy route inventory, backend migration notes, and the first [source-to-target UI map](./SOURCE-TO-TARGET-MAP.md) now exist. The endpoint/data-contract inventory and a consolidated baseline are still in progress. |
 | 1. Application foundation | Needs verification | Production build and API checks passed on commit `f17a158` (run [38280359658](https://github.com/marvenpiadri/mageus2/actions/runs/38280359658)). SSR/browser behavior, mood interaction, and visual parity still need manual verification. |
 | 2. Article Studio core | In progress | Typed block model, registry, editor component, renderer, and draft workflow exist. API schema tests now exercise all 22 supported block types. API now rejects duplicate block IDs to protect stable Studio editing/reordering. Article Studio can explicitly reload the latest server draft after a revision conflict, with a confirmation warning before replacing local edits. Full editor completeness, migration/versioning, accessibility, registry/editor/renderer parity, and end-to-end acceptance tests remain. |
-| 3. Neon and API | In progress | Corrected the schema direction: only `articles.blocks` is JSONB; article metadata and relationships remain relational. Migrations `005_keep_article_metadata_relational.sql` and `006_revision_blocks_jsonb_only.sql` remove whole-document JSONB storage from the article and revision-history models; only Studio content blocks remain JSONB. Migration `007_article_schema_guardrails.sql` adds database checks that block payloads are arrays and indexes for common relational queries. CI validates the migration contract. Live Neon connectivity, migration execution, and end-to-end persistence remain unverified until server-side credentials are configured. |
-| 4. Public reader and SEO | Needs verification | Public read API and reader foundation exist. End-to-end public SSR pages, canonical URLs, structured data, sitemap, and search indexing need verification. |
+| 3. Neon and API | In progress | Article metadata and relationships remain relational; only article blocks are JSONB. CI now applies every migration, including the rating-summary and magazine/issue migrations, to a clean PostgreSQL 16 database and verifies schema creation. Live Neon migration, production connectivity, and end-to-end persistence still require the configured target database. |
+| 4. Public reader and SEO | Needs verification | Article pages include canonical metadata and Article JSON-LD; magazine and issue pages now include canonical URLs, Open Graph metadata, and publication structured data. Production-domain SSR, browser navigation/scroll acceptance, sitemap generation, and search indexing still need verification. |
 | 5. Identity and engagement | Needs verification | Authentication boundary and engagement routes exist. Session hardening, integration tests, moderation, and threat review remain. |
-| 6. Channels and magazines | Not started / early foundations | Legacy behavior has been inventoried; new product flows and data contracts are not complete. |
+| 6. Channels and magazines | In progress | Migration `012_magazines_and_issues.sql`, public discovery, channel-profile magazine cards, magazine detail/issue readers, ordered article selection, publishing APIs, pagination, and metadata are implemented. Build/API CI and clean PostgreSQL migration checks are passing on the recent validated commit; full production-domain browser acceptance remains. |
 | 7. Commerce and extensibility | Early foundation | Product and magazine reference block types exist. Real resolver adapters and asset picker are not connected. |
-| 8. Release readiness | Not started | No staging cutover, production database verification, backup restore test, or release sign-off has been recorded. |
+| 8. Release readiness | Needs verification | CI covers production Angular build, API checks, and applying every migration to a clean PostgreSQL 16 instance. Still required: run migrations on the target Neon development/staging database, verify production-domain SSR and browser behavior, confirm environment/CORS settings, test backup restoration, and record release sign-off. |
 
 ## Phase 0 — Audit and baseline
 
