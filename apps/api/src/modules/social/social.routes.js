@@ -98,7 +98,7 @@ socialRoutes.get('/profiles/:username', async (req, res, next) => {
         return res.status(404).json({ error: { code: 'PROFILE_NOT_FOUND', message: 'Profile not found.' } });
       }
     }
-    const [locations, storefronts, menus, articles] = await Promise.all([
+    const [locations, storefronts, menus, articles, magazines] = await Promise.all([
       pool.query(
         `SELECT l.id, l.name, l.slug, l.address, l.google_place_id, l.latitude, l.longitude, l.phone, l.opening_hours, l.is_primary
            FROM business_locations l
@@ -139,6 +139,14 @@ socialRoutes.get('/profiles/:username', async (req, res, next) => {
           ORDER BY a.published_at DESC, a.id DESC
           LIMIT 13`,
         [profile.id]
+      ),
+      pool.query(
+        `SELECT m.id, m.slug, m.title, m.description, m.cover_image_url, m.published_at,
+                (SELECT count(*)::int FROM magazine_issues i WHERE i.magazine_id = m.id AND i.status = 'published' AND i.published_at IS NOT NULL) AS issue_count
+           FROM magazines m
+          WHERE m.channel_id = $1 AND m.status = 'published' AND m.published_at IS NOT NULL
+          ORDER BY m.published_at DESC, m.id DESC`,
+        [profile.id]
       )
     ]);
     const profileArticles = articles.rows.slice(0, 12);
@@ -154,6 +162,7 @@ socialRoutes.get('/profiles/:username', async (req, res, next) => {
       storefronts: storefronts.rows,
       menus: menus.rows,
       articles: profileArticles,
+      magazines: magazines.rows,
       articlesNextCursor
     });
   } catch (error) { next(error); }
