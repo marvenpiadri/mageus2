@@ -25,7 +25,8 @@ test('public comment reading is distinct from authenticated comment creation', a
   const routes = await source('../src/modules/engagement/engagement.routes.js');
   assert.match(routes, /get\('\/articles\/:articleId\/comments'/);
   assert.match(routes, /post\('\/articles\/:articleId\/comments', engagementWriteLimit, requireVerifiedIdentity/);
-  assert.match(routes, /post\('\/articles\/:articleId\/likes', engagementWriteLimit, requireVerifiedIdentity/);
+  assert.doesNotMatch(routes, /\/likes/);
+  assert.match(routes, /put\('\/articles\/:articleId\/votes', engagementWriteLimit, requireVerifiedIdentity/);
 });
 
 
