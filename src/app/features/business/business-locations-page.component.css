@@ -1,0 +1,50 @@
+.business-page { width: min(100% - 2rem, 1180px); margin: 0 auto; padding: clamp(1.5rem, 4vw, 3.5rem) 0 6rem; color: var(--text-primary, #f6f6fb); }
+.business-back { color: var(--text-muted, #a8adbb); font-size: .8rem; text-decoration: none; }
+.business-heading { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 1.2rem; margin: 1.4rem 0 2rem; }
+.business-kicker { color: var(--accent, #66ccc3); font-size: .66rem; font-weight: 750; letter-spacing: .15em; }
+.business-heading h1 { margin: .45rem 0; font-size: clamp(2.2rem, 5vw, 3.8rem); letter-spacing: -.045em; line-height: 1; }
+.business-heading p { max-width: 48rem; margin: .6rem 0 0; color: var(--text-muted, #a8adbb); line-height: 1.65; font-size: .9rem; }
+.business-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(300px, .9fr); align-items: start; gap: 1rem; }
+.location-list-panel, .location-form-panel { min-width: 0; padding: clamp(1rem, 3vw, 1.5rem); border: 1px solid var(--glass-border, rgba(255,255,255,.13)); border-radius: 1rem; background: var(--glass-surface, rgba(14,16,26,.62)); backdrop-filter: blur(24px); }
+.panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+.panel-heading h2 { margin: .4rem 0 0; font-size: 1.2rem; }
+.location-count { display: grid; place-items: center; min-width: 2rem; height: 2rem; padding: 0 .5rem; border: 1px solid var(--glass-border, rgba(255,255,255,.16)); border-radius: 99px; color: var(--text-muted, #a8adbb); font-size: .8rem; }
+.location-list { display: grid; gap: .75rem; }
+.location-card { display: flex; align-items: flex-start; gap: .8rem; padding: 1rem; border: 1px solid var(--glass-border, rgba(255,255,255,.11)); border-radius: .8rem; transition: border-color .18s ease; }
+.location-card-active { border-color: var(--accent, #66ccc3); }
+.location-symbol { display: grid; place-items: center; flex: 0 0 2.25rem; height: 2.25rem; border-radius: .65rem; color: var(--accent, #66ccc3); background: color-mix(in srgb, var(--accent, #66ccc3) 10%, transparent); font-size: 1.25rem; }
+.location-main { flex: 1; min-width: 0; }
+.location-title-row { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
+.location-title-row h3 { margin: .1rem 0; font-size: .95rem; overflow-wrap: anywhere; }
+.primary-tag { padding: .2rem .45rem; border-radius: 99px; color: var(--accent, #66ccc3); background: color-mix(in srgb, var(--accent, #66ccc3) 12%, transparent); font-size: .62rem; font-weight: 700; }
+.location-slug, .location-address, .location-phone { margin: .35rem 0 0; color: var(--text-muted, #a8adbb); font-size: .77rem; line-height: 1.5; overflow-wrap: anywhere; }
+.map-link { display: inline-block; margin-top: .55rem; color: var(--accent, #66ccc3); font-size: .75rem; text-decoration: none; }
+.location-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .9rem; }
+.business-primary, .business-secondary, .business-danger { display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--accent, #66ccc3); border-radius: 99px; padding: .68rem 1rem; color: var(--text-primary, #f6f6fb); background: color-mix(in srgb, var(--accent, #66ccc3) 14%, transparent); font: inherit; font-size: .78rem; font-weight: 650; text-decoration: none; cursor: pointer; }
+.business-secondary { border-color: var(--glass-border, rgba(255,255,255,.18)); background: transparent; }
+.business-danger { border-color: color-mix(in srgb, #e98282 55%, transparent); color: #f2aaaa; background: transparent; }
+.business-primary:disabled { opacity: .55; cursor: wait; }
+.location-form-panel form { display: grid; gap: 1rem; }
+.location-form-panel form > label, .coordinate-fields label { display: grid; gap: .45rem; font-size: .8rem; font-weight: 650; }
+.location-form-panel input:not([type="checkbox"]), .location-form-panel textarea { width: 100%; min-width: 0; padding: .78rem .85rem; border: 1px solid var(--glass-border, rgba(255,255,255,.18)); border-radius: .65rem; color: var(--text-primary, #f6f6fb); background: rgba(0,0,0,.16); font: inherit; font-weight: 400; line-height: 1.45; }
+.location-form-panel textarea { resize: vertical; }
+.location-form-panel input:focus-visible, .location-form-panel textarea:focus-visible { outline: 2px solid var(--accent, #66ccc3); outline-offset: 2px; }
+.location-form-panel label small, .optional-label { color: var(--text-muted, #a8adbb); font-size: .7rem; font-weight: 400; line-height: 1.5; }
+.optional-label { margin-left: .2rem; }
+.coordinate-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+.primary-checkbox { display: flex !important; align-items: flex-start; gap: .7rem !important; padding: .85rem; border: 1px solid var(--glass-border, rgba(255,255,255,.12)); border-radius: .75rem; cursor: pointer; }
+.primary-checkbox input { flex: 0 0 auto; width: 1.05rem; height: 1.05rem; margin-top: .1rem; accent-color: var(--accent, #66ccc3); }
+.primary-checkbox span { display: grid; gap: .3rem; }
+.primary-checkbox strong { font-size: .8rem; }
+.business-form-actions { display: flex; flex-wrap: wrap; gap: .6rem; }
+.business-message, .business-error { margin: 0; font-size: .78rem; line-height: 1.55; }
+.business-message { color: var(--text-muted, #a8adbb); }
+.business-error { color: #f2aaaa; }
+.delete-warning { margin: .75rem 0 0; color: #f2aaaa; font-size: .75rem; line-height: 1.5; }
+.location-empty { display: grid; justify-items: start; gap: .65rem; padding: 1.2rem 0; }
+.location-empty > span, .business-state > span { color: var(--accent, #66ccc3); font-size: 2rem; }
+.location-empty h3 { margin: 0; font-size: 1rem; }
+.location-empty p { margin: 0 0 .5rem; color: var(--text-muted, #a8adbb); font-size: .82rem; line-height: 1.6; }
+.business-state { display: grid; place-items: center; gap: .5rem; min-height: 35vh; color: var(--text-muted, #a8adbb); }
+@media (max-width: 800px) { .business-layout { grid-template-columns: 1fr; } }
+@media (max-width: 480px) { .coordinate-fields { grid-template-columns: 1fr; } .business-heading { align-items: flex-start; flex-direction: column; } }
