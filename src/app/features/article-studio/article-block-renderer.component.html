@@ -1,4 +1,4 @@
-@let current = current;
+@let current = block();
 <section class="rendered-block">
   @switch (current.type) {
     @case ('text') { <div class="rich-text" [innerHTML]="current.html"></div> }
