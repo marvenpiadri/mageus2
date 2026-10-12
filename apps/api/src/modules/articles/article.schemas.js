@@ -11,7 +11,7 @@ const urlOrEmpty = z.string().max(2048).refine((value) => {
 }, 'URL must be a valid HTTP or HTTPS URL.');
 
 export const articleBlockSchema = z.discriminatedUnion('type', [
-  z.object({ ...base, type: z.literal('text'), html: z.string().max(100_000) }),
+  z.object({ ...base, type: z.literal('text'), html: z.string().max(100_000), presentation: z.enum(['regular', 'step']).optional() }),
   z.object({ ...base, type: z.literal('heading'), text: z.string().trim().min(1).max(300), level: z.union([z.literal(2), z.literal(3), z.literal(4)]), anchor: z.string().max(120).optional() }),
   z.object({ ...base, type: z.literal('divider'), style: z.enum(['line', 'dots', 'space']) }),
   z.object({ ...base, type: z.literal('callout'), title: shortText.optional(), body: z.string().max(10_000), tone: z.enum(['note', 'tip', 'warning', 'success']) }),
