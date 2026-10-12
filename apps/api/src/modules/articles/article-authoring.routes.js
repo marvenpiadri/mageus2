@@ -9,7 +9,7 @@ articleAuthoringRoutes.use(requireDatabase);
 
 const uuid = z.string().uuid();
 const publicArticleFields = `
-  a.id, a.slug, a.title, a.subtitle, a.excerpt, a.cover_image_url,
+  a.id, a.slug, a.title, a.subtitle, a.excerpt, a.category, a.language, a.tags, a.cover_image_url,
   a.blocks, a.schema_version, a.status, a.seo_title, a.seo_description,
   a.canonical_url, a.published_at, a.created_at, a.updated_at,
   c.username AS author_username, c.display_name AS author_name
@@ -64,15 +64,15 @@ articleAuthoringRoutes.post('/', requireVerifiedIdentity, async (req, res, next)
   try {
     const { rows } = await pool.query(
       `INSERT INTO articles (
-         channel_id, slug, title, subtitle, excerpt, cover_image_url, blocks,
+         channel_id, slug, title, subtitle, excerpt, category, language, tags, cover_image_url, blocks,
          schema_version, status, seo_title, seo_description, canonical_url
        )
-       SELECT c.id, $2, $3, $4, $5, NULLIF($6, ''), $7::jsonb, $8, 'draft', $9, $10, $11
+       SELECT c.id, $2, $3, $4, $5, $6, $7, $8::text[], NULLIF($9, ''), $10::jsonb, $11, 'draft', $12, $13, $14
          FROM channels c WHERE c.owner_user_id = $1
        RETURNING id, slug, title, subtitle, excerpt, cover_image_url, blocks,
-                 schema_version, status, seo_title, seo_description, canonical_url,
+                 category, language, tags, schema_version, status, seo_title, seo_description, canonical_url,
                  published_at, created_at, updated_at`,
-      [req.auth.userId, slug, data.title, data.subtitle, data.excerpt, data.coverImageUrl,
+      [req.auth.userId, slug, data.title, data.subtitle, data.excerpt, data.category, data.language, data.tags, data.coverImageUrl,
        JSON.stringify(data.blocks), data.schemaVersion, data.seoTitle ?? null,
        data.seoDescription ?? null, data.canonicalUrl ?? null]
     );
@@ -91,7 +91,7 @@ articleAuthoringRoutes.patch('/:articleId', requireVerifiedIdentity, async (req,
   if (!parsed.success || Object.keys(parsed.data).length === 0) return res.status(400).json({ error: { code: 'INVALID_ARTICLE', message: 'Provide valid article fields to update.' } });
 
   const columns = {
-    title: 'title', subtitle: 'subtitle', slug: 'slug', excerpt: 'excerpt',
+    title: 'title', subtitle: 'subtitle', slug: 'slug', excerpt: 'excerpt', category: 'category', language: 'language', tags: 'tags',
     coverImageUrl: 'cover_image_url', blocks: 'blocks', schemaVersion: 'schema_version',
     seoTitle: 'seo_title', seoDescription: 'seo_description', canonicalUrl: 'canonical_url'
   };
@@ -109,7 +109,7 @@ articleAuthoringRoutes.patch('/:articleId', requireVerifiedIdentity, async (req,
       `UPDATE articles a SET ${sets.join(', ')}
          FROM channels c
         WHERE a.id = $1 AND c.id = a.channel_id AND c.owner_user_id = $2
-       RETURNING a.id, a.slug, a.title, a.subtitle, a.excerpt, a.cover_image_url,
+       RETURNING a.id, a.slug, a.title, a.subtitle, a.excerpt, a.category, a.language, a.tags, a.cover_image_url,
                  a.blocks, a.schema_version, a.status, a.seo_title, a.seo_description,
                  a.canonical_url, a.published_at, a.created_at, a.updated_at`,
       values
