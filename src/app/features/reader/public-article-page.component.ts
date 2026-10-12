@@ -74,9 +74,6 @@ export class PublicArticlePageComponent {
   readonly commentDraft = signal('');
   readonly commentBusy = signal(false);
   readonly commentMessage = signal('');
-  readonly liked = signal(false);
-  readonly likeCount = signal(0);
-  readonly likeBusy = signal(false);
 
   private readonly apiBase = this.resolveApiBase();
   private readonly recordedArticleIds = new Set<string>();
@@ -122,21 +119,12 @@ export class PublicArticlePageComponent {
       this.comments.set([]);
       this.commentDraft.set('');
       this.commentMessage.set('');
-      this.liked.set(false);
-      this.likeCount.set(0);
       this.loading.set(false);
       this.notFound.set(!article);
       if (article) {
         this.updateSeo(article);
         this.loadComments(article.id);
         this.recordArticleView(article);
-        const likesEndpoint = `/api/v1/engagement/articles/${encodeURIComponent(article.id)}/likes`;
-        this.http.get<{ likeCount: number }>(likesEndpoint).pipe(catchError(() => of({ likeCount: 0 })), takeUntilDestroyed(this.destroyRef))
-          .subscribe((result) => { if (this.article()?.id === article.id) this.likeCount.set(result.likeCount); });
-        if (this.auth.isAuthenticated()) {
-          this.http.get<{ liked: boolean }>(`${likesEndpoint}/mine`, { headers: this.auth.authorizationHeaders() })
-            .pipe(catchError(() => of({ liked: false })), takeUntilDestroyed(this.destroyRef))
-            .subscribe((result) => { if (this.article()?.id === article.id) this.liked.set(result.liked); });
         }
         const voteEndpoint = `/api/v1/engagement/articles/${encodeURIComponent(article.id)}/votes`;
         this.http.get<{ average: number; count: number }>(voteEndpoint)
@@ -175,6 +163,34 @@ export class PublicArticlePageComponent {
     this.voteChanges.next({ articleId: article.id, value });
   }
 
+  voteEmoji(value: number): string {
+    if (value <= 9) return '😖';
+    if (value <= 19) return '😞';
+    if (value <= 29) return '🙁';
+    if (value <= 39) return '😕';
+    if (value <= 49) return '😐';
+    if (value <= 59) return '🙂';
+    if (value <= 69) return '😊';
+    if (value <= 79) return '😄';
+    if (value <= 89) return '🤩';
+    if (value <= 99) return '🔥';
+    return '💯';
+  }
+
+  voteLabel(value: number): string {
+    if (value <= 9) return 'Very poor';
+    if (value <= 19) return 'Poor';
+    if (value <= 29) return 'Disappointing';
+    if (value <= 39) return 'Below average';
+    if (value <= 49) return 'Fair';
+    if (value <= 59) return 'Okay';
+    if (value <= 69) return 'Good';
+    if (value <= 79) return 'Very good';
+    if (value <= 89) return 'Excellent';
+    if (value <= 99) return 'Outstanding';
+    return 'Perfect score';
+  }
+
   isStepBlock(block: ArticleBlock | undefined): boolean {
     return block?.type === 'text' && block.presentation === 'step';
   }
@@ -199,26 +215,6 @@ export class PublicArticlePageComponent {
       catchError(() => of(null)),
       takeUntilDestroyed(this.destroyRef)
     ).subscribe();
-  }
-
-  async toggleLike(): Promise<void> {
-    const article = this.article();
-    if (!article || this.likeBusy()) return;
-    if (!this.auth.isAuthenticated()) {
-      await this.router.navigate(['/sign-in'], {
-        queryParams: { returnUrl: `/${article.author_username}/${article.slug}` }
-      });
-      return;
-    }
-    this.likeBusy.set(true);
-    const endpoint = `/api/v1/engagement/articles/${encodeURIComponent(article.id)}/likes`;
-    const request = this.liked()
-      ? this.http.delete<{ liked: boolean; likeCount: number }>(endpoint, { headers: this.auth.authorizationHeaders() })
-      : this.http.post<{ liked: boolean; likeCount: number }>(endpoint, {}, { headers: this.auth.authorizationHeaders() });
-    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (result) => { this.liked.set(result.liked); this.likeCount.set(result.likeCount); this.likeBusy.set(false); },
-      error: () => { this.likeBusy.set(false); }
-    });
   }
 
   private loadComments(articleId: string): void {
