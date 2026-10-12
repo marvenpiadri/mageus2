@@ -19,8 +19,8 @@
     <main class="studio-canvas">
       <div class="canvas-topline"><span>EDITORIAL CANVAS</span><span>{{ blocks().length }} BLOCKS</span></div>
       <div class="article-metadata">
-        <label class="field-label">ARTICLE TITLE<input [ngModel]="title()" (ngModelChange)="title.set($event); saveDraft()" name="title" placeholder="Give your story a title" /></label>
-        <label class="field-label">SUBTITLE<textarea [ngModel]="subtitle()" (ngModelChange)="subtitle.set($event); saveDraft()" name="subtitle" rows="2" placeholder="A line that invites readers in"></textarea></label>
+        <label class="field-label">ARTICLE TITLE<input [ngModel]="title()" (ngModelChange)="setTitle($event)" name="title" placeholder="Give your story a title" /></label>
+        <label class="field-label">SUBTITLE<textarea [ngModel]="subtitle()" (ngModelChange)="setSubtitle($event)" name="subtitle" rows="2" placeholder="A line that invites readers in"></textarea></label>
       </div>
       @if (blocks().length === 0) {
         <div class="empty-canvas"><span class="empty-mark">✦</span><h2>Your story starts here.</h2><p>Add a block from the catalogue. Build a rhythm of words, images, and interactive ideas.</p></div>
@@ -32,7 +32,7 @@
               <div class="block-preview">
                 @switch (block.type) {
                   @case ('text') {
-                    <label>Text content <textarea rows="6" [value]="block.html.replace(/<[^>]*>/g, '')" (input)="patchBlock(block.id, { html: '<p>' + $any($event.target).value + '</p>' })" placeholder="Write your paragraph…"></textarea></label>
+                    <label>Text content <textarea rows="6" [value]="plainText(block.html)" (input)="patchBlock(block.id, { html: '<p>' + $any($event.target).value + '</p>' })" placeholder="Write your paragraph…"></textarea></label>
                     <small>Basic text editor for this first pass. A structured rich-text model will replace HTML-string editing.</small>
                   }
                   @case ('image') {
