@@ -71,3 +71,14 @@ test('business location management is authenticated and scoped to the caller-own
   assert.match(routes, /c\.owner_user_id = \$2/);
   assert.match(routes, /LOCATION_HAS_MENUS/);
 });
+
+
+test('storefront management requires identity and validates locations against the owner channel', async () => {
+  const routes = await source('../src/modules/social/social.routes.js');
+  assert.match(routes, /get\('\/me\/business\/storefronts', requireVerifiedIdentity/);
+  assert.match(routes, /post\('\/me\/business\/storefronts', socialWriteLimit, requireVerifiedIdentity/);
+  assert.match(routes, /patch\('\/me\/business\/storefronts\/:storefrontId', socialWriteLimit, requireVerifiedIdentity/);
+  assert.match(routes, /INVALID_LOCATION/);
+  assert.match(routes, /fulfillment_type/);
+  assert.match(routes, /status = COALESCE\(\$9, status\)/);
+});
