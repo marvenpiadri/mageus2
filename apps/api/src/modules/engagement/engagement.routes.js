@@ -74,85 +74,6 @@ engagementRoutes.post('/articles/:articleId/views', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
-// Like totals are public; the viewer's own state is only available to an authenticated account.
-engagementRoutes.get('/articles/:articleId/likes', async (req, res, next) => {
-  const id = uuid.safeParse(req.params.articleId);
-  if (!id.success) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
-  try {
-    const { rows } = await pool.query(
-      `SELECT count(l.user_id)::int AS count
-         FROM article_likes l
-         JOIN articles a ON a.id = l.article_id
-        WHERE l.article_id = $1 AND a.status = 'published'`,
-      [id.data]
-    );
-    const article = await pool.query("SELECT 1 FROM articles WHERE id = $1 AND status = 'published'", [id.data]);
-    if (!article.rowCount) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
-    return res.json({ likeCount: rows[0].count });
-  } catch (error) { next(error); }
-});
-
-engagementRoutes.get('/articles/:articleId/likes/mine', requireVerifiedIdentity, async (req, res, next) => {
-  const id = uuid.safeParse(req.params.articleId);
-  if (!id.success) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
-  try {
-    const { rows } = await pool.query(
-      `SELECT EXISTS (
-         SELECT 1 FROM article_likes l
-         JOIN articles a ON a.id = l.article_id
-         WHERE l.article_id = $1 AND l.user_id = $2 AND a.status = 'published'
-       ) AS liked`,
-      [id.data, req.auth.userId]
-    );
-    return res.json({ liked: rows[0].liked });
-  } catch (error) { next(error); }
-});
-
-engagementRoutes.post('/articles/:articleId/likes', engagementWriteLimit, requireVerifiedIdentity, async (req, res, next) => {
-  const id = uuid.safeParse(req.params.articleId);
-  if (!id.success) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
-  try {
-    const result = await pool.query(
-      `INSERT INTO article_likes (article_id, user_id)
-       SELECT a.id, $2 FROM articles a
-        WHERE a.id = $1 AND a.status = 'published'
-       ON CONFLICT (article_id, user_id) DO NOTHING
-       RETURNING article_id`,
-      [id.data, req.auth.userId]
-    );
-    if (!result.rowCount) {
-      const exists = await pool.query("SELECT 1 FROM articles WHERE id = $1 AND status = 'published'", [id.data]);
-      if (!exists.rowCount) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
-    } else {
-      const owner = await pool.query(
-        `SELECT c.owner_user_id FROM articles a JOIN channels c ON c.id = a.channel_id WHERE a.id = $1`,
-        [id.data]
-      );
-      if (owner.rows[0]?.owner_user_id && owner.rows[0].owner_user_id !== req.auth.userId) {
-        await pool.query(
-          `INSERT INTO notifications (recipient_user_id, actor_user_id, type, entity_type, entity_id)
-           VALUES ($1, $2, 'like', 'article', $3)`,
-          [owner.rows[0].owner_user_id, req.auth.userId, id.data]
-        );
-      }
-    }
-    const count = await pool.query('SELECT count(*)::int AS count FROM article_likes WHERE article_id = $1', [id.data]);
-    return res.json({ liked: true, likeCount: count.rows[0].count });
-  } catch (error) { next(error); }
-});
-
-engagementRoutes.delete('/articles/:articleId/likes', engagementWriteLimit, requireVerifiedIdentity, async (req, res, next) => {
-  const id = uuid.safeParse(req.params.articleId);
-  if (!id.success) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
-  try {
-    const article = await pool.query("SELECT 1 FROM articles WHERE id = $1 AND status = 'published'", [id.data]);
-    if (!article.rowCount) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
-    await pool.query('DELETE FROM article_likes WHERE article_id = $1 AND user_id = $2', [id.data, req.auth.userId]);
-    const count = await pool.query('SELECT count(*)::int AS count FROM article_likes WHERE article_id = $1', [id.data]);
-    return res.json({ liked: false, likeCount: count.rows[0].count });
-  } catch (error) { next(error); }
-});
-
 // Public reading stays open; only creating/moderating a comment requires identity.
 engagementRoutes.get('/articles/:articleId/comments', async (req, res, next) => {
   const id = uuid.safeParse(req.params.articleId);
@@ -211,7 +132,7 @@ engagementRoutes.post('/articles/:articleId/comments', engagementWriteLimit, req
 });
 
 
-// Article ratings are a 0–100 scale, distinct from a binary like.
+// Article reactions use one mutable 0–100 vote per authenticated account.
 // Reading the aggregate is public; casting or changing a vote requires identity.
 engagementRoutes.get('/articles/:articleId/votes', async (req, res, next) => {
   const id = uuid.safeParse(req.params.articleId);
