@@ -24,9 +24,9 @@
   }
 
   <div class="section-heading"><div><p class="kicker">DISCOVER</p><h2>Publications</h2></div><span>{{ items().length }} MAGAZINES</span></div>
-  @if (loading()) { <p class="state">Gathering the latest publications…</p> }
-  @else if (failed()) { <div class="state"><p>Magazines could not be loaded right now.</p><button type="button" (click)="load()">Try again</button></div> }
-  @else if (items().length) {
+  @if (loading() && !items().length) { <p class="state" role="status">Gathering the latest publications…</p> }
+  @if (failed() && !items().length) { <div class="state"><p>Magazines could not be loaded right now.</p><button type="button" (click)="load()">Try again</button></div> }
+  @if (items().length) {
     <div class="magazine-grid">
       @for (magazine of items(); track magazine.id) {
         <a class="magazine-card" [routerLink]="['/', magazine.author_username, 'magazines', magazine.slug]">
@@ -38,5 +38,7 @@
         </a>
       }
     </div>
-  } @else { <div class="state"><p>No magazines have been published yet.</p><span>Be the first to turn your articles into an ongoing publication.</span></div> }
+    @if (failed()) { <div class="load-more-row"><span class="inline-error">More magazines could not be loaded.</span><button type="button" class="load-more-button" (click)="load()">Retry</button></div> }
+    @else if (hasMore()) { <div class="load-more-row"><button type="button" class="load-more-button" (click)="loadMore()" [disabled]="loading()">{{ loading() ? 'Loading…' : 'Discover more magazines ↓' }}</button></div> }
+  } @else if (!loading() && !failed()) { <div class="state"><p>No magazines have been published yet.</p><span>Be the first to turn your articles into an ongoing publication.</span></div> }
 </section>
