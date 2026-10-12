@@ -1,6 +1,6 @@
 <section class="public-reader-page">
   <header class="public-reader-bar">
-    <a routerLink="/" class="reader-back" aria-label="Back to Mageus">←</a>
+    <button type="button" class="reader-back" (click)="goBack()" aria-label="Go back to the previous page">←</button>
     @if (article(); as item) {
       <div class="reader-breadcrumb"><a [routerLink]="['/', item.author_username]">{{ item.author_name }}</a><span>/</span><span class="crumb-title">{{ item.title }}</span></div>
     } @else {
