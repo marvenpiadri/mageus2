@@ -22,14 +22,14 @@ export const routes: Routes = [
     loadComponent: () => import('./features/notifications/notifications-page.component').then((module) => module.NotificationsPageComponent)
   },
   {
-    // Public social profile; posts, shops, location menus, and services are grouped by channel.
-    path: ':username',
-    loadComponent: () => import('./features/profile/public-profile-page.component').then((module) => module.PublicProfilePageComponent)
-  },
-  {
     // Published article pages are public and crawlable; no auth guard belongs here.
     path: ':username/:slug',
     loadComponent: () => import('./features/reader/public-article-page.component').then((module) => module.PublicArticlePageComponent)
+  },
+  {
+    // Public social profile; posts, shops, location menus, and services are grouped by channel.
+    path: ':username',
+    loadComponent: () => import('./features/profile/public-profile-page.component').then((module) => module.PublicProfilePageComponent)
   },
   {
     path: '**',
