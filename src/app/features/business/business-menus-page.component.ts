@@ -121,7 +121,7 @@ export class BusinessMenusPageComponent {
     if (!this.locationId() || !this.name().trim() || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(this.slug().trim())) {
       this.error.set('Choose a location, add a menu name, and check the URL slug.'); return;
     }
-    if (this.pdfUrl().trim() && !this.isHttpUrl(this.pdfUrl().trim())) {
+    if (this.pdfUrl().trim() && !this.isHttpsUrl(this.pdfUrl().trim())) {
       this.error.set('The PDF link must be a valid HTTPS URL.'); return;
     }
     const payload: MenuPayload = {
