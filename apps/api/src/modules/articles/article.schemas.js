@@ -1,0 +1,38 @@
+import { z } from 'zod';
+
+const base = { id: z.string().min(1).max(128), version: z.number().int().positive().default(1) };
+const shortText = z.string().max(2000);
+const urlOrEmpty = z.string().max(2048).refine((value) => value === '' || /^https?:\/\//i.test(value), 'URL must use HTTP or HTTPS.');
+
+export const articleBlockSchema = z.discriminatedUnion('type', [
+  z.object({ ...base, type: z.literal('text'), html: z.string().max(100_000) }),
+  z.object({ ...base, type: z.literal('image'), imageUrl: urlOrEmpty, alt: z.string().max(500), caption: shortText.optional(), credit: shortText.optional(), width: z.enum(['normal', 'wide', 'full']) }),
+  z.object({ ...base, type: z.literal('gallery'), images: z.array(z.object({ url: urlOrEmpty, alt: z.string().max(500), caption: shortText.optional() })).max(100), layout: z.enum(['grid', 'masonry', 'strip', 'carousel']) }),
+  z.object({ ...base, type: z.literal('slide'), slides: z.array(z.object({ imageUrl: urlOrEmpty, label: shortText.optional(), href: urlOrEmpty.optional() })).max(100), ratio: z.enum(['9:16', '1:1', '16:9']) }),
+  z.object({ ...base, type: z.literal('quote'), quote: z.string().max(10_000), author: shortText.optional(), citation: shortText.optional() }),
+  z.object({ ...base, type: z.literal('embed'), url: urlOrEmpty, provider: shortText.optional(), title: shortText.optional() }),
+  z.object({ ...base, type: z.literal('before_after'), beforeImage: urlOrEmpty, afterImage: urlOrEmpty, beforeLabel: shortText.optional(), afterLabel: shortText.optional() }),
+  z.object({ ...base, type: z.literal('hotspot'), imageUrl: urlOrEmpty, points: z.array(z.object({ id: z.string().min(1).max(128), x: z.number().min(0).max(100), y: z.number().min(0).max(100), title: shortText, description: z.string().max(5000) })).max(100) }),
+  z.object({ ...base, type: z.literal('timeline'), title: shortText.optional(), events: z.array(z.object({ date: shortText, title: shortText, description: z.string().max(5000) })).max(200) }),
+  z.object({ ...base, type: z.literal('steps'), title: shortText.optional(), steps: z.array(z.object({ title: shortText, description: z.string().max(5000) })).max(200) }),
+  z.object({ ...base, type: z.literal('data_viz'), title: shortText.optional(), chartType: z.enum(['bar', 'progress', 'kpi', 'comparison', 'table']), values: z.array(z.object({ label: shortText, value: z.number().finite() })).max(500) }),
+  z.object({ ...base, type: z.literal('math'), formula: z.string().max(10_000), explanation: z.string().max(10_000).optional() }),
+  z.object({ ...base, type: z.literal('product'), productId: z.string().max(256), displayMode: z.enum(['card', 'compact', 'featured']) }),
+  z.object({ ...base, type: z.literal('product_collection'), productIds: z.array(z.string().max(256)).max(100), title: shortText.optional(), layout: z.enum(['grid', 'carousel', 'list']) }),
+  z.object({ ...base, type: z.literal('magazine_ref'), magazineId: z.string().max(256) })
+]);
+
+export const articleBlocksSchema = z.array(articleBlockSchema).max(300);
+export const articleDraftInputSchema = z.object({
+  title: z.string().trim().min(1).max(240),
+  subtitle: z.string().max(500).default(''),
+  slug: z.string().trim().toLowerCase().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
+  excerpt: z.string().max(1000).default(''),
+  coverImageUrl: urlOrEmpty.default(''),
+  blocks: articleBlocksSchema.default([]),
+  schemaVersion: z.number().int().positive().default(1),
+  seoTitle: z.string().max(240).optional(),
+  seoDescription: z.string().max(500).optional(),
+  canonicalUrl: z.string().url().max(2048).optional()
+});
+export const articleDraftPatchSchema = articleDraftInputSchema.partial();
