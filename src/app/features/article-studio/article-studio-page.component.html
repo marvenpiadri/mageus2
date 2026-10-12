@@ -44,9 +44,22 @@
       } @else {
         <div class="block-list">
           @for (block of blocks(); track block.id; let i = $index) {
-            <article class="block-card">
-              <header><span class="block-type">{{ block.type.replace('_', ' ') }}</span><div class="block-actions"><button type="button" [disabled]="i === 0" (click)="moveBlock(i, -1)" aria-label="Move block up">↑</button><button type="button" [disabled]="i === blocks().length - 1" (click)="moveBlock(i, 1)" aria-label="Move block down">↓</button><button type="button" (click)="duplicateBlock(block.id)" aria-label="Duplicate block">⧉</button><button type="button" (click)="removeBlock(block.id)" aria-label="Remove block">×</button></div></header>
+            <article class="block-card" [class.dragging]="draggedBlockId() === block.id" [class.drop-target]="dropTargetBlockId() === block.id" (dragover)="onBlockDragOver($event, block.id)" (drop)="dropBlock($event, block.id)" (dragend)="endBlockDrag()">
+              <header>
+                <button type="button" class="drag-handle" draggable="true" (dragstart)="startBlockDrag(block.id, $event)" aria-label="Drag to reorder block" title="Drag to reorder">⠿</button>
+                <span class="block-type">{{ block.type.replace('_', ' ') }}</span>
+                <div class="block-actions">
+                  <button type="button" [disabled]="i === 0" (click)="moveBlock(i, -1)" aria-label="Move block up">↑</button>
+                  <button type="button" [disabled]="i === blocks().length - 1" (click)="moveBlock(i, 1)" aria-label="Move block down">↓</button>
+                  <button type="button" (click)="toggleBlockPreview(block.id)" [attr.aria-expanded]="previewBlockIds().includes(block.id)" aria-label="Toggle live preview">{{ previewBlockIds().includes(block.id) ? '▣' : '◧' }}</button>
+                  <button type="button" (click)="duplicateBlock(block.id)" aria-label="Duplicate block">⧉</button>
+                  <button type="button" (click)="removeBlock(block.id)" aria-label="Remove block">×</button>
+                </div>
+              </header>
               <mageus-article-block-editor [block]="block" (blockChange)="replaceBlock($event)" />
+              @if (previewBlockIds().includes(block.id)) {
+                <div class="live-block-preview"><span>LIVE PREVIEW</span><mageus-article-block-renderer [block]="block" /></div>
+              }
             </article>
           }
         </div>
