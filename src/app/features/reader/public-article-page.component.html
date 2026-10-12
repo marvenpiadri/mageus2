@@ -71,6 +71,36 @@
               @if (voteMessage()) { <p class="vote-message" aria-live="polite">{{ voteMessage() }}</p> }
             </div>
           </section>
+          <section class="article-comments" aria-labelledby="article-comments-title">
+            <div class="comments-heading">
+              <div><span class="voting-eyebrow">CONVERSATION</span><h2 id="article-comments-title">Reader comments</h2></div>
+              <span class="comments-count">{{ comments().length }}</span>
+            </div>
+            @if (commentsLoading()) {
+              <p class="comments-state">Loading comments…</p>
+            } @else if (!comments().length) {
+              <p class="comments-state">No comments yet. Start a thoughtful conversation.</p>
+            } @else {
+              <div class="comment-list">
+                @for (comment of comments(); track comment.id) {
+                  <article class="comment-item">
+                    <div class="comment-byline"><a [routerLink]="['/', comment.author_username]">@{{ comment.author_username }}</a><time [attr.datetime]="comment.created_at">{{ comment.created_at | date:'mediumDate' }}</time></div>
+                    <p>{{ comment.body }}</p>
+                  </article>
+                }
+              </div>
+            }
+            <form class="comment-form" (submit)="$event.preventDefault(); submitComment()">
+              <label for="article-comment">Add to the conversation</label>
+              <textarea id="article-comment" name="article-comment" rows="3" maxlength="10000" [value]="commentDraft()" (input)="commentDraft.set($any($event.target).value)" placeholder="Write a thoughtful comment…" [disabled]="commentBusy()"></textarea>
+              <div class="comment-form-footer">
+                @if (!auth.isAuthenticated()) { <span>Sign in to join the conversation.</span> }
+                @else { <span>{{ commentDraft().trim().length }} / 10000</span> }
+                <button type="submit" [disabled]="commentBusy() || !commentDraft().trim()">{{ commentBusy() ? 'Publishing…' : 'Publish comment' }}</button>
+              </div>
+              @if (commentMessage()) { <p class="vote-message" aria-live="polite">{{ commentMessage() }}</p> }
+            </form>
+          </section>
           <footer class="article-end"><span>END OF ARTICLE</span><a routerLink="/">Discover another story ↗</a></footer>
         </article>
       }
