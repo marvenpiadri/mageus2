@@ -1,8 +1,7 @@
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
-import { Inject, Injectable, PLATFORM_ID, WritableSignal, inject, signal } from '@angular/core';
+import { Injectable, PLATFORM_ID, WritableSignal, inject, signal } from '@angular/core';
 import { NavigationEnd, NavigationStart, Router } from '@angular/router';
 import { filter } from 'rxjs';
-import { ExplorationRouteReuseStrategy } from './exploration-route-reuse.strategy';
 
 export interface ExplorationListState<T> {
   items: T[];
