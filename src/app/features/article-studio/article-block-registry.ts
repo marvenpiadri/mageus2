@@ -33,6 +33,7 @@ export const ARTICLE_BLOCK_TOOLS: readonly ArticleBlockTool[] = [
   { type: 'data_viz', label: 'Data visualisation', description: 'A chart or data comparison', icon: '▥', family: 'interactive' },
   { type: 'product', label: 'Product', description: 'Reference a Mageus shop product', icon: '◇', family: 'commerce' },
   { type: 'product_collection', label: 'Product collection', description: 'Curate products into a group', icon: '◫', family: 'commerce' },
+  { type: 'commerce_collection', label: 'Commerce slider', description: 'Show selected products, services, or menu items in a simple swipeable row', icon: '↔', family: 'commerce' },
   { type: 'magazine_ref', label: 'Magazine', description: 'Reference a magazine or issue', icon: '▣', family: 'publishing' }
 ] as const;
 
@@ -59,6 +60,7 @@ export function createEmptyBlock(type: ArticleBlockType, id: string): ArticleBlo
     case 'math': return { ...base, type, formula: '', explanation: '' };
     case 'product': return { ...base, type, productId: '', displayMode: 'card' };
     case 'product_collection': return { ...base, type, productIds: [], title: '', layout: 'grid' };
+    case 'commerce_collection': return { ...base, type, itemType: 'product', itemIds: [], title: '' };
     case 'magazine_ref': return { ...base, type, magazineId: '' };
   }
 }
