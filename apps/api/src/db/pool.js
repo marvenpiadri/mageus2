@@ -1,10 +1,5 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
+import { Pool } from '@neondatabase/serverless';
 import { env } from '../config/env.js';
-
-if (env.DATABASE_URL) {
-  // Neon uses WebSockets for the serverless driver in Node runtimes.
-  neonConfig.poolQueryViaFetch = true;
-}
 
 export const pool = env.DATABASE_URL
   ? new Pool({
