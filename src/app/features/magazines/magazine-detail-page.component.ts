@@ -1,4 +1,4 @@
-import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { CommonModule, DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, DestroyRef, PLATFORM_ID, REQUEST, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -36,6 +36,7 @@ export class MagazineDetailPageComponent {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly request = inject(REQUEST, { optional: true });
   private readonly destroyRef = inject(DestroyRef);
+  private readonly document = inject(DOCUMENT);
   private readonly titleService = inject(Title);
   private readonly meta = inject(Meta);
   readonly auth = inject(AuthService);
@@ -83,6 +84,13 @@ export class MagazineDetailPageComponent {
         this.meta.updateTag({ property: 'og:title', content: result.issue.title });
         this.meta.updateTag({ property: 'og:description', content: result.issue.summary || magazineTitle });
         if (result.issue.cover_image_url) this.meta.updateTag({ property: 'og:image', content: result.issue.cover_image_url });
+        const issuePath = `/${encodeURIComponent(result.issue.author_username)}/magazines/${encodeURIComponent(result.issue.magazine_slug)}/issues/${encodeURIComponent(result.issue.slug)}`;
+        this.updateCanonicalAndStructuredData(issuePath, {
+          '@type': 'PublicationIssue', name: result.issue.title, headline: result.issue.title,
+          description: result.issue.summary || magazineTitle, issueNumber: result.issue.issue_number,
+          datePublished: result.issue.published_at, isPartOf: { '@type': 'Periodical', name: magazineTitle },
+          author: { '@type': 'Person', name: author }
+        });
       } else {
         this.magazine.set(result.magazine);
         this.issues.set(result.issues ?? []);
@@ -93,6 +101,16 @@ export class MagazineDetailPageComponent {
         this.meta.updateTag({ property: 'og:title', content: magazine.title });
         this.meta.updateTag({ property: 'og:description', content: magazine.description || magazine.title });
         if (magazine.cover_image_url) this.meta.updateTag({ property: 'og:image', content: magazine.cover_image_url });
+        const magazinePath = `/${encodeURIComponent(magazine.author_username)}/magazines/${encodeURIComponent(magazine.slug)}`;
+        this.updateCanonicalAndStructuredData(magazinePath, {
+          '@type': 'Periodical', name: magazine.title, description: magazine.description,
+          publisher: { '@type': 'Organization', name: magazine.author_name },
+          hasPart: (result.issues ?? []).map((edition: MagazineIssue) => ({
+            '@type': 'PublicationIssue', name: edition.title,
+            url: `${magazinePath}/issues/${encodeURIComponent(edition.slug)}`,
+            issueNumber: edition.issue_number, datePublished: edition.published_at
+          }))
+        });
         this.loadManagementData(magazine);
       }
       this.loading.set(false);
@@ -161,6 +179,34 @@ export class MagazineDetailPageComponent {
     if (!magazine) return;
     this.http.get<{magazine:Magazine;issues:MagazineIssue[]}>(`${this.apiBase}/${encodeURIComponent(magazine.author_username)}/${encodeURIComponent(magazine.slug)}`)
       .pipe(takeUntilDestroyed(this.destroyRef)).subscribe((result) => this.issues.set(result.issues ?? []));
+  }
+
+  private updateCanonicalAndStructuredData(path: string, schema: Record<string, unknown>): void {
+    let canonical = path;
+    if (this.request?.url) {
+      try { canonical = new URL(path, this.request.url).toString(); } catch { /* keep the relative route */ }
+    } else if (this.document.location?.origin) {
+      canonical = new URL(path, this.document.location.origin).toString();
+    }
+    this.meta.updateTag({ property: 'og:url', content: canonical });
+    this.meta.updateTag({ name: 'twitter:card', content: 'summary_large_image' });
+    let link = this.document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!link) {
+      link = this.document.createElement('link');
+      link.setAttribute('rel', 'canonical');
+      this.document.head.appendChild(link);
+    }
+    link.setAttribute('href', canonical);
+    let structuredData = this.document.getElementById('mageus-magazine-jsonld') as HTMLScriptElement | null;
+    if (!structuredData) {
+      structuredData = this.document.createElement('script');
+      structuredData.id = 'mageus-magazine-jsonld';
+      structuredData.type = 'application/ld+json';
+      this.document.head.appendChild(structuredData);
+    }
+    structuredData.textContent = JSON.stringify({
+      '@context': 'https://schema.org', ...schema, url: canonical
+    }).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
   }
 
   private slugify(value: string): string {
