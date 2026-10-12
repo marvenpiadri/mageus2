@@ -1,7 +1,7 @@
 <section class="feed-page">
   <header class="feed-heading"><div><span class="feed-kicker">YOUR MAGEUS</span><h1>Your feed.</h1><p>Fresh stories from the channels you follow, alongside your own publications.</p></div><a routerLink="/" class="explore-link">Explore public stories ↗</a></header>
   @if (!auth.isAuthenticated()) {
-    <div class="feed-empty"><span>◉</span><h2>Your people, your feed.</h2><p>Sign in to follow channels and build a feed around the creators and businesses you care about.</p><a routerLink="/sign-in">Sign in to continue ↗</a></div>
+    <div class="feed-empty"><span>◉</span><h2>Your people, your feed.</h2><p>Sign in to follow channels and build a feed around the creators and businesses you care about.</p><a routerLink="/sign-in" [queryParams]="{ returnUrl: '/feed' }">Sign in to continue ↗</a></div>
   } @else if (loading()) {
     <div class="feed-empty"><span>✦</span><p>Gathering stories from your network…</p></div>
   } @else if (failed()) {
