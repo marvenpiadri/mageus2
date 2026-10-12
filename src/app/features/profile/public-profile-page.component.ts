@@ -1,11 +1,12 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, DestroyRef, PLATFORM_ID, REQUEST, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, PLATFORM_ID, REQUEST, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Meta, Title } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, of, switchMap } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
+import { ExplorationListState, ExplorationStateService } from '../../core/exploration-state.service';
 
 type ProfileSection = 'articles' | 'shops' | 'menus' | 'locations';
 
@@ -44,7 +45,17 @@ interface PublicProfile {
   storefronts: ProfileStore[];
   menus: ProfileMenu[];
   articles: ProfileArticle[];
+  articlesNextCursor?: string | null;
 }
+
+interface ProfileArticlesResponse {
+  items: ProfileArticle[];
+  nextCursor: string | null;
+}
+
+const emptyProfileArticleState: ExplorationListState<ProfileArticle> = {
+  items: [], nextCursor: null, hasMore: false, loading: false, failed: false, filters: {}, scrollTop: 0
+};
 
 @Component({
   standalone: true,
@@ -58,6 +69,7 @@ export class PublicProfilePageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly http = inject(HttpClient);
+  private readonly exploration = inject(ExplorationStateService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly request = inject(REQUEST, { optional: true });
@@ -65,6 +77,15 @@ export class PublicProfilePageComponent {
   private readonly meta = inject(Meta);
   readonly auth = inject(AuthService);
   readonly profileData = signal<PublicProfile | null>(null);
+  private articleKey(username: string): string { return `profile:${username.toLowerCase()}:articles`; }
+  readonly articleListState = computed(() => {
+    const username = this.profileData()?.profile.username;
+    return username ? this.exploration.state<ProfileArticle>(this.articleKey(username))() : emptyProfileArticleState;
+  });
+  readonly articles = computed(() => this.articleListState().items);
+  readonly articlesLoading = computed(() => this.articleListState().loading);
+  readonly articlesFailed = computed(() => this.articleListState().failed);
+  readonly articlesHasMore = computed(() => this.articleListState().hasMore);
   readonly loading = signal(true);
   readonly notFound = signal(false);
   readonly section = signal<ProfileSection>('articles');
@@ -97,6 +118,11 @@ export class PublicProfilePageComponent {
     ).subscribe((data) => {
       this.profileData.set(data);
       if (data) {
+        const articleKey = this.articleKey(data.profile.username);
+        const existingArticleState = this.exploration.state<ProfileArticle>(articleKey)();
+        if (!existingArticleState.items.length) {
+          this.exploration.replacePage(articleKey, data.articles, data.articlesNextCursor ?? null);
+        }
         this.profileDisplayName.set(data.profile.display_name || '');
         this.profileBio.set(data.profile.bio || '');
         this.profileAvatarUrl.set(data.profile.avatar_url || '');
@@ -116,6 +142,28 @@ export class PublicProfilePageComponent {
         this.meta.updateTag({ property: 'og:description', content: data.profile.bio || `Explore ${name} on Mageus.` });
         if (data.profile.avatar_url) this.meta.updateTag({ property: 'og:image', content: data.profile.avatar_url });
       }
+    });
+  }
+
+  loadMoreArticles(): void {
+    const username = this.profileData()?.profile.username;
+    if (!username) return;
+    const key = this.articleKey(username);
+    const state = this.exploration.state<ProfileArticle>(key)();
+    if (state.loading || !state.hasMore) return;
+    this.exploration.patch<ProfileArticle>(key, { loading: true, failed: false });
+    const cursor = state.nextCursor;
+    const cursorQuery = cursor ? `?limit=12&cursor=${encodeURIComponent(cursor)}` : '?limit=12';
+    this.http.get<ProfileArticlesResponse>(`/api/v1/social/profiles/${encodeURIComponent(username)}/articles${cursorQuery}`, {
+      headers: this.auth.authorizationHeaders()
+    }).pipe(
+      catchError(() => {
+        this.exploration.patch<ProfileArticle>(key, { loading: false, failed: true });
+        return of(null);
+      }),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe((response) => {
+      if (response) this.exploration.appendPage(key, response.items, response.nextCursor, (article) => article.id);
     });
   }
 
