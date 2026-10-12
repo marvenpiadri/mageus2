@@ -22,7 +22,7 @@
                   @if (store.description) { <p class="storefront-description">{{ store.description }}</p> }
                   <div class="storefront-meta"><span>{{ store.fulfillment_type }}</span><span>·</span><span>{{ store.location_name || 'No location' }}</span></div>
                   <div class="storefront-counts"><span>{{ store.product_count }} products</span><span>{{ store.service_count }} services</span></div>
-                  <div class="storefront-actions"><button type="button" class="catalog-secondary" (click)="edit(store)">Edit</button>@if (store.status !== 'archived') { <button type="button" class="catalog-secondary" (click)="publish(store)">{{ store.status === 'published' ? 'Unpublish' : 'Publish' }}</button><button type="button" class="catalog-danger" (click)="archive(store)">Archive</button> }</div>
+                  <div class="storefront-actions"><button type="button" class="catalog-secondary" (click)="manageItems(store)">Manage items</button><button type="button" class="catalog-secondary" (click)="edit(store)">Edit</button>@if (store.status !== 'archived') { <button type="button" class="catalog-secondary" (click)="publish(store)">{{ store.status === 'published' ? 'Unpublish' : 'Publish' }}</button><button type="button" class="catalog-danger" (click)="archive(store)">Archive</button> }</div>
                 </div>
               </article>
             }
