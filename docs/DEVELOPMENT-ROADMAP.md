@@ -1,0 +1,184 @@
+# Mageus 2 development roadmap
+
+Last reviewed: 2026-10-12  
+Working branch: `main` (direct commits, as requested)  
+Product rule: public article reading is anonymous; authenticated identity is required only for private authoring and protected actions.
+
+This roadmap is the release checklist. A phase is **not complete because its code exists**: it is complete only when its acceptance criteria pass and the evidence is linked here. Keep work small enough that a failing gate identifies one class of problem.
+
+## Status vocabulary
+
+- **Not started** — no meaningful implementation yet.
+- **In progress** — implementation or audit is underway.
+- **Blocked** — a prerequisite or external configuration is missing.
+- **Needs verification** — code exists, but its acceptance gate has not passed.
+- **Complete** — acceptance criteria passed and evidence is recorded.
+
+## Current status
+
+| Phase | Status | Current evidence / gap |
+| --- | --- | --- |
+| 0. Audit and baseline | In progress | Legacy route inventory and backend migration notes exist. Full UI/source-to-target comparison and a consolidated baseline are still needed. |
+| 1. Application foundation | Needs verification | Angular 22 SSR shell, mood system, and shared renderer exist. Re-run production CI after recent Article Studio changes; verify SSR/browser behavior and visual parity. |
+| 2. Article Studio core | In progress | Typed block model, registry, editor component, renderer, and draft workflow exist. Expanded block types were added; editor completeness, migration/versioning, accessibility, and acceptance tests remain. |
+| 3. Neon and API | In progress | API modules, schema validation, migrations, and Neon connection scaffold exist. No live Neon project/credentials have been configured or verified here. |
+| 4. Public reader and SEO | Needs verification | Public read API and reader foundation exist. End-to-end public SSR pages, canonical URLs, structured data, sitemap, and search indexing need verification. |
+| 5. Identity and engagement | Needs verification | Authentication boundary and engagement routes exist. Session hardening, integration tests, moderation, and threat review remain. |
+| 6. Channels and magazines | Not started / early foundations | Legacy behavior has been inventoried; new product flows and data contracts are not complete. |
+| 7. Commerce and extensibility | Early foundation | Product and magazine reference block types exist. Real resolver adapters and asset picker are not connected. |
+| 8. Release readiness | Not started | No staging cutover, production database verification, backup restore test, or release sign-off has been recorded. |
+
+## Phase 0 — Audit and baseline
+
+### Scope
+- Compare original `mageus`, `mageus-ui-test`, and `mageus2` by route, component, stylesheet, assets, behavior, and data model.
+- Inventory backend endpoints, database entities, legacy article payloads, media storage, auth/session logic, and realtime behavior.
+- Identify behavior to preserve, behavior to redesign, and behavior to retire.
+- Record the current CI state and all known build/runtime issues.
+
+### Acceptance gate
+- [ ] Source-to-target matrix lists the important UI surfaces and their target files.
+- [ ] Legacy endpoint inventory has route, auth expectation, public/private status, target endpoint, and migration notes.
+- [ ] Article payload examples are documented without copying secrets or personal data.
+- [ ] Known defects are tracked; no hidden credential literals are carried into the new version.
+- [ ] A clean production build and API test run are linked.
+
+## Phase 1 — Stable application foundation
+
+### Scope
+- Angular 22 SSR and routing, shared design tokens, responsive shell, wallpaper layer and glass foreground.
+- Reading moods (Stars, Aurora, Midnight, Moonlight, Eclipse, Nordic) and keyboard-accessible controls.
+- Strict TypeScript and predictable component boundaries; no Tailwind, PrimeNG, or Quill.
+
+### Acceptance gate
+- [ ] Production build passes in CI.
+- [ ] SSR routes render without browser-only API crashes or hydration errors.
+- [ ] Main reader and studio layouts work at mobile and desktop widths.
+- [ ] Mood switching changes visual treatment without changing article content or losing user input.
+- [ ] No new console errors, inaccessible keyboard traps, or obvious contrast failures.
+
+## Phase 2 — Article Studio core (highest product priority)
+
+### Scope
+One canonical Article Studio, not multiple competing editors. A Behance-like visual canvas with enhanced editorial and multipurpose blocks.
+
+- Versioned document envelope and discriminated block schemas.
+- Central block registry: labels, categories, icons, empty-block factories, validation, renderer, editor component, and migration version.
+- Add, edit, duplicate, reorder, remove, collapse, and group blocks; stable IDs on reorder, new IDs on duplicate.
+- Text, heading, divider, callout, table, code, image, gallery, slide, quote, embed, video, audio, before/after, hotspot, timeline, steps, data visualization, math, product, product collection, and magazine-reference blocks.
+- Block-specific controls with clear client-facing labels; no JSON editing in the user-facing studio.
+- Live preview using the same renderer as the public reader.
+- Undo/redo, autosave/recovery, dirty-state feedback, keyboard operations, and draft export/import.
+- Validation before publish and useful inline error navigation.
+- Safe embeds via provider allowlist; no arbitrary iframe HTML.
+
+### Acceptance gate
+- [ ] Every registered block can be created, edited, reordered, duplicated, deleted, saved, reloaded, and previewed.
+- [ ] Every block type has client and server schema coverage, including invalid/boundary cases.
+- [ ] Unknown future block types fail gracefully and preserve recoverable source data.
+- [ ] Stable IDs survive editing and reorder; duplicated blocks receive unique IDs.
+- [ ] No editor action silently discards fields or resets unrelated block content.
+- [ ] Autosave/recovery survives refresh and reports conflicts rather than overwriting newer server revisions.
+- [ ] Public renderer and studio preview agree on block output.
+- [ ] Keyboard-only authoring and narrow-screen editing pass a documented smoke test.
+
+## Phase 3 — Neon and API foundation
+
+### Scope
+- Configure Neon using environment variables/secrets; never commit connection strings.
+- Versioned SQL migrations, migration ledger, least-privilege database roles, connection pooling, and health checks.
+- Repositories/services separated from Express routes and DTO validation.
+- Draft create/save/fork/publish/archive flows with expected-revision checks and revision snapshots.
+- Public article read endpoints return only published articles; authoring endpoints require identity and channel ownership.
+- Use parameterized SQL and transaction boundaries; redact credentials from logs.
+
+### Acceptance gate
+- [ ] A fresh Neon database can be built from migrations from zero.
+- [ ] A repeat migration run is safe and does not corrupt data.
+- [ ] API integration tests pass against a disposable PostgreSQL/Neon-compatible database.
+- [ ] Public endpoints return published articles anonymously and never return drafts.
+- [ ] Draft/save/publish/archive operations enforce owner, revision, and state transitions.
+- [ ] No committed credentials; configuration failure is clear and safe.
+- [ ] Backup/export and restore approach is documented before production data exists.
+
+## Phase 4 — Public reader and SEO
+
+### Scope
+- Public article routes, channel username + slug paths, server-rendered content, stable canonical URLs, metadata, Open Graph, Article JSON-LD, sitemap and robots policy.
+- Image dimensions/alt text, accessible media captions, performance budgets, and graceful missing/deleted reference behavior.
+- Draft/private content excluded from sitemap and public responses.
+
+### Acceptance gate
+- [ ] Anonymous browser can open a published article in a clean session.
+- [ ] HTML response includes meaningful article text and metadata before client hydration.
+- [ ] Canonical URL, title/description, Open Graph, and structured data match the published record.
+- [ ] Draft, archived, and unauthorized content do not leak through SSR, APIs, sitemap, or caches.
+- [ ] Lighthouse-like performance/accessibility/SEO checks are recorded on representative pages.
+
+## Phase 5 — Identity and engagement
+
+### Scope
+- Replace primitive legacy JWT handling with a reviewed authentication design: strong password hashing, short-lived access credentials, revocable/rotating sessions, recovery, and rate limits.
+- Likes/unlikes and comment creation require verified identity; public reading and public visible comments can remain anonymous.
+- Ownership/role checks, moderation, abuse controls, and notification events.
+
+### Acceptance gate
+- [ ] Tokens/sessions are issued and verified only by the new auth module.
+- [ ] Client-supplied user IDs never establish identity.
+- [ ] Like and comment writes reject anonymous callers and enforce rate limits.
+- [ ] Users cannot edit/delete another user's comments or manage another channel.
+- [ ] Account recovery, session revocation, and moderation behavior have integration tests.
+- [ ] Public reading remains available without login.
+
+## Phase 6 — Channels and magazines
+
+### Scope
+- Public channel pages replace the old publication concept.
+- Channel profile, ownership/settings, following, magazine membership, issues, and article references.
+- Explicit visibility and membership rules.
+
+### Acceptance gate
+- [ ] Channel URLs are stable and username collision behavior is defined.
+- [ ] Public channel pages render anonymously and expose only intended public fields.
+- [ ] Following and membership writes are authenticated and authorized.
+- [ ] Magazine references do not embed arbitrary copied article/product records.
+- [ ] Pagination, empty states, and deleted/unavailable references are handled.
+
+## Phase 7 — Commerce and extensibility
+
+### Scope
+- Mageus product/product-collection blocks reference external IDs and resolve through a server-side adapter.
+- Media asset service/picker with file signature, type, size, dimensions, ownership, and access checks.
+- Dollareus integration only after Mageus article persistence and public publishing are stable. No shared database; use an explicit API contract.
+
+### Acceptance gate
+- [ ] Product blocks can resolve current public product details without copying live commerce data into the article.
+- [ ] Missing/unavailable products render a graceful fallback.
+- [ ] Adapter errors cannot prevent ordinary article reading.
+- [ ] Uploaded media is validated and ownership-protected.
+- [ ] Integration contract is documented and tested without direct cross-database queries.
+
+## Phase 8 — Release readiness
+
+### Scope
+Security and privacy review, operational metrics/logging, rate limiting, backups and restore rehearsal, staging, rollback plan, performance, SEO validation, and controlled migration/cutover.
+
+### Acceptance gate
+- [ ] CI is green on the exact release commit.
+- [ ] Staging smoke tests pass for public read, login, draft, publish, likes, comments, and media.
+- [ ] Database backup and restore have been tested, not merely configured.
+- [ ] Security findings are fixed or explicitly accepted with an owner and deadline.
+- [ ] Monitoring, error alerts, migration rollback/forward plan, and incident contacts are documented.
+- [ ] Release/cutover checklist is signed off.
+
+## Working rhythm
+
+At the end of every phase, publish a short checkpoint with:
+
+1. **Done:** exact files/features shipped.
+2. **Verified:** CI runs, tests, and manual checks actually passed.
+3. **Not done:** known gaps and anything still mocked.
+4. **Risks/blockers:** especially external configuration such as Neon credentials.
+5. **Next phase:** the smallest next deliverable.
+
+Do not start the next phase merely to make the roadmap look complete. Fix a failed acceptance gate first. Keep direct commits to `main` as requested, but keep commits small and logically scoped so regressions are easy to identify and revert.
