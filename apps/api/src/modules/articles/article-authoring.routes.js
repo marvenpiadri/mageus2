@@ -250,8 +250,7 @@ articleAuthoringRoutes.post('/:articleId/publish', requireVerifiedIdentity, asyn
       published = updated.rows[0];
     }
     await client.query('COMMIT');
-    const author = await pool.query('SELECT username FROM channels WHERE id=$1', [published.channel_id]);
-    return res.json({ article: dto(published), publicPath: `/${author.rows[0]?.username ?? ''}/${published.slug}` });
+    return res.json({ article: dto(published), publicPath: `/${draft.author_username}/${published.slug}` });
   } catch (error) {
     await client.query('ROLLBACK');
     next(error);
@@ -261,14 +260,28 @@ articleAuthoringRoutes.post('/:articleId/publish', requireVerifiedIdentity, asyn
 articleAuthoringRoutes.delete('/:articleId', requireVerifiedIdentity, async (req, res, next) => {
   const id = uuid.safeParse(req.params.articleId);
   if (!id.success) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
+  const client = await pool.connect();
   try {
-    const { rows } = await pool.query(
-      `UPDATE articles a SET status = 'archival', updated_at = now(), revision = revision + 1
-         FROM channels c WHERE a.id = $1 AND c.id = a.channel_id AND c.owner_user_id = $2
-       RETURNING a.id`,
+    await client.query('BEGIN');
+    const selected = await client.query(
+      `SELECT a.* FROM articles a JOIN channels c ON c.id = a.channel_id
+        WHERE a.id = $1 AND c.owner_user_id = $2 FOR UPDATE OF a`,
       [id.data, req.auth.userId]
     );
-    if (!rows[0]) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
+    const article = selected.rows[0];
+    if (!article) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
+    }
+    await snapshotRevision(client, article, req.auth.userId);
+    await client.query(
+      "UPDATE articles SET status = 'archival', updated_at = now(), revision = revision + 1 WHERE id = $1",
+      [article.id]
+    );
+    await client.query('COMMIT');
     return res.status(204).end();
-  } catch (error) { next(error); }
+  } catch (error) {
+    await client.query('ROLLBACK');
+    next(error);
+  } finally { client.release(); }
 });
