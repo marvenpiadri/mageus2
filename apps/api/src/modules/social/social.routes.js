@@ -114,6 +114,48 @@ socialRoutes.get('/profiles/:username', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+// The account owner may update only the channel tied to their authenticated user ID.
+socialRoutes.patch('/me/profile', socialWriteLimit, requireVerifiedIdentity, async (req, res, next) => {
+  const input = z.object({
+    displayName: z.string().trim().min(1).max(100),
+    bio: z.string().trim().max(1000),
+    avatarUrl: z.union([
+      z.string().url().max(2048).refine((value) => value.startsWith('https://'), 'Avatar URLs must use HTTPS.'),
+      z.null()
+    ])
+  }).strict().safeParse(req.body);
+  if (!input.success) {
+    return res.status(400).json({ error: { code: 'INVALID_PROFILE', message: 'Enter a display name, a bio up to 1,000 characters, and an optional HTTPS avatar URL.' } });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const channel = await client.query(
+      'SELECT id FROM channels WHERE owner_user_id = $1 ORDER BY created_at ASC LIMIT 1 FOR UPDATE',
+      [req.auth.userId]
+    );
+    if (!channel.rows[0]) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: { code: 'PROFILE_NOT_FOUND', message: 'Your public profile could not be found.' } });
+    }
+    await client.query('UPDATE users SET display_name = $2, updated_at = now() WHERE id = $1', [req.auth.userId, input.data.displayName]);
+    const updated = await client.query(
+      `UPDATE channels
+          SET display_name = $2, bio = $3, avatar_url = $4, updated_at = now()
+        WHERE id = $1 AND owner_user_id = $5
+        RETURNING id, username, display_name, bio, avatar_url, created_at`,
+      [channel.rows[0].id, input.data.displayName, input.data.bio, input.data.avatarUrl, req.auth.userId]
+    );
+    await client.query('COMMIT');
+    return res.json({ profile: updated.rows[0] });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    next(error);
+  } finally {
+    client.release();
+  }
+});
+
 socialRoutes.get('/profiles/:username/following', requireVerifiedIdentity, async (req, res, next) => {
   const username = String(req.params.username ?? '').toLowerCase();
   if (!usernamePattern.test(username)) {
