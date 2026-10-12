@@ -7,10 +7,12 @@
   },
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start": "ng serve --proxy-config proxy.conf.json",
     "build": "ng build --configuration production",
     "build:development": "ng build --configuration development",
-    "serve:ssr": "node dist/mageus2/server/server.mjs"
+    "serve:ssr": "node dist/mageus2/server/server.mjs",
+    "start:api": "npm --prefix apps/api run dev",
+    "check:api": "npm --prefix apps/api run check"
   },
   "dependencies": {
     "@angular/common": "^22.0.0",
