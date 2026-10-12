@@ -125,7 +125,6 @@ export class PublicArticlePageComponent {
         this.updateSeo(article);
         this.loadComments(article.id);
         this.recordArticleView(article);
-        }
         const voteEndpoint = `/api/v1/engagement/articles/${encodeURIComponent(article.id)}/votes`;
         this.http.get<{ average: number; count: number }>(voteEndpoint)
           .pipe(catchError(() => of({ average: 0, count: 0 })), takeUntilDestroyed(this.destroyRef))
