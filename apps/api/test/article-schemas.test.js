@@ -28,3 +28,17 @@ test('rejects unsafe image URL schemes', () => {
   });
   assert.equal(result.success, false);
 });
+
+
+test('accepts expanded editorial and direct-media block families', () => {
+  const blocks = [
+    { id: 'heading-a', type: 'heading', text: 'Section', level: 2 },
+    { id: 'divider-a', type: 'divider', style: 'dots' },
+    { id: 'callout-a', type: 'callout', body: 'Remember this', tone: 'tip' },
+    { id: 'table-a', type: 'table', headers: ['Name', 'Value'], rows: [['A', '1']] },
+    { id: 'code-a', type: 'code', language: 'typescript', code: 'const value = 1;' },
+    { id: 'video-a', type: 'video', url: 'https://cdn.example.test/video.mp4', title: 'Demo' },
+    { id: 'audio-a', type: 'audio', url: 'https://cdn.example.test/audio.mp3', title: 'Narration' }
+  ];
+  assert.equal(articleBlocksSchema.safeParse(blocks).success, true);
+});
