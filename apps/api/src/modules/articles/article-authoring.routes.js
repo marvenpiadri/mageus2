@@ -8,35 +8,59 @@ export const articleAuthoringRoutes = Router();
 articleAuthoringRoutes.use(requireDatabase);
 
 const uuid = z.string().uuid();
+const articleColumns = `
+  id, channel_id, slug, title, subtitle, excerpt, category, language, tags,
+  cover_image_url, blocks, schema_version, status, seo_title, seo_description,
+  canonical_url, published_at, created_at, updated_at, revision
+`;
 const publicArticleFields = `
   a.id, a.slug, a.title, a.subtitle, a.excerpt, a.category, a.language, a.tags, a.cover_image_url,
   a.blocks, a.schema_version, a.status, a.seo_title, a.seo_description,
-  a.canonical_url, a.published_at, a.created_at, a.updated_at,
+  a.canonical_url, a.published_at, a.created_at, a.updated_at, a.revision,
   c.username AS author_username, c.display_name AS author_name
 `;
 
 function slugify(value) {
   return value.normalize('NFKD').toLowerCase().replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 180);
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 180).replace(/-+$/g, '');
 }
-
+function dto(row) {
+  return {
+    id: row.id, channelId: row.channel_id, slug: row.slug, title: row.title,
+    subtitle: row.subtitle, excerpt: row.excerpt, category: row.category, language: row.language,
+    tags: row.tags, coverImageUrl: row.cover_image_url, blocks: row.blocks,
+    schemaVersion: row.schema_version, status: row.status, seoTitle: row.seo_title,
+    seoDescription: row.seo_description, canonicalUrl: row.canonical_url,
+    publishedAt: row.published_at, createdAt: row.created_at, updatedAt: row.updated_at,
+    revision: row.revision
+  };
+}
+async function snapshotRevision(client, row, userId) {
+  await client.query(
+    `INSERT INTO article_revisions (article_id, revision, snapshot, edited_by)
+     VALUES ($1, $2, $3::jsonb, $4) ON CONFLICT (article_id, revision) DO NOTHING`,
+    [row.id, row.revision ?? 1, JSON.stringify(row), userId]
+  );
+}
 function publicationIssues(article) {
   const issues = [];
   if (!article.title?.trim()) issues.push('An article title is required.');
   if (!article.slug?.trim()) issues.push('A public URL slug is required.');
-  if (!Array.isArray(article.blocks) || article.blocks.length === 0) issues.push('Add at least one content block.');
-  const blocks = articleBlocksSchema.safeParse(article.blocks);
-  if (!blocks.success) issues.push('One or more blocks have invalid data. Save the draft and review the affected blocks.');
-  if (blocks.success) {
-    for (const [index, block] of blocks.data.entries()) {
-      if (block.type === 'image' && (!block.imageUrl || !block.alt.trim())) issues.push(`Image block ${index + 1} needs an image URL and alternative text.`);
-      if (block.type === 'gallery' && block.images.some((image) => !image.url || !image.alt.trim())) issues.push(`Gallery block ${index + 1} needs image URLs and alternative text for every image.`);
-      if (block.type === 'embed' && !block.url) issues.push(`Embed block ${index + 1} needs a valid URL.`);
-      if (block.type === 'before_after' && (!block.beforeImage || !block.afterImage)) issues.push(`Before/after block ${index + 1} needs both images.`);
-      if (block.type === 'product' && !block.productId.trim()) issues.push(`Product block ${index + 1} needs a product reference.`);
-      if (block.type === 'product_collection' && !block.productIds.length) issues.push(`Product collection block ${index + 1} needs at least one product reference.`);
-      if (block.type === 'magazine_ref' && !block.magazineId.trim()) issues.push(`Magazine block ${index + 1} needs a magazine reference.`);
+  if (!Array.isArray(article.blocks) || !article.blocks.length) issues.push('Add at least one content block.');
+  const parsed = articleBlocksSchema.safeParse(article.blocks);
+  if (!parsed.success) issues.push('One or more blocks have invalid data. Review the affected blocks.');
+  if (parsed.success) for (const [index, block] of parsed.data.entries()) {
+    const label = `Block ${index + 1}`;
+    if (block.type === 'image' && (!block.imageUrl.trim() || !block.alt.trim())) issues.push(`${label}: add an image and its alternative text.`);
+    if (block.type === 'gallery' && block.images.some((image) => !image.url.trim() || !image.alt.trim())) issues.push(`${label}: every gallery image needs a URL and alternative text.`);
+    if (block.type === 'embed') {
+      try { const url = new URL(block.url); if (!['http:', 'https:'].includes(url.protocol)) throw new Error(); }
+      catch { issues.push(`${label}: enter a valid HTTP(S) URL.`); }
     }
+    if (block.type === 'before_after' && (!block.beforeImage.trim() || !block.afterImage.trim())) issues.push(`${label}: add both comparison images.`);
+    if (block.type === 'product' && !block.productId.trim()) issues.push(`${label}: select a product reference.`);
+    if (block.type === 'product_collection' && !block.productIds.some((value) => value.trim())) issues.push(`${label}: select at least one product.`);
+    if (block.type === 'magazine_ref' && !block.magazineId.trim()) issues.push(`${label}: select a magazine reference.`);
   }
   return issues;
 }
@@ -46,9 +70,7 @@ articleAuthoringRoutes.get('/mine', requireVerifiedIdentity, async (req, res, ne
     const { rows } = await pool.query(
       `SELECT ${publicArticleFields}
          FROM articles a JOIN channels c ON c.id = a.channel_id
-        WHERE c.owner_user_id = $1
-        ORDER BY a.updated_at DESC
-        LIMIT 200`,
+        WHERE c.owner_user_id = $1 ORDER BY a.updated_at DESC LIMIT 200`,
       [req.auth.userId]
     );
     res.set('Cache-Control', 'private, no-store');
@@ -65,21 +87,19 @@ articleAuthoringRoutes.post('/', requireVerifiedIdentity, async (req, res, next)
     const { rows } = await pool.query(
       `INSERT INTO articles (
          channel_id, slug, title, subtitle, excerpt, category, language, tags, cover_image_url, blocks,
-         schema_version, status, seo_title, seo_description, canonical_url
+         schema_version, status, seo_title, seo_description, canonical_url, revision
        )
-       SELECT c.id, $2, $3, $4, $5, $6, $7, $8::text[], NULLIF($9, ''), $10::jsonb, $11, 'draft', $12, $13, $14
-         FROM channels c WHERE c.owner_user_id = $1
-       RETURNING id, slug, title, subtitle, excerpt, cover_image_url, blocks,
-                 category, language, tags, schema_version, status, seo_title, seo_description, canonical_url,
-                 published_at, created_at, updated_at`,
-      [req.auth.userId, slug, data.title, data.subtitle, data.excerpt, data.category, data.language, data.tags, data.coverImageUrl,
-       JSON.stringify(data.blocks), data.schemaVersion, data.seoTitle ?? null,
-       data.seoDescription ?? null, data.canonicalUrl ?? null]
+       SELECT c.id, $2, $3, $4, $5, $6, $7, $8::text[], NULLIF($9, ''), $10::jsonb, $11, 'draft', $12, $13, NULLIF($14, ''), 1
+         FROM channels c WHERE c.owner_user_id = $1 ORDER BY c.created_at ASC LIMIT 1
+       RETURNING ${articleColumns}`,
+      [req.auth.userId, slug, data.title, data.subtitle, data.excerpt, data.category, data.language, data.tags,
+       data.coverImageUrl, JSON.stringify(data.blocks), data.schemaVersion, data.seoTitle ?? null,
+       data.seoDescription ?? null, data.canonicalUrl ?? '']
     );
     if (!rows[0]) return res.status(409).json({ error: { code: 'CHANNEL_REQUIRED', message: 'Create a channel before writing an article.' } });
-    return res.status(201).json({ article: rows[0] });
+    return res.status(201).json({ article: dto(rows[0]) });
   } catch (error) {
-    if (error?.code === '23505') return res.status(409).json({ error: { code: 'SLUG_EXISTS', message: 'This article URL is already in use on your channel.' } });
+    if (error?.code === '23505') return res.status(409).json({ error: { code: 'SLUG_EXISTS', message: 'This URL is already published on your channel.' } });
     next(error);
   }
 });
@@ -88,63 +108,143 @@ articleAuthoringRoutes.patch('/:articleId', requireVerifiedIdentity, async (req,
   const id = uuid.safeParse(req.params.articleId);
   const parsed = articleDraftPatchSchema.safeParse(req.body);
   if (!id.success) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
-  if (!parsed.success || Object.keys(parsed.data).length === 0) return res.status(400).json({ error: { code: 'INVALID_ARTICLE', message: 'Provide valid article fields to update.' } });
+  if (!parsed.success) return res.status(400).json({ error: { code: 'INVALID_ARTICLE', message: 'Include expectedRevision and valid article fields.' } });
+  const { expectedRevision, ...patch } = parsed.data;
+  if (!Object.keys(patch).length) return res.status(400).json({ error: { code: 'EMPTY_PATCH', message: 'Provide at least one field to update.' } });
 
   const columns = {
-    title: 'title', subtitle: 'subtitle', slug: 'slug', excerpt: 'excerpt', category: 'category', language: 'language', tags: 'tags',
-    coverImageUrl: 'cover_image_url', blocks: 'blocks', schemaVersion: 'schema_version',
-    seoTitle: 'seo_title', seoDescription: 'seo_description', canonicalUrl: 'canonical_url'
+    title: 'title', subtitle: 'subtitle', slug: 'slug', excerpt: 'excerpt', category: 'category',
+    language: 'language', tags: 'tags', coverImageUrl: 'cover_image_url', blocks: 'blocks',
+    schemaVersion: 'schema_version', seoTitle: 'seo_title', seoDescription: 'seo_description', canonicalUrl: 'canonical_url'
   };
-  const values = [id.data, req.auth.userId];
-  const sets = [];
-  for (const [key, column] of Object.entries(columns)) {
-    if (!Object.hasOwn(parsed.data, key)) continue;
-    const value = key === 'blocks' ? JSON.stringify(parsed.data[key]) : key === 'coverImageUrl' ? (parsed.data[key] || null) : parsed.data[key];
-    values.push(value);
-    sets.push(`a.${column} = $${values.length}${key === 'blocks' ? '::jsonb' : ''}`);
-  }
-  sets.push('a.updated_at = now()');
+  const client = await pool.connect();
   try {
-    const { rows } = await pool.query(
-      `UPDATE articles a SET ${sets.join(', ')}
-         FROM channels c
-        WHERE a.id = $1 AND c.id = a.channel_id AND c.owner_user_id = $2
-       RETURNING a.id, a.slug, a.title, a.subtitle, a.excerpt, a.category, a.language, a.tags, a.cover_image_url,
-                 a.blocks, a.schema_version, a.status, a.seo_title, a.seo_description,
-                 a.canonical_url, a.published_at, a.created_at, a.updated_at`,
-      values
+    await client.query('BEGIN');
+    const selected = await client.query(
+      `SELECT a.* FROM articles a JOIN channels c ON c.id = a.channel_id
+        WHERE a.id = $1 AND c.owner_user_id = $2 FOR UPDATE OF a`,
+      [id.data, req.auth.userId]
     );
-    if (!rows[0]) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
-    return res.json({ article: rows[0] });
+    const current = selected.rows[0];
+    if (!current) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
+    }
+    if (current.status !== 'draft') {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: { code: 'DRAFT_REQUIRED', message: 'Fork the published article to edit without changing the public version.' } });
+    }
+    if (current.revision !== expectedRevision) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: { code: 'REVISION_CONFLICT', message: 'This draft changed elsewhere. Reload before saving.', currentRevision: current.revision } });
+    }
+    await snapshotRevision(client, current, req.auth.userId);
+    const values = [id.data];
+    const sets = [];
+    for (const [key, column] of Object.entries(columns)) {
+      if (!Object.hasOwn(patch, key)) continue;
+      let value = patch[key];
+      if (key === 'blocks') value = JSON.stringify(value);
+      if (key === 'coverImageUrl' || key === 'canonicalUrl') value = value || null;
+      values.push(value);
+      sets.push(`${column} = $${values.length}${key === 'blocks' ? '::jsonb' : ''}`);
+    }
+    sets.push('revision = revision + 1', 'updated_at = now()');
+    const { rows } = await client.query(`UPDATE articles SET ${sets.join(', ')} WHERE id = $1 RETURNING ${articleColumns}`, values);
+    await client.query('COMMIT');
+    return res.json({ article: dto(rows[0]) });
   } catch (error) {
-    if (error?.code === '23505') return res.status(409).json({ error: { code: 'SLUG_EXISTS', message: 'This article URL is already in use on your channel.' } });
+    await client.query('ROLLBACK');
+    if (error?.code === '23505') return res.status(409).json({ error: { code: 'SLUG_EXISTS', message: 'This URL is already in use.' } });
     next(error);
-  }
+  } finally { client.release(); }
+});
+
+articleAuthoringRoutes.post('/:articleId/fork', requireVerifiedIdentity, async (req, res, next) => {
+  const id = uuid.safeParse(req.params.articleId);
+  if (!id.success) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
+  try {
+    const source = await pool.query(
+      `SELECT a.* FROM articles a JOIN channels c ON c.id = a.channel_id
+        WHERE a.id = $1 AND c.owner_user_id = $2 AND a.status = 'published' LIMIT 1`,
+      [id.data, req.auth.userId]
+    );
+    const live = source.rows[0];
+    if (!live) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Published article not found.' } });
+    const { rows } = await pool.query(
+      `INSERT INTO articles (
+         channel_id, slug, title, subtitle, excerpt, category, language, tags, cover_image_url, blocks,
+         schema_version, status, seo_title, seo_description, canonical_url, revision
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,'draft',$12,$13,$14,1)
+       RETURNING ${articleColumns}`,
+      [live.channel_id,live.slug,live.title,live.subtitle,live.excerpt,live.category,live.language,live.tags,
+       live.cover_image_url,JSON.stringify(live.blocks),live.schema_version,live.seo_title,live.seo_description,live.canonical_url]
+    );
+    return res.status(201).json({ article: dto(rows[0]) });
+  } catch (error) { next(error); }
 });
 
 articleAuthoringRoutes.post('/:articleId/publish', requireVerifiedIdentity, async (req, res, next) => {
   const id = uuid.safeParse(req.params.articleId);
+  const expected = z.object({ expectedRevision: z.number().int().positive() }).safeParse(req.body ?? {});
   if (!id.success) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
+  if (!expected.success) return res.status(400).json({ error: { code: 'INVALID_REVISION', message: 'Include the current expectedRevision.' } });
+  const client = await pool.connect();
   try {
-    const owned = await pool.query(
-      `SELECT a.id, a.title, a.slug, a.blocks
-         FROM articles a JOIN channels c ON c.id = a.channel_id
-        WHERE a.id = $1 AND c.owner_user_id = $2 LIMIT 1`,
+    await client.query('BEGIN');
+    const selected = await client.query(
+      `SELECT a.*, c.username AS author_username FROM articles a JOIN channels c ON c.id = a.channel_id
+        WHERE a.id = $1 AND c.owner_user_id = $2 FOR UPDATE OF a`,
       [id.data, req.auth.userId]
     );
-    if (!owned.rows[0]) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
-    const issues = publicationIssues(owned.rows[0]);
-    if (issues.length) return res.status(422).json({ error: { code: 'PUBLISH_VALIDATION_FAILED', message: 'The article needs attention before publishing.', issues } });
-    const { rows } = await pool.query(
-      `UPDATE articles a SET status = 'published',
-              published_at = COALESCE(a.published_at, now()), updated_at = now()
-         FROM channels c
-        WHERE a.id = $1 AND c.id = a.channel_id AND c.owner_user_id = $2
-       RETURNING a.id, a.slug, a.title, a.published_at, c.username AS author_username`,
-      [id.data, req.auth.userId]
+    const draft = selected.rows[0];
+    if (!draft || draft.status !== 'draft') {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: { code: 'DRAFT_NOT_FOUND', message: 'Editable draft not found.' } });
+    }
+    if (draft.revision !== expected.data.expectedRevision) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: { code: 'REVISION_CONFLICT', message: 'This draft changed elsewhere. Reload before publishing.', currentRevision: draft.revision } });
+    }
+    const issues = publicationIssues(draft);
+    if (issues.length) {
+      await client.query('ROLLBACK');
+      return res.status(422).json({ error: { code: 'PUBLISH_VALIDATION_FAILED', message: 'The article needs attention before publishing.', issues } });
+    }
+    await snapshotRevision(client, draft, req.auth.userId);
+    const collision = await client.query(
+      `SELECT a.* FROM articles a WHERE a.channel_id=$1 AND a.slug=$2 AND a.status='published' FOR UPDATE`,
+      [draft.channel_id, draft.slug]
     );
-    return res.json({ article: rows[0], publicPath: `/${rows[0].author_username}/${rows[0].slug}` });
-  } catch (error) { next(error); }
+    let published;
+    if (collision.rows[0]) {
+      const live = collision.rows[0];
+      await snapshotRevision(client, live, req.auth.userId);
+      const updated = await client.query(
+        `UPDATE articles SET title=$2, subtitle=$3, excerpt=$4, category=$5, language=$6, tags=$7,
+            cover_image_url=$8, blocks=$9::jsonb, schema_version=$10, seo_title=$11,
+            seo_description=$12, canonical_url=$13, revision=revision+1, updated_at=now(), published_at=now()
+          WHERE id=$1 RETURNING ${articleColumns}`,
+        [live.id,draft.title,draft.subtitle,draft.excerpt,draft.category,draft.language,draft.tags,
+         draft.cover_image_url,JSON.stringify(draft.blocks),draft.schema_version,draft.seo_title,draft.seo_description,draft.canonical_url]
+      );
+      published = updated.rows[0];
+      await client.query('DELETE FROM articles WHERE id=$1', [draft.id]);
+    } else {
+      const updated = await client.query(
+        `UPDATE articles SET status='published', published_at=now(), revision=revision+1, updated_at=now()
+          WHERE id=$1 RETURNING ${articleColumns}`,
+        [draft.id]
+      );
+      published = updated.rows[0];
+    }
+    await client.query('COMMIT');
+    const author = await pool.query('SELECT username FROM channels WHERE id=$1', [published.channel_id]);
+    return res.json({ article: dto(published), publicPath: `/${author.rows[0]?.username ?? ''}/${published.slug}` });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    next(error);
+  } finally { client.release(); }
 });
 
 articleAuthoringRoutes.delete('/:articleId', requireVerifiedIdentity, async (req, res, next) => {
@@ -152,9 +252,8 @@ articleAuthoringRoutes.delete('/:articleId', requireVerifiedIdentity, async (req
   if (!id.success) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
   try {
     const { rows } = await pool.query(
-      `UPDATE articles a SET status = 'archival', updated_at = now()
-         FROM channels c
-        WHERE a.id = $1 AND c.id = a.channel_id AND c.owner_user_id = $2
+      `UPDATE articles a SET status = 'archival', updated_at = now(), revision = revision + 1
+         FROM channels c WHERE a.id = $1 AND c.id = a.channel_id AND c.owner_user_id = $2
        RETURNING a.id`,
       [id.data, req.auth.userId]
     );
