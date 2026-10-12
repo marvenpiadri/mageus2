@@ -1,8 +1,10 @@
 import { Router } from 'express';
+import { createHmac } from 'node:crypto';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
 import { pool, requireDatabase } from '../../db/pool.js';
-import { requireVerifiedIdentity } from '../auth/auth.service.js';
+import { requireVerifiedIdentity, verifyAccessToken } from '../auth/auth.service.js';
+import { env } from '../../config/env.js';
 
 export const engagementRoutes = Router();
 engagementRoutes.use(requireDatabase);
@@ -12,6 +14,64 @@ const engagementWriteLimit = rateLimit({
   standardHeaders: 'draft-8',
   legacyHeaders: false,
   message: { error: { code: 'RATE_LIMITED', message: 'Too many engagement actions. Try again later.' } }
+});
+
+const uuid = z.string().uuid();
+
+// Count a public article view without storing raw IP addresses. Authenticated viewers
+// are keyed by user ID; anonymous viewers are keyed by a server-secret HMAC of req.ip.
+engagementRoutes.post('/articles/:articleId/views', async (req, res, next) => {
+  const id = uuid.safeParse(req.params.articleId);
+  if (!id.success) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
+  try {
+    let viewerUserId = null;
+    const authorization = req.headers.authorization ?? '';
+    const match = /^Bearer\\s+(.+)$/i.exec(authorization);
+    if (match) {
+      try {
+        const identity = await verifyAccessToken(match[1]);
+        viewerUserId = identity.userId;
+      } catch {
+        // An expired or invalid token does not block anonymous public reading.
+      }
+    }
+
+    const article = await pool.query(
+      "SELECT id FROM articles WHERE id = $1 AND status = 'published' AND published_at IS NOT NULL",
+      [id.data]
+    );
+    if (!article.rowCount) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
+
+    const ip = typeof req.ip === 'string' ? req.ip : '';
+    const hashSecret = env.ANALYTICS_HASH_SECRET || env.AUTH_JWT_SECRET;
+    const anonymousHash = !viewerUserId && ip && hashSecret
+      ? createHmac('sha256', hashSecret).update(ip).digest('hex')
+      : null;
+    if (!viewerUserId && !anonymousHash) return res.json({ recorded: false });
+
+    let referrerHost = null;
+    const referer = req.get('referer');
+    if (referer) {
+      try { referrerHost = new URL(referer).hostname.slice(0, 253) || null; } catch { /* Ignore invalid referrers. */ }
+    }
+
+    const result = await pool.query(
+      `INSERT INTO content_views (channel_id, content_type, content_id, viewer_user_id, anonymous_visitor_hash, referrer_host)
+       SELECT a.channel_id, 'article', a.id, $2::uuid, $3::text, $4::text
+         FROM articles a
+        WHERE a.id = $1 AND a.status = 'published' AND a.published_at IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM content_views v
+             WHERE v.content_type = 'article' AND v.content_id = a.id
+               AND v.viewed_at > now() - interval '30 minutes'
+               AND (($2::uuid IS NOT NULL AND v.viewer_user_id = $2::uuid)
+                 OR ($3::text IS NOT NULL AND v.anonymous_visitor_hash = $3::text))
+          )
+       RETURNING id`,
+      [id.data, viewerUserId, anonymousHash, referrerHost]
+    );
+    return res.status(202).json({ recorded: result.rowCount > 0 });
+  } catch (error) { next(error); }
 });
 
 const uuid = z.string().uuid();
