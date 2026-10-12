@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import { env } from './config/env.js';
 import { pool, requireDatabase } from './db/pool.js';
 import { articleRoutes } from './modules/articles/article.routes.js';
+import { articleAuthoringRoutes } from './modules/articles/article-authoring.routes.js';
 import { engagementRoutes } from './modules/engagement/engagement.routes.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 
@@ -37,6 +38,7 @@ app.get('/ready', async (_req, res) => {
 });
 
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/articles', articleAuthoringRoutes);
 app.use('/api/v1/articles', articleRoutes);
 app.use('/api/v1/engagement', engagementRoutes);
 
