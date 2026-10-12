@@ -20,7 +20,7 @@
             <div class="profile-stats">
               <span><strong>{{ data.profile.follower_count }}</strong> followers</span>
               <span><strong>{{ data.profile.following_count }}</strong> following</span>
-              <span><strong>{{ articles().length }}</strong> articles</span>
+              <span><strong>{{ data.profile.article_count }}</strong> articles</span>
             </div>
           </div>
           <div class="profile-actions">
@@ -59,7 +59,7 @@
       </section>
 
       <nav class="profile-tabs" aria-label="Profile sections">
-        <button type="button" [class.active]="section() === 'articles'" (click)="section.set('articles')"><span>▤</span> Articles <small>{{ articles().length }}</small></button>
+        <button type="button" [class.active]="section() === 'articles'" (click)="section.set('articles')"><span>▤</span> Articles <small>{{ data.profile.article_count }}</small></button>
         <button type="button" [class.active]="section() === 'shops'" (click)="section.set('shops')"><span>◇</span> Shops <small>{{ data.storefronts.length }}</small></button>
         <button type="button" [class.active]="section() === 'menus'" (click)="section.set('menus')"><span>☷</span> Menus <small>{{ data.menus.length }}</small></button>
         <button type="button" [class.active]="section() === 'locations'" (click)="section.set('locations')"><span>⌖</span> Locations <small>{{ data.locations.length }}</small></button>
