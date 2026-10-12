@@ -3,8 +3,8 @@ import { isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ArticleBlock, ArticleBlockType } from '../../domain/article.model';
+import { ARTICLE_BLOCK_TOOLS, createEmptyBlock } from './article-block-registry';
 
-interface BlockTool { type: ArticleBlockType; label: string; description: string; icon: string; }
 interface StudioDraft {
   version: 1;
   title: string;
@@ -33,23 +33,7 @@ export class ArticleStudioPageComponent {
   readonly validationMessages = signal<string[]>([]);
   readonly lastSavedAt = signal<string | null>(null);
 
-  readonly tools: readonly BlockTool[] = [
-    { type: 'text', label: 'Text', description: 'Paragraphs and headings', icon: 'T' },
-    { type: 'image', label: 'Image', description: 'A single image with caption', icon: '▧' },
-    { type: 'gallery', label: 'Gallery', description: 'A collection of images', icon: '▦' },
-    { type: 'slide', label: 'Slides', description: 'A visual sequence or deck', icon: '▤' },
-    { type: 'quote', label: 'Quote', description: 'A highlighted quotation', icon: '“' },
-    { type: 'embed', label: 'Embed', description: 'A supported external media URL', icon: '↗' },
-    { type: 'before_after', label: 'Before / after', description: 'Compare two images', icon: '⇄' },
-    { type: 'hotspot', label: 'Hotspots', description: 'Explore points on an image', icon: '◎' },
-    { type: 'timeline', label: 'Timeline', description: 'Events in chronological order', icon: '↕' },
-    { type: 'steps', label: 'Steps', description: 'A guided sequence', icon: '≡' },
-    { type: 'data_viz', label: 'Data visualisation', description: 'A chart or data comparison', icon: '▥' },
-    { type: 'math', label: 'Math', description: 'A formula with explanation', icon: '∑' },
-    { type: 'product', label: 'Product', description: 'Reference a Mageus shop product', icon: '◇' },
-    { type: 'product_collection', label: 'Product collection', description: 'Curate products into a group', icon: '◫' },
-    { type: 'magazine_ref', label: 'Magazine', description: 'Reference a magazine or issue', icon: '▣' }
-  ];
+  readonly tools = ARTICLE_BLOCK_TOOLS;
 
   constructor() {
     if (isPlatformBrowser(this.platformId)) this.restoreDraft();
@@ -62,27 +46,7 @@ export class ArticleStudioPageComponent {
 
   addBlock(type: ArticleBlockType): void {
     const id = globalThis.crypto?.randomUUID?.() ?? `block-${Date.now()}-${this.blocks().length}`;
-    const base = { id, version: 1 };
-    let block: ArticleBlock;
-    switch (type) {
-      case 'text': block = { ...base, type, html: '<p>Begin writing here…</p>' }; break;
-      case 'image': block = { ...base, type, imageUrl: '', alt: '', caption: '', width: 'normal' }; break;
-      case 'gallery': block = { ...base, type, images: [], layout: 'grid' }; break;
-      case 'slide': block = { ...base, type, slides: [], ratio: '16:9' }; break;
-      case 'quote': block = { ...base, type, quote: '', author: '', citation: '' }; break;
-      case 'embed': block = { ...base, type, url: '', title: '' }; break;
-      case 'before_after': block = { ...base, type, beforeImage: '', afterImage: '', beforeLabel: 'Before', afterLabel: 'After' }; break;
-      case 'hotspot': block = { ...base, type, imageUrl: '', points: [] }; break;
-      case 'timeline': block = { ...base, type, title: '', events: [] }; break;
-      case 'steps': block = { ...base, type, title: '', steps: [] }; break;
-      case 'data_viz': block = { ...base, type, title: '', chartType: 'bar', values: [] }; break;
-      case 'math': block = { ...base, type, formula: '', explanation: '' }; break;
-      case 'product': block = { ...base, type, productId: '', displayMode: 'card' }; break;
-      case 'product_collection': block = { ...base, type, productIds: [], title: '', layout: 'grid' }; break;
-      case 'magazine_ref': block = { ...base, type, magazineId: '' }; break;
-      default: return;
-    }
-    this.blocks.update((current) => [...current, block]);
+    this.blocks.update((current) => [...current, createEmptyBlock(type, id)]);
     this.selectedTool.set(null);
     this.markChanged();
   }
