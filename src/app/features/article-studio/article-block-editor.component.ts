@@ -24,6 +24,12 @@ export class ArticleBlockEditorComponent {
     if (level === 2 || level === 3 || level === 4) this.patch({ level });
   }
 
+  updateTextPresentation(value: string): void {
+    const block = this.block();
+    if (block.type !== 'text') return;
+    this.blockChange.emit({ ...block, presentation: value === 'step' ? 'step' : 'regular' });
+  }
+
   updateNestedItem(index: number, field: string, value: string | number): void {
     const block = this.block();
     const update = <T extends object>(items: T[]): T[] => items.map((item, i) => i === index ? ({ ...item, [field]: value } as T) : item);
