@@ -80,6 +80,22 @@
     @case ('math') { <div class="math-block"><div class="formula">{{ current.formula || 'f(x) = …' }}</div>@if (current.explanation) { <p>{{ current.explanation }}</p> }</div> }
     @case ('product') { <div class="reference-card"><span class="reference-icon">◇</span><div><small>MAGEUS SHOP REFERENCE</small><strong>Product reference</strong><p>Product ID: {{ current.productId || 'Not selected' }}</p></div><span class="reference-mode">{{ current.displayMode }}</span></div> }
     @case ('product_collection') { <div class="reference-card"><span class="reference-icon">◫</span><div><small>MAGEUS SHOP REFERENCE</small><strong>{{ current.title || 'Product collection' }}</strong><p>{{ current.productIds.length }} selected products</p></div><span class="reference-mode">{{ current.layout }}</span></div> }
+    @case ('commerce_collection') {
+      <section class="commerce-slider" [attr.aria-label]="current.title || 'Related items'">
+        @if (current.title) { <h3>{{ current.title }}</h3> }
+        @if (current.resolvedItems?.length) {
+          <div class="commerce-slider-track" tabindex="0" aria-label="Swipe or scroll horizontally to view items">
+            @for (item of current.resolvedItems; track item.id) {
+              <article class="commerce-slide">
+                @if (item.image_url) { <img [src]="item.image_url" [alt]="item.name" loading="lazy" draggable="false" /> }
+                @else { <div class="commerce-slide-placeholder" aria-hidden="true">◇</div> }
+                <div class="commerce-slide-copy"><strong>{{ item.name }}</strong>@if (item.price_amount !== null && item.price_amount !== undefined) { <span>{{ item.price_amount }} {{ item.currency }}</span> }@if (item.description) { <p>{{ item.description }}</p> }</div>
+              </article>
+            }
+          </div>
+        } @else { <p class="commerce-empty">No published items are available in this slider yet.</p> }
+      </section>
+    }
     @case ('magazine_ref') { <div class="reference-card"><span class="reference-icon">▣</span><div><small>MAGEUS MAGAZINE</small><strong>Magazine reference</strong><p>Issue ID: {{ current.magazineId || 'Not selected' }}</p></div></div> }
   }
 </section>
