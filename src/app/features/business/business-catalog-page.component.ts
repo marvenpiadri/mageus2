@@ -213,8 +213,8 @@ export class BusinessCatalogPageComponent {
         if (!saved) { this.error.set('The saved item could not be returned.'); this.itemSaving.set(false); return; }
         const setter = kind === 'product' ? this.products : this.services;
         setter.update((items) => editingId ? items.map((item) => item.id === saved.id ? saved : item) : [saved, ...items]);
-        this.message.set(editingId ? 'Catalog item updated.' : 'Catalog item created.');
         this.startItem(kind);
+        this.message.set(editingId ? 'Catalog item updated.' : 'Catalog item created.');
         this.itemSaving.set(false);
         this.storefronts.update((items) => items.map((store) => store.id !== storeId ? store : {
           ...store, product_count: kind === 'product' && !editingId ? store.product_count + 1 : store.product_count,
