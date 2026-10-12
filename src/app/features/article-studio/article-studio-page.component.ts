@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, PLATFORM_ID, inject, signal } from 
 import { isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Article, ArticleBlock, ArticleBlockType } from '../../domain/article.model';
+import { ArticleBlock, ArticleBlockType } from '../../domain/article.model';
 
 interface BlockTool { type: ArticleBlockType; label: string; description: string; icon: string; }
 interface StudioDraft {
@@ -54,6 +54,11 @@ export class ArticleStudioPageComponent {
   constructor() {
     if (isPlatformBrowser(this.platformId)) this.restoreDraft();
   }
+
+  plainText(html: string): string { return html.replace(/<[^>]*>/g, ''); }
+
+  setTitle(value: string): void { this.title.set(value); this.markChanged(); }
+  setSubtitle(value: string): void { this.subtitle.set(value); this.markChanged(); }
 
   addBlock(type: ArticleBlockType): void {
     const id = globalThis.crypto?.randomUUID?.() ?? `block-${Date.now()}-${this.blocks().length}`;
