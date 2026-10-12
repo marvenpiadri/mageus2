@@ -39,7 +39,7 @@ interface ProfileArticle {
 interface PublicProfile {
   profile: {
     id: string; username: string; display_name: string; bio: string; avatar_url: string | null;
-    created_at: string; follower_count: number; following_count: number;
+    created_at: string; follower_count: number; following_count: number; article_count: number;
   };
   locations: ProfileLocation[];
   storefronts: ProfileStore[];
