@@ -34,6 +34,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/business/business-menus-page.component').then((module) => module.BusinessMenusPageComponent)
   },
   {
+    path: 'business/shops',
+    loadComponent: () => import('./features/business/business-shops-page.component').then((module) => module.BusinessShopsPageComponent)
+  },
+  {
     path: 'business/catalog',
     loadComponent: () => import('./features/business/business-catalog-page.component').then((module) => module.BusinessCatalogPageComponent)
   },
