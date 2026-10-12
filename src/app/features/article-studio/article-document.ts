@@ -182,10 +182,6 @@ export function validateArticleDocument(document: ArticleDocument): DocumentIssu
         if (!block.events.length) issues.push({ code: 'empty-block', path: `${path}.events`, message: 'Add at least one timeline event.', severity: 'error' });
         block.events.forEach((event, i) => required(`events.${i}.title`, event.title, 'Give each event a title.'));
         break;
-      case 'steps':
-        if (!block.steps.length) issues.push({ code: 'empty-block', path: `${path}.steps`, message: 'Add at least one step.', severity: 'error' });
-        block.steps.forEach((step, i) => required(`steps.${i}.title`, step.title, 'Give each step a title.'));
-        break;
       case 'data_viz':
         if (!block.values.length) issues.push({ code: 'empty-block', path: `${path}.values`, message: 'Add at least one data point.', severity: 'error' });
         block.values.forEach((item, i) => {
