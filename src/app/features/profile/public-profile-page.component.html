@@ -29,10 +29,23 @@
                 {{ followBusy() ? 'Please wait…' : following() ? 'Following ✓' : '＋ Follow' }}
               </button>
             } @else {
-              <a class="follow-button own-profile-link" routerLink="/write">＋ Write article</a>
+              <div class="profile-own-actions">
+                <button class="follow-button own-profile-link" type="button" (click)="startEditingProfile()">Edit profile</button>
+                <a class="follow-button own-profile-link" routerLink="/write">＋ Write article</a>
+              </div>
             }
           </div>
         </div>
+        @if (editingProfile()) {
+          <form class="profile-edit-form" (submit)="$event.preventDefault(); saveProfile()">
+            <div class="profile-edit-heading"><div><span class="profile-kicker">YOUR CHANNEL</span><h2>Edit public profile</h2></div><button type="button" class="profile-edit-cancel" (click)="cancelEditingProfile()">Cancel</button></div>
+            <label>Display name<input name="profile-display-name" maxlength="100" [value]="profileDisplayName()" (input)="profileDisplayName.set($any($event.target).value)" required /></label>
+            <label>Bio<textarea name="profile-bio" rows="3" maxlength="1000" [value]="profileBio()" (input)="profileBio.set($any($event.target).value)" placeholder="Tell visitors what you create or offer."></textarea><small>{{ profileBio().length }} / 1000</small></label>
+            <label>Avatar image URL<input name="profile-avatar-url" type="url" [value]="profileAvatarUrl()" (input)="profileAvatarUrl.set($any($event.target).value)" placeholder="https://…" /><small>Use a public HTTPS image URL. Upload support will be added separately.</small></label>
+            @if (profileSaveMessage()) { <p class="profile-edit-message" aria-live="polite">{{ profileSaveMessage() }}</p> }
+            <div class="profile-edit-actions"><button class="follow-button" type="submit" [disabled]="profileSaveBusy()">{{ profileSaveBusy() ? 'Saving…' : 'Save profile' }}</button></div>
+          </form>
+        }
         @if (data.menus.length) {
           <div class="profile-menu-shortcuts">
             <span class="shortcut-label">LOCATION MENUS</span>
