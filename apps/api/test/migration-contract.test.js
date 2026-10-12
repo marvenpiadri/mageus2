@@ -104,3 +104,20 @@ test('social and business foundations support follows, notifications, views, sto
   assert.equal((sql.match(/CREATE TABLE IF NOT EXISTS location_menu_items/g) ?? []).length, 1);
   assert.match(sql, /UNIQUE \(location_id, slug\),\s+CONSTRAINT location_menus_same_channel FOREIGN KEY \(location_id, channel_id\)/);
 });
+
+test('identity migration supports external sign-in, profile preferences, app disconnect, and PKCE authorization codes', async () => {
+  const sql = await migration('010_identity_settings_federation.sql');
+  for (const token of [
+    'CREATE TABLE IF NOT EXISTS user_external_identities',
+    "provider IN ('google', 'facebook', 'dollareus_oidc')",
+    'UNIQUE (provider, provider_subject)',
+    'CREATE TABLE IF NOT EXISTS user_settings',
+    'profile_visibility',
+    'CREATE TABLE IF NOT EXISTS connected_applications',
+    'disconnected_at timestamptz',
+    'CREATE TABLE IF NOT EXISTS oauth_authorization_codes',
+    'code_challenge_method',
+    'CREATE TABLE IF NOT EXISTS oauth_clients',
+    'redirect_uris text[]'
+  ]) assert.ok(sql.includes(token), `Missing identity/settings schema contract: ${token}`);
+});
