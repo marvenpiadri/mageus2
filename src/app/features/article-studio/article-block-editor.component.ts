@@ -33,40 +33,46 @@ export class ArticleBlockEditorComponent {
   }
 
   addTableRow(): void {
-    if (this.block.type !== 'table') return;
-    this.patchBlock({ rows: [...this.block.rows, this.block.headers.map(() => '')] });
+    const block = this.block();
+    if (block.type !== 'table') return;
+    this.patch({ rows: [...block.rows, block.headers.map(() => '')] });
   }
 
   removeTableRow(rowIndex: number): void {
-    if (this.block.type !== 'table') return;
-    this.patchBlock({ rows: this.block.rows.filter((_, index) => index !== rowIndex) });
+    const block = this.block();
+    if (block.type !== 'table') return;
+    this.patch({ rows: block.rows.filter((_, index) => index !== rowIndex) });
   }
 
   addTableColumn(): void {
-    if (this.block.type !== 'table') return;
-    this.patchBlock({
-      headers: [...this.block.headers, `Column ${this.block.headers.length + 1}`],
-      rows: this.block.rows.map((row) => [...row, ''])
+    const block = this.block();
+    if (block.type !== 'table') return;
+    this.patch({
+      headers: [...block.headers, `Column ${block.headers.length + 1}`],
+      rows: block.rows.map((row) => [...row, ''])
     });
   }
 
   removeTableColumn(columnIndex: number): void {
-    if (this.block.type !== 'table' || this.block.headers.length <= 1) return;
-    this.patchBlock({
-      headers: this.block.headers.filter((_, index) => index !== columnIndex),
-      rows: this.block.rows.map((row) => row.filter((_, index) => index !== columnIndex))
+    const block = this.block();
+    if (block.type !== 'table' || block.headers.length <= 1) return;
+    this.patch({
+      headers: block.headers.filter((_, index) => index !== columnIndex),
+      rows: block.rows.map((row) => row.filter((_, index) => index !== columnIndex))
     });
   }
 
   updateTableHeader(index: number, value: string): void {
-    if (this.block.type !== 'table') return;
-    this.patchBlock({ headers: this.block.headers.map((header, i) => i === index ? value : header) });
+    const block = this.block();
+    if (block.type !== 'table') return;
+    this.patch({ headers: block.headers.map((header, i) => i === index ? value : header) });
   }
 
   updateTableCell(rowIndex: number, columnIndex: number, value: string): void {
-    if (this.block.type !== 'table') return;
-    this.patchBlock({
-      rows: this.block.rows.map((row, i) => i === rowIndex ? row.map((cell, j) => j === columnIndex ? value : cell) : row)
+    const block = this.block();
+    if (block.type !== 'table') return;
+    this.patch({
+      rows: block.rows.map((row, i) => i === rowIndex ? row.map((cell, j) => j === columnIndex ? value : cell) : row)
     });
   }
 
