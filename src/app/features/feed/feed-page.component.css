@@ -31,3 +31,6 @@
 .feed-pagination button { border: 1px solid var(--glass-border); border-radius: 999px; padding: .7rem 1.1rem; background: rgba(0,0,0,.18); color: var(--text-primary,#fff); font: inherit; font-size: .78rem; cursor: pointer; }
 .feed-pagination button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .feed-pagination button:disabled { opacity: .55; cursor: wait; }
+
+.feed-empty button { margin: .35rem 0 .6rem; border: 1px solid var(--glass-border); border-radius: 999px; padding: .65rem 1rem; background: rgba(0,0,0,.18); color: var(--text-primary,#fff); font: inherit; font-size: .78rem; cursor: pointer; }
+.feed-empty button:hover { border-color: var(--accent); color: var(--accent); }
