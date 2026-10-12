@@ -84,7 +84,7 @@
       <section class="commerce-slider" [attr.aria-label]="current.title || 'Related items'">
         @if (current.title) { <h3>{{ current.title }}</h3> }
         @if (current.resolvedItems?.length) {
-          <div class="commerce-slider-track" tabindex="0" aria-label="Swipe or scroll horizontally to view items">
+          <div class="commerce-slider-track" tabindex="0" aria-label="Swipe or drag horizontally to view items" (pointerdown)="startCommerceDrag($event)" (pointermove)="moveCommerceDrag($event)" (pointerup)="endCommerceDrag($event)" (pointercancel)="endCommerceDrag($event)" (lostpointercapture)="endCommerceDrag($event)">
             @for (item of current.resolvedItems; track item.id) {
               <article class="commerce-slide">
                 @if (item.image_url) { <img [src]="item.image_url" [alt]="item.name" loading="lazy" draggable="false" /> }
