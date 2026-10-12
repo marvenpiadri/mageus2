@@ -12,9 +12,15 @@ export class AuthService {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly api = '/api/v1/auth';
   private readonly tokenState = signal<string | null>(null);
+  private readonly expiresAt = signal<number>(0);
   readonly user = signal<MageusUser | null>(null);
   readonly isAuthenticated = computed(() => !!this.tokenState() && !!this.user());
   get accessToken(): string | null { return this.tokenState(); }
+
+  async ensureSession(): Promise<boolean> {
+    if (this.tokenState() && this.expiresAt() > Date.now() + 30_000) return true;
+    return this.restoreSession();
+  }
 
   async restoreSession(): Promise<boolean> {
     if (!isPlatformBrowser(this.platformId)) return false;
@@ -45,6 +51,10 @@ export class AuthService {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
-  private setSession(response: AuthResponse): void { this.tokenState.set(response.accessToken); this.user.set(response.user); }
-  private clearSession(): void { this.tokenState.set(null); this.user.set(null); }
+  private setSession(response: AuthResponse): void {
+    this.tokenState.set(response.accessToken);
+    this.expiresAt.set(Date.now() + response.expiresIn * 1000);
+    this.user.set(response.user);
+  }
+  private clearSession(): void { this.tokenState.set(null); this.expiresAt.set(0); this.user.set(null); }
 }
