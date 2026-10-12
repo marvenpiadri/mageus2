@@ -96,9 +96,15 @@ export class PublicArticlePageComponent {
     this.meta.updateTag({ property: 'og:description', content: description });
     if (article.cover_image_url) this.meta.updateTag({ property: 'og:image', content: article.cover_image_url });
     this.meta.updateTag({ name: 'twitter:card', content: article.cover_image_url ? 'summary_large_image' : 'summary' });
-    const canonical = article.canonical_url || (this.request?.url
-      ? new URL(`/${encodeURIComponent(article.author_username)}/${encodeURIComponent(article.slug)}`, this.request.url).toString()
-      : `/${encodeURIComponent(article.author_username)}/${encodeURIComponent(article.slug)}`);
+    const articlePath = `/${encodeURIComponent(article.author_username)}/${encodeURIComponent(article.slug)}`;
+    let canonical = article.canonical_url || articlePath;
+    if (!article.canonical_url && this.request?.url) {
+      try { canonical = new URL(articlePath, this.request.url).toString(); } catch { /* retain the relative path if request URL is unavailable */ }
+    } else if (!article.canonical_url && this.document.location?.origin) {
+      canonical = new URL(articlePath, this.document.location.origin).toString();
+    }
+    this.meta.updateTag({ property: 'og:url', content: canonical });
+    if (article.published_at) this.meta.updateTag({ property: 'article:published_time', content: article.published_at });
     let link = this.document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
     if (!link) {
       link = this.document.createElement('link');
@@ -106,6 +112,26 @@ export class PublicArticlePageComponent {
       this.document.head.appendChild(link);
     }
     link.setAttribute('href', canonical);
+
+    // Keep structured data in the SSR HTML so crawlers do not need client JavaScript.
+    let structuredData = this.document.getElementById('mageus-article-jsonld') as HTMLScriptElement | null;
+    if (!structuredData) {
+      structuredData = this.document.createElement('script');
+      structuredData.id = 'mageus-article-jsonld';
+      structuredData.type = 'application/ld+json';
+      this.document.head.appendChild(structuredData);
+    }
+    structuredData.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: article.title,
+      description,
+      datePublished: article.published_at,
+      mainEntityOfPage: canonical,
+      image: article.cover_image_url ? [article.cover_image_url] : undefined,
+      author: { '@type': 'Person', name: article.author_name, url: new URL(`/${encodeURIComponent(article.author_username)}`, canonical).toString() },
+      publisher: { '@type': 'Organization', name: 'Mageus' }
+    });
   }
 
   onScroll(event: Event): void {
