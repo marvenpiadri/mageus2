@@ -40,7 +40,7 @@ export class ExplorationStateService {
   constructor() {
     if (!this.browser) return;
     this.router.events.pipe(
-      filter((event) => event instanceof NavigationStart || event instanceof NavigationEnd)
+      filter((event): event is NavigationStart | NavigationEnd => event instanceof NavigationStart || event instanceof NavigationEnd)
     ).subscribe((event) => {
       if (event instanceof NavigationStart) {
         this.saveActiveScroll();
