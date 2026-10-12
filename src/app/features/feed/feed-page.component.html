@@ -4,7 +4,7 @@
     <div class="feed-empty"><span>◉</span><h2>Your people, your feed.</h2><p>Sign in to follow channels and build a feed around the creators and businesses you care about.</p><a routerLink="/sign-in" [queryParams]="{ returnUrl: '/feed' }">Sign in to continue ↗</a></div>
   } @else if (loading()) {
     <div class="feed-empty"><span>✦</span><p>Gathering stories from your network…</p></div>
-  } @else if (failed()) {
+  } @else if (failed() && !items().length) {
     <div class="feed-empty"><span>↻</span><h2>Your feed could not load</h2><p>Try again in a moment, or explore public stories.</p><a routerLink="/">Explore Mageus ↗</a></div>
   } @else if (items().length) {
     <div class="feed-list">
@@ -23,6 +23,8 @@
         </article>
       }
     </div>
+    @if (failed()) { <div class="feed-pagination"><p role="status">More stories could not be loaded.</p><button type="button" (click)="loadMore()">Try again</button></div> }
+    @else if (hasMore()) { <div class="feed-pagination"><button type="button" (click)="loadMore()" [disabled]="loading()">{{ loading() ? 'Gathering stories…' : 'Load more stories ↓' }}</button></div> }
   } @else {
     <div class="feed-empty"><span>✦</span><h2>Your feed is waiting for you.</h2><p>Follow a few public profiles and their new articles will start appearing here. Your own published articles also appear in your feed.</p><a routerLink="/">Discover channels and stories ↗</a></div>
   }
