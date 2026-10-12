@@ -29,6 +29,7 @@ Migrations run in lexical order and are recorded in `schema_migrations`:
 - `001_initial_publishing.sql`: users, channels, articles, public metadata, blocks, likes, comments, and media metadata.
 - `002_auth_sessions.sql`: hashed refresh-session records with expiry and revocation.
 - `003_article_revisions.sql`: draft revision counters, article history snapshots, and public-slug uniqueness that permits a draft to coexist with its published version.
+- `004_article_jsonb_document.sql`: a complete `articles.document` JSONB object, synchronized by a PostgreSQL trigger on every insert/update. It includes article metadata, SEO fields, status, timestamps, and the typed `blocks` array. Relational columns remain for indexes and safe query constraints.
 
 Run these against a disposable Neon branch first. Do not manually edit an applied migration; add a new numbered migration instead. Take a backup or verify Neon restore capability before production changes.
 
