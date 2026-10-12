@@ -57,3 +57,18 @@ test('article schema guardrails keep blocks as arrays and index relational queri
   assert.ok(sql.includes('articles_tags_gin_idx'));
   assert.ok(sql.includes('article_comments_parent_thread_idx'));
 });
+
+test('article revision history keeps metadata relational and only blocks JSONB', async () => {
+  const sql = await migration('006_revision_blocks_jsonb_only.sql');
+  for (const column of ['slug text', 'title text', 'tags text[]', 'cover_image_url text', 'blocks jsonb', 'schema_version integer', 'status text', 'seo_title text', 'published_at timestamptz']) {
+    assert.ok(sql.includes(column), `Missing revision field: ${column}`);
+  }
+  assert.ok(sql.includes('DROP COLUMN IF EXISTS snapshot'));
+});
+
+test('database guardrails constrain block JSON and index relational query paths', async () => {
+  const sql = await migration('007_article_schema_guardrails.sql');
+  assert.ok(sql.includes('CHECK (jsonb_typeof(blocks) = \'array\')'));
+  assert.ok(sql.includes('articles_tags_gin_idx'));
+  assert.ok(sql.includes('article_comments_parent_thread_idx'));
+});
