@@ -86,7 +86,6 @@ function publicationIssues(article) {
     if (block.type === 'before_after' && (!validUrl(block.beforeImage) || !validUrl(block.afterImage))) issues.push(`${label}: add valid before and after image URLs.`);
     if (block.type === 'hotspot' && (!validUrl(block.imageUrl) || !block.points.length || block.points.some((point) => !point.title.trim()))) issues.push(`${label}: add a valid base image and titled hotspots.`);
     if (block.type === 'timeline' && (!block.events.length || block.events.some((event) => !event.title.trim()))) issues.push(`${label}: add at least one titled timeline event.`);
-    if (block.type === 'steps' && (!block.steps.length || block.steps.some((step) => !step.title.trim()))) issues.push(`${label}: add at least one titled step.`);
     if (block.type === 'data_viz' && (!block.values.length || block.values.some((item) => !item.label.trim() || !Number.isFinite(item.value)))) issues.push(`${label}: add labelled finite data values.`);
     if (block.type === 'math' && !block.formula.trim()) issues.push(`${label}: add the formula.`);
     if (block.type === 'product' && !block.productId.trim()) issues.push(`${label}: select a product reference.`);
