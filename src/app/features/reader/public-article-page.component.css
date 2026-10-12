@@ -3,7 +3,7 @@
 .public-reader-bar .reader-breadcrumb { display: flex; align-items: center; gap: .65rem; min-width: 0; flex: 1; color: var(--text-muted, #a7acbc); font-size: .78rem; }
 .public-reader-bar .reader-breadcrumb a { color: inherit; text-decoration: none; }
 .public-reader-bar .crumb-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-primary, #f6f6fb); }
-.public-reader-scroll { flex: 1; height: calc(100dvh - 8rem); overflow-y: auto; scroll-behavior: smooth; }
+.public-reader-scroll { flex: 1; height: calc(100dvh - 8rem); min-height: 0; overflow-y: auto; overscroll-behavior: contain; scroll-behavior: smooth; }
 .public-article-paper { width: min(100% - 2rem, 600px); margin: clamp(2.5rem, 7vw, 6rem) auto 8rem; padding: clamp(1.25rem, 5vw, 4.5rem); border: 1px solid var(--glass-border, rgba(255,255,255,.14)); border-radius: 1.2rem; background: var(--glass-surface, rgba(14,16,26,.7)); backdrop-filter: blur(26px); box-shadow: 0 25px 100px rgba(0,0,0,.16); }
 .public-article-paper h1 { margin: .7rem 0 1rem; max-width: 17ch; font-size: clamp(2.4rem, 6vw, 5rem); line-height: 1.04; letter-spacing: -.045em; text-wrap: balance; }
 .public-article-paper .article-category { color: var(--accent, #66ccc3); font-size: .68rem; font-weight: 700; letter-spacing: .18em; }
