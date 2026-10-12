@@ -30,6 +30,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/business/business-locations-page.component').then((module) => module.BusinessLocationsPageComponent)
   },
   {
+    path: 'business/catalog',
+    loadComponent: () => import('./features/business/business-catalog-page.component').then((module) => module.BusinessCatalogPageComponent)
+  },
+  {
     // Published article pages are public and crawlable; no auth guard belongs here.
     path: ':username/:slug',
     loadComponent: () => import('./features/reader/public-article-page.component').then((module) => module.PublicArticlePageComponent)
