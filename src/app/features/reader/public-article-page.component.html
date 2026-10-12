@@ -60,15 +60,13 @@
             <div class="voting-range">
               <div class="range-labels"><span>0 · Low</span><strong>{{ voteValue() }} / 100</strong><span>100 · High</span></div>
               <mat-slider min="0" max="100" step="1" discrete>
-                <input matSliderThumb [value]="voteValue()" (valueChange)="voteValue.set($event)" aria-label="Article score from 0 to 100" />
+                <input matSliderThumb [value]="voteValue()" (valueChange)="onVoteValueChange($event)" aria-label="Article score from 0 to 100" />
               </mat-slider>
-              <div class="voting-submit">
-                @if (auth.isAuthenticated()) {
-                  <button type="button" (click)="submitVote()">Submit vote</button>
-                } @else {
-                  <a routerLink="/sign-in">Sign in to vote</a>
-                }
+              <div class="voting-status">
                 <span class="rating-summary">{{ voteCount() ? (voteAverage() + ' / 100 · ' + voteCount() + (voteCount() === 1 ? ' vote' : ' votes')) : 'Be the first to rate' }}</span>
+                @if (!auth.isAuthenticated()) {
+                  <a routerLink="/sign-in">Sign in to save your score ↗</a>
+                }
               </div>
               @if (voteMessage()) { <p class="vote-message" aria-live="polite">{{ voteMessage() }}</p> }
             </div>
