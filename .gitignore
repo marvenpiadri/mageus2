@@ -1,0 +1,9 @@
+/dist
+/node_modules
+/.angular
+/out-tsc
+/coverage
+.env
+.env.*
+!.env.example
+.DS_Store
