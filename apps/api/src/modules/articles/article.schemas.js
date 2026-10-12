@@ -36,6 +36,6 @@ export const articleDraftInputSchema = z.object({
   schemaVersion: z.number().int().positive().default(1),
   seoTitle: z.string().max(240).optional(),
   seoDescription: z.string().max(500).optional(),
-  canonicalUrl: z.string().url().max(2048).optional()
+  canonicalUrl: urlOrEmpty.optional()
 });
-export const articleDraftPatchSchema = articleDraftInputSchema.partial();
+export const articleDraftPatchSchema = articleDraftInputSchema.partial().extend({ expectedRevision: z.number().int().positive() });
