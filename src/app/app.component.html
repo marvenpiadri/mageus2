@@ -10,6 +10,7 @@
       @if (auth.isAuthenticated()) {
         <a routerLink="/feed" aria-label="Your feed" title="Feed">◉</a>
         <a routerLink="/notifications" aria-label="Notifications" title="Notifications">♧</a>
+        <a routerLink="/settings" aria-label="Account settings" title="Settings">⚙</a>
       }
       <a routerLink="/write" aria-label="Write an article" title="Write">＋</a>
     </nav>
@@ -21,7 +22,7 @@
       <a class="wordmark" routerLink="/">mageus<span>.</span></a>
       <div class="topbar-context">A space to read, create, and explore</div>
       @if (auth.isAuthenticated()) {
-        <nav class="social-links" aria-label="Social navigation"><a routerLink="/feed">Feed</a><a routerLink="/notifications">Notifications</a></nav>
+        <nav class="social-links" aria-label="Social navigation"><a routerLink="/feed">Feed</a><a routerLink="/notifications">Notifications</a><a routerLink="/settings">Settings</a></nav>
         <a class="account-chip" [routerLink]="['/', auth.user()?.username]">@{{ auth.user()?.username }}</a>
         <button class="sign-in-link" type="button" (click)="logout()">Sign out</button>
       } @else {
