@@ -18,6 +18,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/feed/feed-page.component').then((module) => module.FeedPageComponent)
   },
   {
+    path: 'settings',
+    loadComponent: () => import('./features/settings/account-settings-page.component').then((module) => module.AccountSettingsPageComponent)
+  },
+  {
     path: 'notifications',
     loadComponent: () => import('./features/notifications/notifications-page.component').then((module) => module.NotificationsPageComponent)
   },
