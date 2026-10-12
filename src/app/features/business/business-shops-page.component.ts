@@ -95,6 +95,7 @@ export class BusinessShopsPageComponent {
   private slugify(value: string): string { return value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 160); }
 
   newShop(): void {
+    this.selectedShopId.set(null); this.products.set([]); this.services.set([]);
     this.shopEditingId.set(null); this.shopName.set(''); this.shopSlug.set(''); this.shopDescription.set('');
     this.fulfillmentType.set('online'); this.shopLocationId.set(''); this.shopStatus.set('draft'); this.error.set(''); this.message.set('');
   }
@@ -117,9 +118,13 @@ export class BusinessShopsPageComponent {
       : this.http.post<{ storefront: Storefront }>('/api/v1/social/me/business/storefronts', payload, options);
     request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: ({ storefront }) => {
-        this.shops.update((shops) => [...shops.filter((shop) => shop.id !== storefront.id), storefront].sort((a,b) => a.name.localeCompare(b.name)));
-        this.selectedShopId.set(storefront.id); this.shopEditingId.set(storefront.id);
-        this.message.set('Shop details saved.'); this.saving.set(false); void this.selectShop(storefront.id);
+        const existing = this.shops().find((shop) => shop.id === storefront.id);
+        const location = this.locations().find((item) => item.id === storefront.location_id);
+        const saved = { ...existing, ...storefront, location_name: location?.name ?? null,
+          product_count: existing?.product_count ?? 0, service_count: existing?.service_count ?? 0 };
+        this.shops.update((shops) => [...shops.filter((shop) => shop.id !== saved.id), saved].sort((a,b) => a.name.localeCompare(b.name)));
+        this.selectedShopId.set(saved.id); this.shopEditingId.set(saved.id);
+        this.message.set('Shop details saved.'); this.saving.set(false); void this.selectShop(saved.id);
       },
       error: (error) => { this.error.set(error?.error?.error?.message || 'The shop could not be saved.'); this.saving.set(false); }
     });
@@ -127,6 +132,12 @@ export class BusinessShopsPageComponent {
 
   selectShop(id: string): Promise<void> {
     this.selectedShopId.set(id); this.catalogEditingId.set(null); this.resetCatalogForm();
+    const selected = this.shops().find((shop) => shop.id === id);
+    if (selected) {
+      this.shopEditingId.set(selected.id); this.shopName.set(selected.name); this.shopSlug.set(selected.slug);
+      this.shopDescription.set(selected.description || ''); this.fulfillmentType.set(selected.fulfillment_type);
+      this.shopLocationId.set(selected.location_id || ''); this.shopStatus.set(selected.status);
+    }
     return new Promise((resolve) => {
       this.http.get<{ products: CatalogItem[]; services: CatalogItem[] }>(`/api/v1/social/me/business/storefronts/${encodeURIComponent(id)}/catalog`, {
         headers: this.auth.authorizationHeaders()
