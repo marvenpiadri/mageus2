@@ -4,7 +4,9 @@
     <div class="studio-title"><span class="studio-overline">MAGEUS / STUDIO</span><strong>{{ title() || 'Untitled article' }}</strong><small>{{ statusMessage() }}</small></div>
     <div class="studio-header-actions">
       <button class="save-button" type="button" (click)="exportDraft()">Export draft</button>
-      <button class="save-button" type="button" (click)="saveDraft()">Save draft</button>
+      <button class="save-button" type="button" (click)="saveDraft()">Save local draft</button>
+    <button class="save-button" type="button" (click)="syncDraft()">Sync draft</button>
+    <button class="save-button" type="button" (click)="publishArticle()" [disabled]="!auth.isAuthenticated()">Publish</button>
     </div>
   </header>
   <div class="studio-layout">
@@ -21,6 +23,21 @@
       <div class="article-metadata">
         <label class="field-label">ARTICLE TITLE<input [ngModel]="title()" (ngModelChange)="setTitle($event)" name="title" placeholder="Give your story a title" /></label>
         <label class="field-label">SUBTITLE<textarea [ngModel]="subtitle()" (ngModelChange)="setSubtitle($event)" name="subtitle" rows="2" placeholder="A line that invites readers in"></textarea></label>
+        <details class="metadata-details" open>
+          <summary>Publishing & discovery</summary>
+          <div class="metadata-grid">
+            <label class="field-label">PUBLIC URL SLUG<input [ngModel]="slug()" (ngModelChange)="setSlug($event)" name="slug" placeholder="your-story-title" /></label>
+            <label class="field-label">COVER IMAGE URL<input [ngModel]="coverImageUrl()" (ngModelChange)="setCoverImageUrl($event)" name="coverImageUrl" placeholder="https://…" /></label>
+            <label class="field-label">CATEGORY<input [ngModel]="category()" (ngModelChange)="setCategory($event)" name="category" placeholder="Design, culture, technology…" /></label>
+            <label class="field-label">LANGUAGE<input [ngModel]="language()" (ngModelChange)="setLanguage($event)" name="language" placeholder="en" /></label>
+            <label class="field-label">TAGS<input [ngModel]="tags().join(', ')" (ngModelChange)="setTags($event)" name="tags" placeholder="architecture, editorial, design" /><small>Separate tags with commas.</small></label>
+            <label class="field-label">EXCERPT<textarea [ngModel]="excerpt()" (ngModelChange)="setExcerpt($event)" name="excerpt" rows="2" placeholder="A short summary for search and sharing"></textarea></label>
+            <label class="field-label">SEO TITLE<input [ngModel]="seoTitle()" (ngModelChange)="setSeoTitle($event)" name="seoTitle" placeholder="Optional search title" /></label>
+            <label class="field-label">SEO DESCRIPTION<textarea [ngModel]="seoDescription()" (ngModelChange)="setSeoDescription($event)" name="seoDescription" rows="2" placeholder="A concise description for search engines"></textarea></label>
+            <label class="field-label">CANONICAL URL<input [ngModel]="canonicalUrl()" (ngModelChange)="setCanonicalUrl($event)" name="canonicalUrl" placeholder="Optional absolute URL" /></label>
+          </div>
+        </details>
+        @if (coverImageUrl()) { <img class="cover-preview" [src]="coverImageUrl()" alt="Article cover preview" /> }
       </div>
       @if (blocks().length === 0) {
         <div class="empty-canvas"><span class="empty-mark">✦</span><h2>Your story starts here.</h2><p>Add a block from the catalogue. Build a rhythm of words, images, and interactive ideas.</p></div>
