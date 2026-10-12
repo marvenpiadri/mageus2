@@ -8,6 +8,14 @@
       <button type="button" role="tab" [attr.aria-selected]="mode() === 'login'" [class.active]="mode() === 'login'" (click)="mode.set('login'); errorMessage.set('')">Sign in</button>
       <button type="button" role="tab" [attr.aria-selected]="mode() === 'register'" [class.active]="mode() === 'register'" (click)="mode.set('register'); errorMessage.set('')">Create account</button>
     </div>
+    @if (oauthProviders().length) {
+      <div class="oauth-options" aria-label="Other sign-in methods">
+        @for (provider of oauthProviders(); track provider) {
+          <button type="button" class="oauth-button" (click)="startOAuth(provider)">{{ providerLabel(provider) }}</button>
+        }
+      </div>
+      <div class="auth-divider"><span>or use your Mageus account</span></div>
+    }
     <form (ngSubmit)="submit()">
       @if (mode() === 'login') {
         <label>Email or username<input name="credential" autocomplete="username" required [ngModel]="credential()" (ngModelChange)="credential.set($event)" /></label>
@@ -20,6 +28,6 @@
       @if (errorMessage()) { <p class="auth-error" role="alert">{{ errorMessage() }}</p> }
       <button class="auth-submit" type="submit" [disabled]="busy()">{{ busy() ? 'Please wait…' : mode() === 'login' ? 'Sign in' : 'Create account' }}</button>
     </form>
-    <p class="auth-footnote">Published articles remain public. Sign-in is for creating, managing, and interacting with content.</p>
+    <p class="auth-footnote">Published articles remain public. Sign-in is for creating, managing, and interacting with content. Dollareus single sign-on will use the shared OAuth/OIDC connection flow.</p>
   </div>
 </section>
