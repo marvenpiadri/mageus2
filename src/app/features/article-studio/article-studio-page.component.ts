@@ -9,6 +9,7 @@ import { ArticleApiService, ArticleDraftPayload } from '../../core/services/arti
 import { ArticleBlockEditorComponent } from './article-block-editor.component';
 import { ArticleBlockRendererComponent } from './article-block-renderer.component';
 import { ArticleDocument, validateArticleDocument } from './article-document';
+import { createStudioItemId } from './block-id';
 
 interface StudioDraft {
   version: 1;
@@ -92,7 +93,7 @@ export class ArticleStudioPageComponent {
   setCanonicalUrl(value: string): void { this.canonicalUrl.set(value); this.markChanged(); }
 
   addBlock(type: ArticleBlockType): void {
-    const id = globalThis.crypto?.randomUUID?.() ?? `block-${Date.now()}-${this.blocks().length}`;
+    const id = createStudioItemId('block');
     this.blocks.update((current) => [...current, createEmptyBlock(type, id)]);
     this.selectedTool.set(null);
     this.markChanged();
@@ -153,7 +154,7 @@ export class ArticleStudioPageComponent {
     if (index < 0) return;
     const source = current[index];
     const clone = JSON.parse(JSON.stringify(source)) as ArticleBlock;
-    clone.id = globalThis.crypto?.randomUUID?.() ?? `block-${Date.now()}-copy`;
+    clone.id = createStudioItemId('block');
     const next = [...current];
     next.splice(index + 1, 0, clone);
     this.blocks.set(next);
