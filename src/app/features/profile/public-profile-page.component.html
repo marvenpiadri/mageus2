@@ -46,13 +46,13 @@
       </section>
 
       <nav class="profile-tabs" aria-label="Profile sections">
-        <button type="button" [class.active]="section() === 'articles'" (click)="section.set('articles')"><span>▤</span> Posts <small>{{ data.articles.length }}</small></button>
+        <button type="button" [class.active]="section() === 'articles'" (click)="section.set('articles')"><span>▤</span> Articles <small>{{ data.articles.length }}</small></button>
         <button type="button" [class.active]="section() === 'shops'" (click)="section.set('shops')"><span>◇</span> Shops <small>{{ data.storefronts.length }}</small></button>
         <button type="button" [class.active]="section() === 'menus'" (click)="section.set('menus')"><span>☷</span> Menus <small>{{ data.menus.length }}</small></button>
         <button type="button" [class.active]="section() === 'locations'" (click)="section.set('locations')"><span>⌖</span> Locations <small>{{ data.locations.length }}</small></button>
       </nav>
 
-      @if (section() === 'posts') {
+      @if (section() === 'articles') {
         @if (data.articles.length) {
           <div class="profile-article-grid">
             @for (article of data.articles; track article.id) {
