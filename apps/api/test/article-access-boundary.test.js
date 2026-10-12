@@ -60,3 +60,14 @@ test('account settings APIs are authenticated and validate sensitive account cha
   assert.match(routes, /UPDATE auth_sessions SET revoked_at = now\(\)/);
   assert.match(routes, /delete\('\/connections\/:application'/);
 });
+
+
+test('business location management is authenticated and scoped to the caller-owned channel', async () => {
+  const routes = await source('../src/modules/social/social.routes.js');
+  assert.match(routes, /get\('\/me\/business\/locations', requireVerifiedIdentity/);
+  assert.match(routes, /post\('\/me\/business\/locations', socialWriteLimit, requireVerifiedIdentity/);
+  assert.match(routes, /patch\('\/me\/business\/locations\/:locationId', socialWriteLimit, requireVerifiedIdentity/);
+  assert.match(routes, /delete\('\/me\/business\/locations\/:locationId', socialWriteLimit, requireVerifiedIdentity/);
+  assert.match(routes, /WHERE c\.owner_user_id = \$2/);
+  assert.match(routes, /LOCATION_HAS_MENUS/);
+});
