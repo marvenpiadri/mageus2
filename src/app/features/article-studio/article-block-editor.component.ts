@@ -111,6 +111,13 @@ export class ArticleBlockEditorComponent {
     }
   }
 
+  setCommerceItemId(index: number, value: string): void {
+    const block = this.block();
+    if (block.type === 'commerce_collection') this.patch({ itemIds: block.itemIds.map((id, i) => i === index ? value : id) });
+  }
+  addCommerceItemId(): void { const block = this.block(); if (block.type === 'commerce_collection') this.patch({ itemIds: [...block.itemIds, ''] }); }
+  removeCommerceItemId(index: number): void { const block = this.block(); if (block.type === 'commerce_collection') this.patch({ itemIds: block.itemIds.filter((_, i) => i !== index) }); }
+
   setProductId(index: number, value: string): void {
     const block = this.block();
     if (block.type === 'product_collection') this.patch({ productIds: block.productIds.map((id, i) => i === index ? value : id) });
