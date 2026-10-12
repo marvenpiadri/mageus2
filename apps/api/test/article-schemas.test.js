@@ -99,3 +99,14 @@ test('accepts distinct IDs when blocks use different modular types', () => {
   ]);
   assert.equal(result.success, true);
 });
+
+test('allows many blocks of the same type when each block has its own ID', () => {
+  const result = articleBlocksSchema.safeParse([
+    { id: 'paragraph-one', type: 'text', html: '<p>First paragraph</p>' },
+    { id: 'paragraph-two', type: 'text', html: '<p>Second paragraph</p>' },
+    { id: 'paragraph-three', type: 'text', html: '<p>Third paragraph</p>' },
+    { id: 'photo-one', type: 'image', imageUrl: '', alt: '', width: 'normal' },
+    { id: 'photo-two', type: 'image', imageUrl: '', alt: '', width: 'wide' }
+  ]);
+  assert.equal(result.success, true, result.success ? '' : JSON.stringify(result.error.issues));
+});
