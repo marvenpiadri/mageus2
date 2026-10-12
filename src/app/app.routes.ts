@@ -10,10 +10,6 @@ export const routes: Routes = [
     loadComponent: () => import('./features/article-studio/article-studio-page.component').then((module) => module.ArticleStudioPageComponent)
   },
   {
-    path: 'article/:articleId',
-    loadComponent: () => import('./features/reader/reader-page.component').then((module) => module.ReaderPageComponent)
-  },
-  {
     path: 'sign-in',
     loadComponent: () => import('./features/auth/auth-page.component').then((module) => module.AuthPageComponent)
   },
