@@ -3,6 +3,7 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   {
     path: '',
+    data: { preserveExplorationState: true },
     loadComponent: () => import('./features/home/home-page.component').then((module) => module.HomePageComponent)
   },
   {
@@ -15,6 +16,7 @@ export const routes: Routes = [
   },
   {
     path: 'feed',
+    data: { preserveExplorationState: true },
     loadComponent: () => import('./features/feed/feed-page.component').then((module) => module.FeedPageComponent)
   },
   {
@@ -49,6 +51,7 @@ export const routes: Routes = [
   {
     // Public social profile; posts, shops, location menus, and services are grouped by channel.
     path: ':username',
+    data: { preserveExplorationState: true },
     loadComponent: () => import('./features/profile/public-profile-page.component').then((module) => module.PublicProfilePageComponent)
   },
   {
