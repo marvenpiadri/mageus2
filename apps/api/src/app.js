@@ -23,7 +23,7 @@ app.use(cors({
   credentials: true,
   maxAge: 600
 }));
-app.use(express.json({ limit: '256kb', strict: true }));
+app.use(express.json({ limit: '2mb', strict: true }));
 app.use(express.urlencoded({ extended: false, limit: '32kb', parameterLimit: 100 }));
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'mageus-api' }));
