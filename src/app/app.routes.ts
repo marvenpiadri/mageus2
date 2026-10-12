@@ -8,6 +8,7 @@ export const routes: Routes = [
   },
   {
     path: 'magazines',
+    data: { preserveExplorationState: true },
     loadComponent: () => import('./features/magazines/magazine-discovery-page.component').then((module) => module.MagazineDiscoveryPageComponent)
   },
   {
