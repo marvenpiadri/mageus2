@@ -14,6 +14,14 @@ It is not a visual redesign. The original `mageus` repository is the source of t
 - Keep publishing and commerce concerns modular. Mageus already has shops; commerce integrations can be designed after the Mageus domain model and publishing architecture settle.
 - Do not copy legacy backend secrets, local database credentials, or unsafe authentication patterns into this repository.
 
+## First-version scope
+
+Mageus is a social network, with **articles as the only standalone publishing format in the first version**. Profiles/channels, feeds, follows, notifications, comments, likes, and ratings remain core social features. Do not create a separate Posts type as a placeholder for video.
+
+Long-form video (YouTube-style) and short-form video/Reels are future phases, to be added when the required services are affordable. The first release should not depend on expensive video hosting or processing.
+
+Article blocks remain a flat ordered list. Tutorial steps are a presentation option on ordinary text blocks; consecutive step blocks connect visually and receive order-derived numbering.
+
 ## Source repositories
 
 - Original application and visual/behavioral reference: [marvenpiadri/mageus](https://github.com/marvenpiadri/mageus)
