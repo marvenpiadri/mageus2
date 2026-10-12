@@ -14,6 +14,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/reader/reader-page.component').then((module) => module.ReaderPageComponent)
   },
   {
+    // Published article pages are public and crawlable; no auth guard belongs here.
+    path: ':username/:slug',
+    loadComponent: () => import('./features/reader/public-article-page.component').then((module) => module.PublicArticlePageComponent)
+  },
+  {
     path: '**',
     redirectTo: ''
   }
