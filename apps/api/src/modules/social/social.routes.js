@@ -88,7 +88,7 @@ socialRoutes.get('/profiles/:username', async (req, res, next) => {
     delete profile.profile_visibility;
     if (visibility === 'private') {
       const authorization = req.headers.authorization ?? '';
-      const match = /^Bearer\\s+(.+)$/i.exec(authorization);
+      const match = /^Bearer\s+(.+)$/i.exec(authorization);
       let viewerUserId = null;
       if (match) {
         try { viewerUserId = (await verifyAccessToken(match[1])).userId; } catch { /* Treat invalid tokens as anonymous visitors. */ }
@@ -181,7 +181,7 @@ socialRoutes.get('/profiles/:username/articles', async (req, res, next) => {
     if (!channel) return res.status(404).json({ error: { code: 'PROFILE_NOT_FOUND', message: 'Profile not found.' } });
     if (channel.profile_visibility === 'private') {
       const authorization = req.headers.authorization ?? '';
-      const match = /^Bearer\\s+(.+)$/i.exec(authorization);
+      const match = /^Bearer\s+(.+)$/i.exec(authorization);
       let viewerUserId = null;
       if (match) {
         try { viewerUserId = (await verifyAccessToken(match[1])).userId; } catch { /* Invalid tokens are anonymous. */ }
