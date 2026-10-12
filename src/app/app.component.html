@@ -16,6 +16,12 @@
     <header class="global-topbar">
       <a class="wordmark" routerLink="/">mageus<span>.</span></a>
       <div class="topbar-context">A space to read, create, and explore</div>
+      @if (auth.isAuthenticated()) {
+        <span class="account-chip">{{ auth.user()?.username }}</span>
+        <button class="sign-in-link" type="button" (click)="logout()">Sign out</button>
+      } @else {
+        <a class="sign-in-link" routerLink="/sign-in">Sign in</a>
+      }
       <a class="create-link" routerLink="/write"><span aria-hidden="true">＋</span> Create</a>
     </header>
     <router-outlet />
