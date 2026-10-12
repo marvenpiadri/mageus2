@@ -158,6 +158,70 @@ socialRoutes.get('/profiles/:username', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+// Cursor-paginated public articles for a channel; private profiles follow the same visibility rule as profile reads.
+socialRoutes.get('/profiles/:username/articles', async (req, res, next) => {
+  const username = String(req.params.username ?? '').toLowerCase();
+  if (!usernamePattern.test(username)) {
+    return res.status(404).json({ error: { code: 'PROFILE_NOT_FOUND', message: 'Profile not found.' } });
+  }
+  const query = z.object({
+    limit: z.coerce.number().int().min(1).max(50).default(12),
+    cursor: z.string().min(1).max(512).regex(/^[A-Za-z0-9_-]+$/).optional()
+  }).safeParse(req.query);
+  if (!query.success) return res.status(400).json({ error: { code: 'INVALID_QUERY', message: 'Invalid article pagination parameters.' } });
+  try {
+    const channelResult = await pool.query(
+      `SELECT c.id, c.owner_user_id, COALESCE(us.profile_visibility, 'public') AS profile_visibility
+         FROM channels c LEFT JOIN user_settings us ON us.user_id = c.owner_user_id
+        WHERE c.username = $1 LIMIT 1`,
+      [username]
+    );
+    const channel = channelResult.rows[0];
+    if (!channel) return res.status(404).json({ error: { code: 'PROFILE_NOT_FOUND', message: 'Profile not found.' } });
+    if (channel.profile_visibility === 'private') {
+      const authorization = req.headers.authorization ?? '';
+      const match = /^Bearer\\s+(.+)$/i.exec(authorization);
+      let viewerUserId = null;
+      if (match) {
+        try { viewerUserId = (await verifyAccessToken(match[1])).userId; } catch { /* Invalid tokens are anonymous. */ }
+      }
+      if (!viewerUserId || viewerUserId !== channel.owner_user_id) {
+        return res.status(404).json({ error: { code: 'PROFILE_NOT_FOUND', message: 'Profile not found.' } });
+      }
+    }
+
+    const values = [channel.id, query.data.limit + 1];
+    let cursorClause = '';
+    if (query.data.cursor) {
+      let decoded;
+      try { decoded = JSON.parse(Buffer.from(query.data.cursor, 'base64url').toString('utf8')); } catch { decoded = null; }
+      if (!decoded || typeof decoded.publishedAt !== 'string' || !Number.isFinite(Date.parse(decoded.publishedAt)) ||
+          typeof decoded.id !== 'string' || !uuid.safeParse(decoded.id).success) {
+        return res.status(400).json({ error: { code: 'INVALID_CURSOR', message: 'Invalid article pagination cursor.' } });
+      }
+      values.push(decoded.publishedAt, decoded.id);
+      cursorClause = 'AND (a.published_at, a.id) < ($3::timestamptz, $4::uuid)';
+    }
+    const { rows } = await pool.query(
+      `SELECT a.id, a.slug, a.title, a.subtitle, a.excerpt, a.category, a.cover_image_url, a.published_at
+         FROM articles a
+        WHERE a.channel_id = $1 AND a.status = 'published' AND a.published_at IS NOT NULL
+          ${cursorClause}
+        ORDER BY a.published_at DESC, a.id DESC
+        LIMIT $2`,
+      values
+    );
+    const hasMore = rows.length > query.data.limit;
+    const items = rows.slice(0, query.data.limit);
+    const last = items.at(-1);
+    const nextCursor = hasMore && last
+      ? Buffer.from(JSON.stringify({ publishedAt: last.published_at, id: last.id })).toString('base64url')
+      : null;
+    res.set('Cache-Control', channel.profile_visibility === 'private' ? 'private, no-store' : 'public, max-age=30, s-maxage=120, stale-while-revalidate=600');
+    return res.json({ items, nextCursor });
+  } catch (error) { next(error); }
+});
+
 // The account owner may update only the channel tied to their authenticated user ID.
 socialRoutes.patch('/me/profile', socialWriteLimit, requireVerifiedIdentity, async (req, res, next) => {
   const input = z.object({
