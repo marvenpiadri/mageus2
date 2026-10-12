@@ -22,6 +22,7 @@ interface StudioDraft {
   seoDescription?: string;
   canonicalUrl?: string;
   serverArticleId?: string | null;
+  serverRevision?: number | null;
   blocks: ArticleBlock[];
   savedAt: string;
 }
@@ -53,6 +54,7 @@ export class ArticleStudioPageComponent {
   readonly seoDescription = signal('');
   readonly canonicalUrl = signal('');
   readonly serverArticleId = signal<string | null>(null);
+  readonly serverRevision = signal<number | null>(null);
   readonly selectedTool = signal<ArticleBlockType | null>(null);
   readonly blocks = signal<ArticleBlock[]>([]);
   readonly statusMessage = signal('Draft stored on this device when you edit');
@@ -203,8 +205,8 @@ export class ArticleStudioPageComponent {
         coverImageUrl: this.coverImageUrl(), blocks: this.blocks(), schemaVersion: 1,
         seoTitle: this.seoTitle(), seoDescription: this.seoDescription(), canonicalUrl: this.canonicalUrl().trim() || undefined
       };
-      const id = await this.api.saveDraft(payload, this.serverArticleId());
-      this.serverArticleId.set(id); this.persistDraft(); this.statusMessage.set('Draft synced to your Mageus account.');
+      const saved = await this.api.saveDraft(payload, this.serverArticleId(), this.serverRevision());
+      this.serverArticleId.set(saved.id); this.serverRevision.set(saved.revision); this.persistDraft(); this.statusMessage.set('Draft synced to your Mageus account.');
     } catch (error: any) { this.statusMessage.set(error?.error?.error?.message || error?.message || 'Could not sync. Your local recovery copy is safe.'); }
   }
 
@@ -215,7 +217,10 @@ export class ArticleStudioPageComponent {
     if (!this.serverArticleId()) await this.syncDraft();
     const id = this.serverArticleId(); if (!id) return;
     try {
-      const path = await this.api.publish(id); this.statusMessage.set('Article published successfully.');
+      const path = await this.api.publish(id, this.serverRevision());
+      if (isPlatformBrowser(this.platformId)) localStorage.removeItem(DRAFT_KEY);
+      this.serverArticleId.set(null); this.serverRevision.set(null);
+      this.statusMessage.set('Article published successfully.');
       await this.router.navigateByUrl(path);
     } catch (error: any) {
       const issues = error?.error?.error?.issues; if (Array.isArray(issues)) this.validationMessages.set(issues);
@@ -271,6 +276,7 @@ export class ArticleStudioPageComponent {
       this.seoDescription.set(draft.seoDescription ?? '');
       this.canonicalUrl.set(draft.canonicalUrl ?? '');
       this.serverArticleId.set(draft.serverArticleId ?? null);
+      this.serverRevision.set(draft.serverRevision ?? null);
       this.blocks.set(draft.blocks);
       this.lastSavedAt.set(draft.savedAt ?? null);
       this.statusMessage.set('Recovered a local draft');
@@ -294,6 +300,7 @@ export class ArticleStudioPageComponent {
       seoDescription: this.seoDescription(),
       canonicalUrl: this.canonicalUrl(),
       serverArticleId: this.serverArticleId(),
+      serverRevision: this.serverRevision(),
       blocks: this.blocks(),
       savedAt: new Date().toISOString()
     };
