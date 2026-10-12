@@ -24,3 +24,21 @@ test('article revision migration provides optimistic concurrency and history', a
   assert.ok(sql.includes('CREATE TABLE IF NOT EXISTS article_revisions'));
   assert.ok(sql.includes('UNIQUE (article_id, revision)'));
 });
+
+test('article JSONB document is complete and synchronized by PostgreSQL', async () => {
+  const sql = await migration('004_article_jsonb_document.sql');
+  for (const token of [
+    'ADD COLUMN IF NOT EXISTS document jsonb',
+    'CREATE OR REPLACE FUNCTION sync_article_document()',
+    "'article_id', NEW.id",
+    "'title', NEW.title",
+    "'sub_title', NEW.subtitle",
+    "'blocks', NEW.blocks",
+    "'seo_description', NEW.seo_description",
+    'CREATE TRIGGER articles_sync_document',
+    'BEFORE INSERT OR UPDATE ON articles',
+    'UPDATE articles SET updated_at = updated_at'
+  ]) {
+    assert.ok(sql.includes(token), `Missing article JSONB document contract: ${token}`);
+  }
+});
