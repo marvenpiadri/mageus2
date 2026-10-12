@@ -1,14 +1,22 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import rateLimit from 'express-rate-limit';
 import { pool, requireDatabase } from '../../db/pool.js';
 import { requireVerifiedIdentity } from '../auth/auth.service.js';
 
 export const engagementRoutes = Router();
 engagementRoutes.use(requireDatabase);
+const engagementWriteLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: { code: 'RATE_LIMITED', message: 'Too many engagement actions. Try again later.' } }
+});
 
 const uuid = z.string().uuid();
 
-engagementRoutes.post('/articles/:articleId/likes', requireVerifiedIdentity, async (req, res, next) => {
+engagementRoutes.post('/articles/:articleId/likes', engagementWriteLimit, requireVerifiedIdentity, async (req, res, next) => {
   const id = uuid.safeParse(req.params.articleId);
   if (!id.success) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
   try {
@@ -29,7 +37,7 @@ engagementRoutes.post('/articles/:articleId/likes', requireVerifiedIdentity, asy
   } catch (error) { next(error); }
 });
 
-engagementRoutes.delete('/articles/:articleId/likes', requireVerifiedIdentity, async (req, res, next) => {
+engagementRoutes.delete('/articles/:articleId/likes', engagementWriteLimit, requireVerifiedIdentity, async (req, res, next) => {
   const id = uuid.safeParse(req.params.articleId);
   if (!id.success) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
   try {
@@ -61,7 +69,7 @@ engagementRoutes.get('/articles/:articleId/comments', async (req, res, next) => 
   } catch (error) { next(error); }
 });
 
-engagementRoutes.post('/articles/:articleId/comments', requireVerifiedIdentity, async (req, res, next) => {
+engagementRoutes.post('/articles/:articleId/comments', engagementWriteLimit, requireVerifiedIdentity, async (req, res, next) => {
   const id = uuid.safeParse(req.params.articleId);
   const body = z.object({
     body: z.string().trim().min(1).max(10000),
