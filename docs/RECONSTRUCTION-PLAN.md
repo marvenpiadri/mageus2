@@ -133,7 +133,7 @@ The old `mageus` and `mageus-ui-test` repositories are reference sources and sho
 
 ### First-version product scope
 
-Mageus is a social network, but its first release has **one standalone publishing format: articles**. Profiles/channels, feeds, follows, notifications, comments, likes, and ratings are social features and interactions—not alternate content formats. Do not reintroduce a generic Posts type as a placeholder for future media.
+Mageus is a social network, but its first release has **one standalone publishing format: articles**. Profiles/channels, feeds, follows, notifications, comments, and the single 0–100 emoji vote are social features and interactions—not alternate content formats. There is no binary like action. Do not reintroduce a generic Posts type as a placeholder for future media.
 
 Long-form video (YouTube-style) and short-form video/Reels are explicitly deferred until the infrastructure is affordable. Do not build costly video processing or hosting into this first release. Preserve a clean path for future media types without making them MVP dependencies.
 
@@ -148,7 +148,7 @@ Article content remains a flat, ordered list of independently editable blocks. A
 - Authenticated API routes for article drafts/publishing, with ownership and revision checks; public article reads remain available without login.
 - Public profile/channel pages with article lists, follow/unfollow, follower counts, location links, location-specific menus, storefronts, products, and services.
 - Personalized feed and notification inbox.
-- Article likes, public comments plus authenticated comment creation, ratings, and browser-side view recording. Anonymous view identifiers use a server-secret HMAC of the request IP rather than storing raw IP addresses; repeat views are suppressed for a 30-minute window.
+- The single 0–100 article vote with score-based emoji feedback, public comments plus authenticated comment creation, and browser-side view recording. Anonymous view identifiers use a server-secret HMAC of the request IP rather than storing raw IP addresses; repeat views are suppressed for a 30-minute window.
 - Social/business migration for follows, notifications, privacy-preserving view records, locations, storefronts, products, services, and location-specific menus. The menu schema and its migration contract are covered by the API test suite.
 
 ### Remaining work before release
