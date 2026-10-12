@@ -96,23 +96,91 @@ export function validateArticleDocument(document: ArticleDocument): DocumentIssu
   const issues: DocumentIssue[] = [];
   const metadata = document.metadata;
   if (!metadata.title.trim()) issues.push({ code: 'required', path: 'metadata.title', message: 'An article title is required.', severity: 'error' });
-  if (!metadata.slug.trim()) issues.push({ code: 'required', path: 'metadata.slug', message: 'A public URL slug is required before publishing.', severity: 'error' });
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(metadata.slug)) issues.push({ code: 'required', path: 'metadata.slug', message: 'Use a lowercase public URL slug with hyphens between words.', severity: 'error' });
   if (!document.blocks.length) issues.push({ code: 'empty-block', path: 'blocks', message: 'Add at least one content block.', severity: 'error' });
+
+  const validHttpUrl = (value: string): boolean => {
+    try { const url = new URL(value); return url.protocol === 'https:' || url.protocol === 'http:'; }
+    catch { return false; }
+  };
+  if (metadata.coverImage && !validHttpUrl(metadata.coverImage)) {
+    issues.push({ code: 'invalid-url', path: 'metadata.coverImage', message: 'The cover image must use an HTTP or HTTPS URL.', severity: 'error' });
+  }
+  if (metadata.canonicalUrl && !validHttpUrl(metadata.canonicalUrl)) {
+    issues.push({ code: 'invalid-url', path: 'metadata.canonicalUrl', message: 'The canonical URL must use an HTTP or HTTPS URL.', severity: 'error' });
+  }
 
   document.blocks.forEach((block, index) => {
     const path = `blocks.${index}`;
-    if (block.type === 'image') {
-      if (!block.imageUrl.trim()) issues.push({ code: 'required', path: `${path}.imageUrl`, message: 'Choose an image.', severity: 'error' });
-      if (!block.alt.trim()) issues.push({ code: 'missing-alt', path: `${path}.alt`, message: 'Add alternative text so the image is accessible.', severity: 'warning' });
-    }
-    if (block.type === 'embed' && !/^https?:\/\//i.test(block.url)) {
-      issues.push({ code: 'invalid-url', path: `${path}.url`, message: 'Embeds must use a valid HTTP or HTTPS URL.', severity: 'error' });
-    }
-    if (block.type === 'product' && !block.productId.trim()) {
-      issues.push({ code: 'invalid-reference', path: `${path}.productId`, message: 'Choose a product reference.', severity: 'error' });
-    }
-    if (block.type === 'magazine_ref' && !block.magazineId.trim()) {
-      issues.push({ code: 'invalid-reference', path: `${path}.magazineId`, message: 'Choose a magazine reference.', severity: 'error' });
+    const required = (field: string, value: unknown, message: string): void => {
+      if (typeof value !== 'string' || !value.trim()) issues.push({ code: 'required', path: `${path}.${field}`, message, severity: 'error' });
+    };
+    const url = (field: string, value: string): void => {
+      if (!validHttpUrl(value)) issues.push({ code: 'invalid-url', path: `${path}.${field}`, message: 'Use a valid HTTP or HTTPS URL.', severity: 'error' });
+    };
+    switch (block.type) {
+      case 'text':
+        if (!block.html.replace(/<[^>]*>/g, '').trim()) issues.push({ code: 'empty-block', path: `${path}.html`, message: 'Add some text content.', severity: 'error' });
+        break;
+      case 'image':
+        required('imageUrl', block.imageUrl, 'Choose an image.');
+        if (block.imageUrl) url('imageUrl', block.imageUrl);
+        required('alt', block.alt, 'Add alternative text for accessibility.');
+        break;
+      case 'gallery':
+        if (!block.images.length) issues.push({ code: 'empty-block', path: `${path}.images`, message: 'Add at least one gallery image.', severity: 'error' });
+        block.images.forEach((image, i) => {
+          if (image.url) url(`images.${i}.url`, image.url); else required(`images.${i}.url`, image.url, 'Choose an image.');
+          required(`images.${i}.alt`, image.alt, 'Add alternative text for each image.');
+        });
+        break;
+      case 'slide':
+        if (!block.slides.length) issues.push({ code: 'empty-block', path: `${path}.slides`, message: 'Add at least one slide.', severity: 'error' });
+        block.slides.forEach((slide, i) => {
+          if (slide.imageUrl) url(`slides.${i}.imageUrl`, slide.imageUrl); else required(`slides.${i}.imageUrl`, slide.imageUrl, 'Choose an image for this slide.');
+        });
+        break;
+      case 'quote': required('quote', block.quote, 'Add the quotation text.'); break;
+      case 'embed':
+        if (!/^https?:\/\//i.test(block.url)) issues.push({ code: 'invalid-url', path: `${path}.url`, message: 'Embeds must use a valid HTTP or HTTPS URL.', severity: 'error' });
+        break;
+      case 'before_after':
+        required('beforeImage', block.beforeImage, 'Choose the before image.');
+        required('afterImage', block.afterImage, 'Choose the after image.');
+        if (block.beforeImage) url('beforeImage', block.beforeImage);
+        if (block.afterImage) url('afterImage', block.afterImage);
+        break;
+      case 'hotspot':
+        required('imageUrl', block.imageUrl, 'Choose the image for the hotspots.');
+        if (block.imageUrl) url('imageUrl', block.imageUrl);
+        block.points.forEach((point, i) => {
+          if (point.x < 0 || point.x > 100 || point.y < 0 || point.y > 100) {
+            issues.push({ code: 'required', path: `${path}.points.${i}`, message: 'Hotspot coordinates must be between 0 and 100 percent.', severity: 'error' });
+          }
+          required(`points.${i}.title`, point.title, 'Give each hotspot a title.');
+        });
+        break;
+      case 'timeline':
+        if (!block.events.length) issues.push({ code: 'empty-block', path: `${path}.events`, message: 'Add at least one timeline event.', severity: 'error' });
+        block.events.forEach((event, i) => required(`events.${i}.title`, event.title, 'Give each event a title.'));
+        break;
+      case 'steps':
+        if (!block.steps.length) issues.push({ code: 'empty-block', path: `${path}.steps`, message: 'Add at least one step.', severity: 'error' });
+        block.steps.forEach((step, i) => required(`steps.${i}.title`, step.title, 'Give each step a title.'));
+        break;
+      case 'data_viz':
+        if (!block.values.length) issues.push({ code: 'empty-block', path: `${path}.values`, message: 'Add at least one data point.', severity: 'error' });
+        block.values.forEach((item, i) => {
+          required(`values.${i}.label`, item.label, 'Label each data point.');
+          if (!Number.isFinite(item.value)) issues.push({ code: 'required', path: `${path}.values.${i}.value`, message: 'Data values must be finite numbers.', severity: 'error' });
+        });
+        break;
+      case 'math': required('formula', block.formula, 'Add the formula.'); break;
+      case 'product': required('productId', block.productId, 'Choose a product reference.'); break;
+      case 'product_collection':
+        if (!block.productIds.some((id) => id.trim())) issues.push({ code: 'invalid-reference', path: `${path}.productIds`, message: 'Choose at least one product.', severity: 'error' });
+        break;
+      case 'magazine_ref': required('magazineId', block.magazineId, 'Choose a magazine or issue reference.'); break;
     }
   });
   return issues;
