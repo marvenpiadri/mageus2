@@ -82,3 +82,15 @@ test('storefront management requires identity and validates locations against th
   assert.match(routes, /fulfillment_type/);
   assert.match(routes, /status = COALESCE\(\$9, status\)/);
 });
+
+
+test('catalog product and service writes are scoped through the owning storefront channel', async () => {
+  const routes = await source('../src/modules/social/social.routes.js');
+  assert.match(routes, /get\('\/me\/business\/storefronts\/:storefrontId\/catalog', requireVerifiedIdentity/);
+  assert.match(routes, /post\('\/me\/business\/storefronts\/:storefrontId\/products', socialWriteLimit, requireVerifiedIdentity/);
+  assert.match(routes, /patch\('\/me\/business\/products\/:productId', socialWriteLimit, requireVerifiedIdentity/);
+  assert.match(routes, /post\('\/me\/business\/storefronts\/:storefrontId\/services', socialWriteLimit, requireVerifiedIdentity/);
+  assert.match(routes, /patch\('\/me\/business\/services\/:serviceId', socialWriteLimit, requireVerifiedIdentity/);
+  assert.match(routes, /c\.owner_user_id = \$2/);
+  assert.match(routes, /Image URLs must use HTTPS/);
+});
