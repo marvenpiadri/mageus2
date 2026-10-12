@@ -13,12 +13,12 @@ Without `DATABASE_URL`, health checks still work and database-backed routes fail
 
 ## Public article contract
 
-- `GET /api/v1/articles?limit=20&cursor=<ISO timestamp>`
+- `GET /api/v1/articles?limit=20&cursor=<opaque cursor>`
 - `GET /api/v1/articles/:username/:slug`
 
 Only published articles with a publication timestamp are returned. Drafts, archival content, author-only editing data, and private account fields are never returned from public article queries. These endpoints do not require login. They send public cache headers to support fast pages and crawlers; Angular SSR should render article content into the initial HTML and emit canonical, title, description, Open Graph and JSON-LD metadata from the returned public DTO.
 
-## Identity and engagement
+## Article authoring\n\n- `GET /api/v1/articles/mine` lists the signed-in user's articles, including drafts.\n- `POST /api/v1/articles` creates a private draft.\n- `PATCH /api/v1/articles/:articleId` updates only an article owned by the signed-in user.\n- `POST /api/v1/articles/:articleId/publish` validates required content before making it public.\n- `DELETE /api/v1/articles/:articleId` archives the owned article, which removes it from public reads.\n\nAll writes verify the bearer access token and ownership on the server. Block payloads are validated against a discriminated schema and bounded arrays/text sizes. Product and magazine references are currently stored as typed IDs; live resource pickers and reference resolution are separate follow-up work.\n\n## Identity and engagement
 
 Likes and comment creation are deliberately fail-closed until Mageus's new identity/session issuer is implemented. Do not revive the legacy hard-coded JWT secret, accept client-supplied user IDs, or store plaintext passwords. The authentication design should use short-lived credentials, rotation/revocation, secure HttpOnly cookies where same-site deployment permits, CSRF protection for cookie-authenticated writes, rate limits, and authorization checks against resource ownership.
 
