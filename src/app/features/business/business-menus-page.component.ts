@@ -122,7 +122,7 @@ export class BusinessMenusPageComponent {
       this.error.set('Choose a location, add a menu name, and check the URL slug.'); return;
     }
     if (this.pdfUrl().trim() && !this.isHttpUrl(this.pdfUrl().trim())) {
-      this.error.set('The PDF link must be a valid HTTP or HTTPS URL.'); return;
+      this.error.set('The PDF link must be a valid HTTPS URL.'); return;
     }
     const payload: MenuPayload = {
       locationId: this.locationId(), name: this.name().trim(), slug: this.slug().trim(),
@@ -167,6 +167,6 @@ export class BusinessMenusPageComponent {
     });
   }
   private isHttpUrl(value: string): boolean {
-    try { const url = new URL(value); return url.protocol === 'https:' || url.protocol === 'http:'; } catch { return false; }
+    try { const url = new URL(value); return url.protocol === 'https:'; } catch { return false; }
   }
 }
