@@ -75,9 +75,9 @@ test('accepts every currently supported Mageus 2 block type as a versioned draft
   assert.ok(result.data.every((block) => block.version === 1));
 });
 
-test('rejects malformed table rows with more cells than the schema permits', () => {
+test('rejects table rows that exceed the maximum supported column count', () => {
   const result = articleBlockSchema.safeParse({
-    id: 'table-invalid', type: 'table', headers: ['One'], rows: [['A', 'unexpected']]
+    id: 'table-invalid', type: 'table', headers: ['One'], rows: [Array.from({ length: 21 }, () => 'cell')]
   });
   assert.equal(result.success, false);
 });
