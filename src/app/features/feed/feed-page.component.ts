@@ -49,6 +49,7 @@ export class FeedPageComponent {
     effect(() => {
       const user = this.auth.user();
       if (!user) return;
+      this.exploration.registerContext('/feed', this.keyFor(user.id));
       const state = this.exploration.state<FeedArticle>(this.keyFor(user.id))();
       if (!state.items.length && !state.loading && !state.failed) this.loadPage(user.id, true);
     });
