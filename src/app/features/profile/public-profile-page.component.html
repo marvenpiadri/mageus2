@@ -1,4 +1,4 @@
-<section class="profile-page">
+<section>class="profile-page" 
   @if (loading()) {
     <div class="profile-state"><span class="profile-spark">✦</span><p>Opening profile…</p></div>
   } @else if (notFound() || !profileData()) {
@@ -20,7 +20,7 @@
             <div class="profile-stats">
               <span><strong>{{ data.profile.follower_count }}</strong> followers</span>
               <span><strong>{{ data.profile.following_count }}</strong> following</span>
-              <span><strong>{{ data.articles.length }}</strong> posts</span>
+              <span><strong>{{ data.articles.length }}</strong> articles</span>
             </div>
           </div>
           <div class="profile-actions">
@@ -29,7 +29,7 @@
                 {{ followBusy() ? 'Please wait…' : following() ? 'Following ✓' : '＋ Follow' }}
               </button>
             } @else {
-              <a class="follow-button own-profile-link" routerLink="/write">＋ Create post</a>
+              <a class="follow-button own-profile-link" routerLink="/write">＋ Write article</a>
             }
           </div>
         </div>
@@ -46,7 +46,7 @@
       </section>
 
       <nav class="profile-tabs" aria-label="Profile sections">
-        <button type="button" [class.active]="section() === 'posts'" (click)="section.set('posts')"><span>▤</span> Posts <small>{{ data.articles.length }}</small></button>
+        <button type="button" [class.active]="section() === 'articles'" (click)="section.set('articles')"><span>▤</span> Posts <small>{{ data.articles.length }}</small></button>
         <button type="button" [class.active]="section() === 'shops'" (click)="section.set('shops')"><span>◇</span> Shops <small>{{ data.storefronts.length }}</small></button>
         <button type="button" [class.active]="section() === 'menus'" (click)="section.set('menus')"><span>☷</span> Menus <small>{{ data.menus.length }}</small></button>
         <button type="button" [class.active]="section() === 'locations'" (click)="section.set('locations')"><span>⌖</span> Locations <small>{{ data.locations.length }}</small></button>
@@ -63,7 +63,7 @@
               </a>
             }
           </div>
-        } @else { <div class="profile-empty"><span>✦</span><h2>No posts yet</h2><p>Published articles and future videos will appear here.</p></div> }
+        } @else { <div class="profile-empty"><span>✦</span><h2>No articles yet</h2><p>Published articles appear here. Long-form video and short-form video experiences are planned for a later phase.</p></div> }
       } @else if (section() === 'shops') {
         @if (data.storefronts.length) {
           <div class="store-list">
