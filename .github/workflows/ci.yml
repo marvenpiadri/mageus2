@@ -32,3 +32,38 @@ jobs:
       - run: npm install
       - run: npm run check
       - run: npm test
+
+  migration-check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: mageus_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d mageus_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mageus_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+      - name: Apply every migration to a clean PostgreSQL database
+        run: |
+          set -euo pipefail
+          for migration in apps/api/migrations/*.sql; do
+            echo "Applying ${migration}"
+            psql "${DATABASE_URL}" --set ON_ERROR_STOP=1 --file "${migration}"
+          done
+      - name: Verify magazine and rating schema exists
+        run: |
+          psql "${DATABASE_URL}" --set ON_ERROR_STOP=1 --command "SELECT 'magazines'::regclass, 'magazine_issues'::regclass, 'magazine_issue_articles'::regclass, 'article_vote_summaries'::regclass"
