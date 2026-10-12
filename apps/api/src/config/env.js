@@ -6,6 +6,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3333),
   DATABASE_URL: z.string().url().optional(),
   CORS_ORIGINS: z.string().default('http://localhost:4200'),
+  AUTH_JWT_SECRET: z.string().min(32).optional(),
   AUTH_ISSUER: z.string().optional(),
   AUTH_AUDIENCE: z.string().default('mageus')
 });
