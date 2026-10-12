@@ -5,7 +5,7 @@ import { Meta, Title } from '@angular/platform-browser';
 import { REQUEST } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { catchError, of, switchMap } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, of, Subject, switchMap } from 'rxjs';
 import { ArticleBlock } from '../../domain/article.model';
 import { MatSliderModule } from '@angular/material/slider';
 import { AuthService } from '../../core/auth/auth.service';
@@ -53,6 +53,7 @@ export class PublicArticlePageComponent {
   readonly voteAverage = signal(0);
   readonly voteCount = signal(0);
   readonly voteMessage = signal('');
+  private readonly voteChanges = new Subject<{ articleId: string; value: number }>();
   readonly article = signal<PublicArticle | null>(null);
   readonly loading = signal(true);
   readonly notFound = signal(false);
@@ -62,6 +63,28 @@ export class PublicArticlePageComponent {
   private readonly apiBase = this.resolveApiBase();
 
   constructor() {
+    this.voteChanges.pipe(
+      debounceTime(600),
+      distinctUntilChanged((previous, current) => previous.articleId === current.articleId && previous.value === current.value),
+      switchMap(({ articleId, value }) => this.http.put<{ userVote: number; average: number; count: number }>(
+        `/api/v1/engagement/articles/${encodeURIComponent(articleId)}/votes`,
+        { value },
+        { headers: this.auth.authorizationHeaders() }
+      ).pipe(
+        catchError(() => {
+          this.voteMessage.set('Your vote could not be saved. Check your connection and try again.');
+          return of(null);
+        })
+      )),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe((result) => {
+      if (!result) return;
+      this.voteValue.set(result.userVote);
+      this.voteAverage.set(result.average);
+      this.voteCount.set(result.count);
+      this.voteMessage.set('Vote saved automatically.');
+    });
+
     this.route.paramMap.pipe(
       switchMap((params) => {
         this.loading.set(true);
@@ -105,27 +128,16 @@ export class PublicArticlePageComponent {
     return '/api/v1/articles';
   }
 
-  submitVote(): void {
+  onVoteValueChange(value: number): void {
+    this.voteValue.set(value);
     const article = this.article();
     if (!article) return;
     if (!this.auth.isAuthenticated()) {
-      this.voteMessage.set('Sign in to cast your vote.');
+      this.voteMessage.set('Sign in to save your score.');
       return;
     }
-    this.voteMessage.set('Saving your vote…');
-    this.http.put<{ userVote: number; average: number; count: number }>(
-      `/api/v1/engagement/articles/${encodeURIComponent(article.id)}/votes`,
-      { value: this.voteValue() },
-      { headers: this.auth.authorizationHeaders() }
-    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (result) => {
-        this.voteValue.set(result.userVote);
-        this.voteAverage.set(result.average);
-        this.voteCount.set(result.count);
-        this.voteMessage.set('Your vote has been recorded.');
-      },
-      error: () => this.voteMessage.set('Your vote could not be saved. Please try again.')
-    });
+    this.voteMessage.set('Saving automatically…');
+    this.voteChanges.next({ articleId: article.id, value });
   }
 
   isStepBlock(block: ArticleBlock | undefined): boolean {
