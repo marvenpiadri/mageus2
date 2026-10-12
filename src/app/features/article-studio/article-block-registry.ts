@@ -30,7 +30,6 @@ export const ARTICLE_BLOCK_TOOLS: readonly ArticleBlockTool[] = [
   { type: 'before_after', label: 'Before / after', description: 'Compare two images', icon: '⇄', family: 'interactive' },
   { type: 'hotspot', label: 'Hotspots', description: 'Explore points on an image', icon: '◎', family: 'interactive' },
   { type: 'timeline', label: 'Timeline', description: 'Events in chronological order', icon: '↕', family: 'interactive' },
-  { type: 'steps', label: 'Steps', description: 'A guided sequence', icon: '≡', family: 'interactive' },
   { type: 'data_viz', label: 'Data visualisation', description: 'A chart or data comparison', icon: '▥', family: 'interactive' },
   { type: 'product', label: 'Product', description: 'Reference a Mageus shop product', icon: '◇', family: 'commerce' },
   { type: 'product_collection', label: 'Product collection', description: 'Curate products into a group', icon: '◫', family: 'commerce' },
