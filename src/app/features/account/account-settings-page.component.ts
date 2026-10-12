@@ -90,7 +90,7 @@ export class AccountSettingsPageComponent {
     void this.load();
   }
 
-  private async load(): Promise<void> {
+  async load(): Promise<void> {
     if (!(await this.auth.ensureSession())) {
       await this.router.navigate(['/sign-in'], { queryParams: { returnUrl: '/settings' } });
       return;
