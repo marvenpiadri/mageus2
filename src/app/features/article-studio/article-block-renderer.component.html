@@ -1,35 +1,36 @@
+@let current = current;
 <section class="rendered-block">
-  @switch (block().type) {
-    @case ('text') { <div class="rich-text" [innerHTML]="block().html"></div> }
+  @switch (current.type) {
+    @case ('text') { <div class="rich-text" [innerHTML]="current.html"></div> }
     @case ('image') {
       <figure class="single-image">
-        @if (block().imageUrl) { <img [src]="block().imageUrl" [alt]="block().alt" loading="lazy" /> }
+        @if (current.imageUrl) { <img [src]="current.imageUrl" [alt]="current.alt" loading="lazy" /> }
         @else { <div class="media-placeholder">Image will appear here when a URL is added.</div> }
-        @if (block().caption) { <figcaption>{{ block().caption }}</figcaption> }
+        @if (current.caption) { <figcaption>{{ current.caption }}</figcaption> }
       </figure>
     }
     @case ('gallery') {
-      <div class="gallery" [class.gallery-strip]="block().layout === 'strip' || block().layout === 'carousel'">
-        @for (image of block().images; track image.url + $index) { <figure><img [src]="image.url" [alt]="image.alt" loading="lazy" />@if (image.caption) { <figcaption>{{ image.caption }}</figcaption> }</figure> }
-        @if (!block().images.length) { <div class="media-placeholder">Gallery images will appear here.</div> }
+      <div class="gallery" [class.gallery-strip]="current.layout === 'strip' || current.layout === 'carousel'">
+        @for (image of current.images; track image.url + $index) { <figure><img [src]="image.url" [alt]="image.alt" loading="lazy" />@if (image.caption) { <figcaption>{{ image.caption }}</figcaption> }</figure> }
+        @if (!current.images.length) { <div class="media-placeholder">Gallery images will appear here.</div> }
       </div>
     }
     @case ('slide') {
-      <div class="slide-deck" [class.ratio-square]="block().ratio === '1:1'" [class.ratio-portrait]="block().ratio === '9:16'">
-        @for (slide of block().slides; track slide.imageUrl + $index) { <figure><img [src]="slide.imageUrl" [alt]="slide.label || 'Article slide'" loading="lazy" />@if (slide.label) { <figcaption>{{ slide.label }}</figcaption> }</figure> }
-        @if (!block().slides.length) { <div class="media-placeholder">Add slides to build a visual sequence.</div> }
+      <div class="slide-deck" [class.ratio-square]="current.ratio === '1:1'" [class.ratio-portrait]="current.ratio === '9:16'">
+        @for (slide of current.slides; track slide.imageUrl + $index) { <figure><img [src]="slide.imageUrl" [alt]="slide.label || 'Article slide'" loading="lazy" />@if (slide.label) { <figcaption>{{ slide.label }}</figcaption> }</figure> }
+        @if (!current.slides.length) { <div class="media-placeholder">Add slides to build a visual sequence.</div> }
       </div>
     }
-    @case ('quote') { <blockquote class="quote-block"><span>“</span><p>{{ block().quote }}</p>@if (block().author) { <cite>{{ block().author }}</cite> }@if (block().citation) { <small>{{ block().citation }}</small> }</blockquote> }
-    @case ('embed') { <div class="embed-card"><span class="embed-mark">↗</span><div><strong>{{ block().title || 'External media' }}</strong><p>{{ block().url || 'Add a supported media URL in the editor.' }}</p></div>@if (block().url) { <a [href]="block().url" target="_blank" rel="noopener noreferrer">Open ↗</a> }</div> }
-    @case ('before_after') { <div class="comparison-grid"><figure>@if (block().beforeImage) { <img [src]="block().beforeImage" alt="Before comparison" loading="lazy" /> }@else { <div class="media-placeholder">Before image</div> }<figcaption>{{ block().beforeLabel || 'Before' }}</figcaption></figure><figure>@if (block().afterImage) { <img [src]="block().afterImage" alt="After comparison" loading="lazy" /> }@else { <div class="media-placeholder">After image</div> }<figcaption>{{ block().afterLabel || 'After' }}</figcaption></figure></div> }
-    @case ('hotspot') { <div class="hotspot-image">@if (block().imageUrl) { <img [src]="block().imageUrl" alt="Interactive image with points of interest" loading="lazy" /> }@else { <div class="media-placeholder">Choose an image for the hotspot map.</div> }@for (point of block().points; track point.id) { <div class="hotspot-point" [style.left.%]="point.x" [style.top.%]="point.y" [attr.title]="point.title">{{ $index + 1 }}</div> }</div> }
-    @case ('timeline') { <div class="timeline-block">@if (block().title) { <h3>{{ block().title }}</h3> }@for (event of block().events; track event.date + event.title) { <article><span>{{ event.date }}</span><div><h4>{{ event.title }}</h4><p>{{ event.description }}</p></div></article> }@if (!block().events.length) { <p class="muted">Timeline events will appear here.</p> }</div> }
-    @case ('steps') { <div class="steps-block">@if (block().title) { <h3>{{ block().title }}</h3> }@for (step of block().steps; track step.title; let i = $index) { <article><span>{{ (i + 1).toString().padStart(2, '0') }}</span><div><h4>{{ step.title }}</h4><p>{{ step.description }}</p></div></article> }@if (!block().steps.length) { <p class="muted">Steps will appear here.</p> }</div> }
-    @case ('data_viz') { <div class="data-viz">@if (block().title) { <h3>{{ block().title }}</h3> }@for (value of block().values; track value.label) { <div class="data-row"><div><span>{{ value.label }}</span><strong>{{ value.value }}</strong></div><div class="data-track"><span [style.width.%]="barWidth(value.value, block().values)"></span></div></div> }@if (!block().values.length) { <p class="muted">Add values to visualise the data.</p> }</div> }
-    @case ('math') { <div class="math-block"><div class="formula">{{ block().formula || 'f(x) = …' }}</div>@if (block().explanation) { <p>{{ block().explanation }}</p> }</div> }
-    @case ('product') { <div class="reference-card"><span class="reference-icon">◇</span><div><small>MAGEUS SHOP REFERENCE</small><strong>Product reference</strong><p>Product ID: {{ block().productId || 'Not selected' }}</p></div><span class="reference-mode">{{ block().displayMode }}</span></div> }
-    @case ('product_collection') { <div class="reference-card"><span class="reference-icon">◫</span><div><small>MAGEUS SHOP REFERENCE</small><strong>{{ block().title || 'Product collection' }}</strong><p>{{ block().productIds.length }} selected products</p></div><span class="reference-mode">{{ block().layout }}</span></div> }
-    @case ('magazine_ref') { <div class="reference-card"><span class="reference-icon">▣</span><div><small>MAGEUS MAGAZINE</small><strong>Magazine reference</strong><p>Issue ID: {{ block().magazineId || 'Not selected' }}</p></div></div> }
+    @case ('quote') { <blockquote class="quote-block"><span>“</span><p>{{ current.quote }}</p>@if (current.author) { <cite>{{ current.author }}</cite> }@if (current.citation) { <small>{{ current.citation }}</small> }</blockquote> }
+    @case ('embed') { <div class="embed-card"><span class="embed-mark">↗</span><div><strong>{{ current.title || 'External media' }}</strong><p>{{ current.url || 'Add a supported media URL in the editor.' }}</p></div>@if (current.url) { <a [href]="current.url" target="_blank" rel="noopener noreferrer">Open ↗</a> }</div> }
+    @case ('before_after') { <div class="comparison-grid"><figure>@if (current.beforeImage) { <img [src]="current.beforeImage" alt="Before comparison" loading="lazy" /> }@else { <div class="media-placeholder">Before image</div> }<figcaption>{{ current.beforeLabel || 'Before' }}</figcaption></figure><figure>@if (current.afterImage) { <img [src]="current.afterImage" alt="After comparison" loading="lazy" /> }@else { <div class="media-placeholder">After image</div> }<figcaption>{{ current.afterLabel || 'After' }}</figcaption></figure></div> }
+    @case ('hotspot') { <div class="hotspot-image">@if (current.imageUrl) { <img [src]="current.imageUrl" alt="Interactive image with points of interest" loading="lazy" /> }@else { <div class="media-placeholder">Choose an image for the hotspot map.</div> }@for (point of current.points; track point.id) { <div class="hotspot-point" [style.left.%]="point.x" [style.top.%]="point.y" [attr.title]="point.title">{{ $index + 1 }}</div> }</div> }
+    @case ('timeline') { <div class="timeline-block">@if (current.title) { <h3>{{ current.title }}</h3> }@for (event of current.events; track event.date + event.title) { <article><span>{{ event.date }}</span><div><h4>{{ event.title }}</h4><p>{{ event.description }}</p></div></article> }@if (!current.events.length) { <p class="muted">Timeline events will appear here.</p> }</div> }
+    @case ('steps') { <div class="steps-block">@if (current.title) { <h3>{{ current.title }}</h3> }@for (step of current.steps; track step.title; let i = $index) { <article><span>{{ (i + 1).toString().padStart(2, '0') }}</span><div><h4>{{ step.title }}</h4><p>{{ step.description }}</p></div></article> }@if (!current.steps.length) { <p class="muted">Steps will appear here.</p> }</div> }
+    @case ('data_viz') { <div class="data-viz">@if (current.title) { <h3>{{ current.title }}</h3> }@for (value of current.values; track value.label) { <div class="data-row"><div><span>{{ value.label }}</span><strong>{{ value.value }}</strong></div><div class="data-track"><span [style.width.%]="barWidth(value.value, current.values)"></span></div></div> }@if (!current.values.length) { <p class="muted">Add values to visualise the data.</p> }</div> }
+    @case ('math') { <div class="math-block"><div class="formula">{{ current.formula || 'f(x) = …' }}</div>@if (current.explanation) { <p>{{ current.explanation }}</p> }</div> }
+    @case ('product') { <div class="reference-card"><span class="reference-icon">◇</span><div><small>MAGEUS SHOP REFERENCE</small><strong>Product reference</strong><p>Product ID: {{ current.productId || 'Not selected' }}</p></div><span class="reference-mode">{{ current.displayMode }}</span></div> }
+    @case ('product_collection') { <div class="reference-card"><span class="reference-icon">◫</span><div><small>MAGEUS SHOP REFERENCE</small><strong>{{ current.title || 'Product collection' }}</strong><p>{{ current.productIds.length }} selected products</p></div><span class="reference-mode">{{ current.layout }}</span></div> }
+    @case ('magazine_ref') { <div class="reference-card"><span class="reference-icon">▣</span><div><small>MAGEUS MAGAZINE</small><strong>Magazine reference</strong><p>Issue ID: {{ current.magazineId || 'Not selected' }}</p></div></div> }
   }
 </section>
