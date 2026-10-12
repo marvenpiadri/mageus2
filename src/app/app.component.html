@@ -1,0 +1,23 @@
+<div class="wallpaper-layer" [style.background-image]="'url(' + wallpaperUrl + ')'">
+  <div class="wallpaper-scrim"></div>
+</div>
+
+<div class="mageus-shell" [ngClass]="moodClass()">
+  <aside class="main-rail" aria-label="Main navigation">
+    <a class="brand-mark" routerLink="/" aria-label="Mageus home">M</a>
+    <nav class="rail-links">
+      <a routerLink="/" aria-label="Explore articles" title="Explore">⌂</a>
+      <a routerLink="/write" aria-label="Write an article" title="Write">＋</a>
+    </nav>
+    <div class="rail-bottom" aria-hidden="true">✦</div>
+  </aside>
+
+  <main class="shell-content">
+    <header class="global-topbar">
+      <a class="wordmark" routerLink="/">mageus<span>.</span></a>
+      <div class="topbar-context">A space to read, create, and explore</div>
+      <a class="create-link" routerLink="/write"><span aria-hidden="true">＋</span> Create</a>
+    </header>
+    <router-outlet />
+  </main>
+</div>
