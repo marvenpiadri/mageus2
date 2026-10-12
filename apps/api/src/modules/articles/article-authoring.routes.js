@@ -45,21 +45,32 @@ async function snapshotRevision(client, row, userId) {
 function publicationIssues(article) {
   const issues = [];
   if (!article.title?.trim()) issues.push('An article title is required.');
-  if (!article.slug?.trim()) issues.push('A public URL slug is required.');
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(article.slug ?? '')) issues.push('Use a valid lowercase public URL slug.');
+  const validUrl = (value) => {
+    try { const url = new URL(value); return url.protocol === 'http:' || url.protocol === 'https:'; }
+    catch { return false; }
+  };
+  if (article.cover_image_url && !validUrl(article.cover_image_url)) issues.push('The cover image URL must use HTTP or HTTPS.');
+  if (article.canonical_url && !validUrl(article.canonical_url)) issues.push('The canonical URL must use HTTP or HTTPS.');
   if (!Array.isArray(article.blocks) || !article.blocks.length) issues.push('Add at least one content block.');
   const parsed = articleBlocksSchema.safeParse(article.blocks);
   if (!parsed.success) issues.push('One or more blocks have invalid data. Review the affected blocks.');
   if (parsed.success) for (const [index, block] of parsed.data.entries()) {
     const label = `Block ${index + 1}`;
+    if (block.type === 'text' && !block.html.replace(/<[^>]*>/g, '').trim()) issues.push(`${label}: add text content.`);
     if (block.type === 'image' && (!block.imageUrl.trim() || !block.alt.trim())) issues.push(`${label}: add an image and its alternative text.`);
-    if (block.type === 'gallery' && block.images.some((image) => !image.url.trim() || !image.alt.trim())) issues.push(`${label}: every gallery image needs a URL and alternative text.`);
-    if (block.type === 'embed') {
-      try { const url = new URL(block.url); if (!['http:', 'https:'].includes(url.protocol)) throw new Error(); }
-      catch { issues.push(`${label}: enter a valid HTTP(S) URL.`); }
-    }
-    if (block.type === 'before_after' && (!block.beforeImage.trim() || !block.afterImage.trim())) issues.push(`${label}: add both comparison images.`);
+    if (block.type === 'gallery' && (!block.images.length || block.images.some((image) => !image.url.trim() || !image.alt.trim()))) issues.push(`${label}: add gallery images with URLs and alternative text.`);
+    if (block.type === 'slide' && (!block.slides.length || block.slides.some((slide) => !slide.imageUrl.trim()))) issues.push(`${label}: add at least one slide with an image.`);
+    if (block.type === 'quote' && !block.quote.trim()) issues.push(`${label}: add the quotation text.`);
+    if (block.type === 'embed' && !validUrl(block.url)) issues.push(`${label}: enter a valid HTTP(S) URL.`);
+    if (block.type === 'before_after' && (!validUrl(block.beforeImage) || !validUrl(block.afterImage))) issues.push(`${label}: add valid before and after image URLs.`);
+    if (block.type === 'hotspot' && (!validUrl(block.imageUrl) || !block.points.length || block.points.some((point) => !point.title.trim()))) issues.push(`${label}: add a valid base image and titled hotspots.`);
+    if (block.type === 'timeline' && (!block.events.length || block.events.some((event) => !event.title.trim()))) issues.push(`${label}: add at least one titled timeline event.`);
+    if (block.type === 'steps' && (!block.steps.length || block.steps.some((step) => !step.title.trim()))) issues.push(`${label}: add at least one titled step.`);
+    if (block.type === 'data_viz' && (!block.values.length || block.values.some((item) => !item.label.trim() || !Number.isFinite(item.value)))) issues.push(`${label}: add labelled finite data values.`);
+    if (block.type === 'math' && !block.formula.trim()) issues.push(`${label}: add the formula.`);
     if (block.type === 'product' && !block.productId.trim()) issues.push(`${label}: select a product reference.`);
-    if (block.type === 'product_collection' && !block.productIds.some((value) => value.trim())) issues.push(`${label}: select at least one product.`);
+    if (block.type === 'product_collection' && !block.productIds.some((value) => value.trim())) issues.push(`${label}: select at least one product reference.`);
     if (block.type === 'magazine_ref' && !block.magazineId.trim()) issues.push(`${label}: select a magazine reference.`);
   }
   return issues;
