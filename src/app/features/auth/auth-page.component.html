@@ -1,0 +1,25 @@
+<section class="auth-page">
+  <div class="auth-card">
+    <a routerLink="/" class="auth-back">← Back to Mageus</a>
+    <span class="auth-kicker">MAGEUS ACCOUNT</span>
+    <h1>{{ mode() === 'login' ? 'Welcome back.' : 'Make space for your ideas.' }}</h1>
+    <p class="auth-intro">{{ mode() === 'login' ? 'Sign in to manage your channel, drafts, and conversations.' : 'Create a channel to publish stories and build your audience.' }}</p>
+    <div class="auth-switch" role="tablist" aria-label="Account action">
+      <button type="button" role="tab" [attr.aria-selected]="mode() === 'login'" [class.active]="mode() === 'login'" (click)="mode.set('login'); errorMessage.set('')">Sign in</button>
+      <button type="button" role="tab" [attr.aria-selected]="mode() === 'register'" [class.active]="mode() === 'register'" (click)="mode.set('register'); errorMessage.set('')">Create account</button>
+    </div>
+    <form (ngSubmit)="submit()">
+      @if (mode() === 'login') {
+        <label>Email or username<input name="credential" autocomplete="username" required [ngModel]="credential()" (ngModelChange)="credential.set($event)" /></label>
+      } @else {
+        <label>Display name<input name="displayName" autocomplete="name" required maxlength="100" [ngModel]="displayName()" (ngModelChange)="displayName.set($event)" /></label>
+        <label>Channel username<input name="username" autocomplete="username" required minlength="2" maxlength="30" pattern="[A-Za-z0-9][A-Za-z0-9._-]*" [ngModel]="username()" (ngModelChange)="username.set($event)" /><small>Letters, numbers, dots, underscores, or hyphens.</small></label>
+        <label>Email<input name="email" type="email" autocomplete="email" required [ngModel]="email()" (ngModelChange)="email.set($event)" /></label>
+      }
+      <label>Password<input name="password" type="password" [autocomplete]="mode() === 'login' ? 'current-password' : 'new-password'" required [minlength]="mode() === 'register' ? 12 : 1" maxlength="128" [ngModel]="password()" (ngModelChange)="password.set($event)" /><small>@if (mode() === 'register') { Use at least 12 characters. }</small></label>
+      @if (errorMessage()) { <p class="auth-error" role="alert">{{ errorMessage() }}</p> }
+      <button class="auth-submit" type="submit" [disabled]="busy()">{{ busy() ? 'Please wait…' : mode() === 'login' ? 'Sign in' : 'Create account' }}</button>
+    </form>
+    <p class="auth-footnote">Published articles remain public. Sign-in is for creating, managing, and interacting with content.</p>
+  </div>
+</section>
