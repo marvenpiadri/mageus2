@@ -27,7 +27,7 @@ export class ArticleApiService {
   private readonly endpoint = '/api/v1/articles';
 
   async saveDraft(payload: ArticleDraftPayload, articleId: string | null, expectedRevision: number | null): Promise<{ id: string; revision: number }> {
-    if (!this.auth.accessToken) throw new Error('Sign in to sync this draft to Mageus.');
+    if (!(await this.auth.ensureSession())) throw new Error('Sign in to sync this draft to Mageus.');
     const options = { headers: this.auth.authorizationHeaders() };
     if (articleId) {
       let revision = expectedRevision;
@@ -46,7 +46,7 @@ export class ArticleApiService {
   }
 
   async publish(articleId: string, expectedRevision: number | null): Promise<string> {
-    if (!this.auth.accessToken) throw new Error('Sign in to publish this article.');
+    if (!(await this.auth.ensureSession())) throw new Error('Sign in to publish this article.');
     let revision = expectedRevision;
     if (revision === null) {
       const owned = await firstValueFrom(this.http.get<{ articles: Array<{ id: string; revision: number }> }>(`${this.endpoint}/mine`, { headers: this.auth.authorizationHeaders() }));
