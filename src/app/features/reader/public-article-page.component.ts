@@ -79,6 +79,7 @@ export class PublicArticlePageComponent {
   readonly likeBusy = signal(false);
 
   private readonly apiBase = this.resolveApiBase();
+  private readonly recordedArticleIds = new Set<string>();
 
   constructor() {
     this.voteChanges.pipe(
@@ -128,6 +129,7 @@ export class PublicArticlePageComponent {
       if (article) {
         this.updateSeo(article);
         this.loadComments(article.id);
+        this.recordArticleView(article);
         const likesEndpoint = `/api/v1/engagement/articles/${encodeURIComponent(article.id)}/likes`;
         this.http.get<{ likeCount: number }>(likesEndpoint).pipe(catchError(() => of({ likeCount: 0 })), takeUntilDestroyed(this.destroyRef))
           .subscribe((result) => { if (this.article()?.id === article.id) this.likeCount.set(result.likeCount); });
@@ -185,6 +187,19 @@ export class PublicArticlePageComponent {
   }
 
 
+
+  private recordArticleView(article: PublicArticle): void {
+    if (!isPlatformBrowser(this.platformId) || this.recordedArticleIds.has(article.id)) return;
+    this.recordedArticleIds.add(article.id);
+    this.http.post(
+      `/api/v1/engagement/articles/${encodeURIComponent(article.id)}/views`,
+      {},
+      { headers: this.auth.authorizationHeaders() }
+    ).pipe(
+      catchError(() => of(null)),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe();
+  }
 
   async toggleLike(): Promise<void> {
     const article = this.article();
