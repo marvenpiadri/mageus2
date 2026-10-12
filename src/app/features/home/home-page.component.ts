@@ -1,18 +1,68 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { ChangeDetectionStrategy, Component, DestroyRef, PLATFORM_ID, REQUEST, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { catchError, of } from 'rxjs';
+
+interface HomeArticle {
+  id: string;
+  slug: string;
+  title: string;
+  subtitle: string;
+  excerpt: string;
+  category: string;
+  cover_image_url: string | null;
+  published_at: string;
+  author_username: string;
+  author_name: string;
+}
+
+interface PublishedArticleList {
+  items: HomeArticle[];
+  nextCursor: string | null;
+}
 
 @Component({
   standalone: true,
   selector: 'mageus-home-page',
-  imports: [RouterLink],
+  imports: [CommonModule, RouterLink],
   templateUrl: './home-page.component.html',
   styleUrl: './home-page.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class HomePageComponent {
-  readonly articles = [
-    { category: 'SPACE & FORM', title: 'The Architecture of Thoughtful Reading', subtitle: 'Why a page should feel like a place, not a feed.', image: 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=1200&q=85', author: 'Mageus Journal', time: '8 min read' },
-    { category: 'IMAGE & LIGHT', title: 'A Study in Twilight Chromatics', subtitle: 'A visual inquiry into the colors that appear between day and night.', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=1000&q=85', author: 'Studio Notes', time: '6 min read' },
-    { category: 'OBJECTS & MATERIALS', title: 'The Quiet Language of Materials', subtitle: 'Wood, paper, glass, and the feeling of things made with intention.', image: 'https://images.unsplash.com/photo-1507473885765-e6ed057f4664?auto=format&fit=crop&w=1000&q=85', author: 'Field Journal', time: '5 min read' }
-  ];
+  private readonly http = inject(HttpClient);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly request = inject(REQUEST, { optional: true });
+  private readonly destroyRef = inject(DestroyRef);
+
+  readonly articles = signal<HomeArticle[]>([]);
+  readonly loading = signal(true);
+  readonly loadFailed = signal(false);
+
+  private readonly apiBase = this.resolveApiBase();
+
+  constructor() {
+    this.http.get<PublishedArticleList>(`${this.apiBase}?limit=6`).pipe(
+      catchError(() => {
+        this.loadFailed.set(true);
+        return of({ items: [], nextCursor: null } satisfies PublishedArticleList);
+      }),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe((response) => {
+      this.articles.set(response.items);
+      this.loading.set(false);
+    });
+  }
+
+  private resolveApiBase(): string {
+    if (typeof process !== 'undefined' && process.env['MAGEUS_API_URL']) {
+      return process.env['MAGEUS_API_URL'].replace(/\/$/, '') + '/articles';
+    }
+    if (!isPlatformBrowser(this.platformId) && this.request?.url) {
+      return new URL('/api/v1/articles', this.request.url).toString();
+    }
+    return '/api/v1/articles';
+  }
 }
