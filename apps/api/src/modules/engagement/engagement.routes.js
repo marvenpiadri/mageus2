@@ -138,15 +138,15 @@ engagementRoutes.get('/articles/:articleId/votes', async (req, res, next) => {
   const id = uuid.safeParse(req.params.articleId);
   if (!id.success) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
   try {
-    const article = await pool.query("SELECT 1 FROM articles WHERE id = $1 AND status = 'published'", [id.data]);
-    if (!article.rowCount) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
     const { rows } = await pool.query(
-      `SELECT COALESCE(round(avg(v.value)::numeric, 1), 0)::numeric AS average,
-              count(v.value)::int AS count
-         FROM article_votes v
-        WHERE v.article_id = $1`,
+      `SELECT COALESCE(round(s.total_score::numeric / NULLIF(s.vote_count, 0), 1), 0)::numeric AS average,
+              COALESCE(s.vote_count, 0)::int AS count
+         FROM articles a
+         LEFT JOIN article_vote_summaries s ON s.article_id = a.id
+        WHERE a.id = $1 AND a.status = 'published'`,
       [id.data]
     );
+    if (!rows[0]) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
     return res.json({ average: Number(rows[0].average), count: rows[0].count });
   } catch (error) { next(error); }
 });
@@ -196,10 +196,12 @@ engagementRoutes.put('/articles/:articleId/votes', engagementWriteLimit, require
       }
     }
     const { rows: summary } = await pool.query(
-      `SELECT round(avg(value)::numeric, 1)::numeric AS average, count(*)::int AS count
-         FROM article_votes WHERE article_id = $1`,
+      `SELECT COALESCE(round(total_score::numeric / NULLIF(vote_count, 0), 1), 0)::numeric AS average,
+              vote_count::int AS count
+         FROM article_vote_summaries WHERE article_id = $1`,
       [id.data]
     );
-    return res.json({ userVote: rows[0].value, average: Number(summary[0].average), count: summary[0].count });
+    const rating = summary[0] ?? { average: 0, count: 0 };
+    return res.json({ userVote: rows[0].value, average: Number(rating.average), count: rating.count });
   } catch (error) { next(error); }
 });
