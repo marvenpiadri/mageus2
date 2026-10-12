@@ -128,3 +128,27 @@ A phase is not complete merely because files exist. Each implementation slice sh
 - include focused tests for critical domain behavior where feasible.
 
 The old `mageus` and `mageus-ui-test` repositories are reference sources and should not be destructively rewritten during this migration.
+
+## 8. Current implementation status (2026-10-12)
+
+### Implemented in the new repository
+
+- Angular 22 standalone application with server rendering, strict template/type checks, lazy routes, and a production-build CI workflow.
+- Custom CSS-only styling (no Tailwind, PrimeNG, Quill, or `ngx-quill`).
+- Wallpaper layer and translucent glass shell are separated; the shell has independent mood-based glass/accent tokens and restrained mood lighting.
+- Typed article/block contracts cover the prototype's 15 block types.
+- Shared block renderer supports text, image, gallery, slides, quote, embed links, before/after, hotspots, timeline, steps, data visualization, math, product references, product collections, and magazine references.
+- Initial studio surface includes article title/subtitle, block catalogue, adding/removing/reordering blocks, and starter fields for common blocks.
+- Initial reader surface demonstrates the glass reader, mood selector, reading progress, and shared block renderer.
+- Legacy backend endpoint inventory and a security/migration risk register have been recorded.
+
+### Deliberately still incomplete
+
+- The reader and landing page currently use design-preview content; they are not connected to real article/profile/store APIs.
+- The studio's save action does not pretend to persist data. API persistence, draft recovery/autosave, media upload/selection, robust inline rich-text editing, and focused editors for every block type remain to be built.
+- Mood selection is currently in-memory only. Persisted preferences and the user's uploaded wallpaper must be connected through a browser-safe appearance/settings service and a real API contract.
+- The block renderer is an initial shared renderer, not yet a full renderer/editor registry with per-block validation and version migrations.
+- Authentication/session behavior, profiles-as-channels, magazine flows, store data, comments/reactions, search, SEO metadata per article, and API integration remain pending.
+- No legacy database migration, live API, deployed environment, browser acceptance, or production cutover has been verified.
+
+The production SSR build passed in [CI run 38268153611](https://github.com/marvenpiadri/mageus2/actions/runs/38268153611). That validates compilation and SSR route extraction, not the unfinished product behavior listed above.
