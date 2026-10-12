@@ -80,3 +80,23 @@ test('article voting uses one relational 0–100 value per user and article', as
   assert.ok(sql.includes('CHECK (value BETWEEN 0 AND 100)'));
   assert.ok(sql.includes('updated_at timestamptz'));
 });
+
+test('social and business foundations support follows, notifications, views, stores, and location-specific menus', async () => {
+  const sql = await migration('009_social_business_foundation.sql');
+  for (const token of [
+    'CREATE TABLE IF NOT EXISTS channel_follows',
+    'PRIMARY KEY (follower_user_id, followed_channel_id)',
+    'CREATE TABLE IF NOT EXISTS notifications',
+    'CREATE TABLE IF NOT EXISTS content_views',
+    'anonymous_visitor_hash text',
+    'CREATE TABLE IF NOT EXISTS business_locations',
+    'google_place_id text',
+    'CREATE TABLE IF NOT EXISTS storefronts',
+    'CREATE TABLE IF NOT EXISTS store_products',
+    'CREATE TABLE IF NOT EXISTS store_services',
+    'CREATE TABLE IF NOT EXISTS location_menus',
+    'location_menus_same_channel',
+    'CREATE TABLE IF NOT EXISTS location_menu_items'
+  ]) assert.ok(sql.includes(token), `Missing social/business schema contract: ${token}`);
+  assert.match(sql, /latitude IS NOT NULL AND longitude IS NOT NULL/);
+});
