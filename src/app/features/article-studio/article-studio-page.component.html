@@ -48,7 +48,7 @@
             <article class="block-card" [class.dragging]="draggedBlockId() === block.id" [class.drop-target]="dropTargetBlockId() === block.id" (dragover)="onBlockDragOver($event, block.id)" (drop)="dropBlock($event, block.id)" (dragend)="endBlockDrag()">
               <header>
                 <button type="button" class="drag-handle" draggable="true" (dragstart)="startBlockDrag(block.id, $event)" aria-label="Drag to reorder block" title="Drag to reorder">⠿</button>
-                <span class="block-type">{{ block.type.replace('_', ' ') }}</span>
+                <span class="block-type">{{ block.type === 'text' && block.presentation === 'step' ? 'Text · Step' : block.type.replace('_', ' ') }}</span>
                 <div class="block-actions">
                   <button type="button" [disabled]="i === 0" (click)="moveBlock(i, -1)" aria-label="Move block up">↑</button>
                   <button type="button" [disabled]="i === blocks().length - 1" (click)="moveBlock(i, 1)" aria-label="Move block down">↓</button>
