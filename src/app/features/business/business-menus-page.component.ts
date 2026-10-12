@@ -166,7 +166,7 @@ export class BusinessMenusPageComponent {
       error: (error) => { this.error.set(error?.error?.error?.message || 'The menu could not be deleted.'); this.deleteConfirmId.set(null); }
     });
   }
-  private isHttpUrl(value: string): boolean {
+  private isHttpsUrl(value: string): boolean {
     try { const url = new URL(value); return url.protocol === 'https:'; } catch { return false; }
   }
 }
