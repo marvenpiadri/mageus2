@@ -37,7 +37,6 @@ export class ArticleBlockEditorComponent {
       case 'gallery': this.patch({ images: update(block.images) }); break;
       case 'slide': this.patch({ slides: update(block.slides) }); break;
       case 'timeline': this.patch({ events: update(block.events) }); break;
-      case 'steps': this.patch({ steps: update(block.steps) }); break;
       case 'data_viz': this.patch({ values: update(block.values) }); break;
       case 'hotspot': this.patch({ points: update(block.points) }); break;
       default: break;
@@ -94,7 +93,6 @@ export class ArticleBlockEditorComponent {
       case 'gallery': this.patch({ images: [...block.images, { url: '', alt: '', caption: '' }] }); break;
       case 'slide': this.patch({ slides: [...block.slides, { imageUrl: '', label: '', href: '' }] }); break;
       case 'timeline': this.patch({ events: [...block.events, { date: '', title: '', description: '' }] }); break;
-      case 'steps': this.patch({ steps: [...block.steps, { title: '', description: '' }] }); break;
       case 'data_viz': this.patch({ values: [...block.values, { label: '', value: 0 }] }); break;
       case 'hotspot': this.patch({ points: [...block.points, { id: createStudioItemId('point'), x: 50, y: 50, title: '', description: '' }] }); break;
       default: break;
@@ -107,7 +105,6 @@ export class ArticleBlockEditorComponent {
       case 'gallery': this.patch({ images: block.images.filter((_, i) => i !== index) }); break;
       case 'slide': this.patch({ slides: block.slides.filter((_, i) => i !== index) }); break;
       case 'timeline': this.patch({ events: block.events.filter((_, i) => i !== index) }); break;
-      case 'steps': this.patch({ steps: block.steps.filter((_, i) => i !== index) }); break;
       case 'data_viz': this.patch({ values: block.values.filter((_, i) => i !== index) }); break;
       case 'hotspot': this.patch({ points: block.points.filter((_, i) => i !== index) }); break;
       default: break;
