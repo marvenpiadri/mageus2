@@ -33,3 +33,19 @@
 .article-step-content .rendered-block { min-width: 0; }
 .article-step-content .rich-text { margin-left: 0; margin-right: 0; }
 @media (max-width: 520px) { .article-step { grid-template-columns: 1.85rem minmax(0, 1fr); column-gap: .65rem; } .article-step-marker { width: 1.75rem; height: 1.75rem; } .article-step.has-next::after { top: 1.75rem; left: .84rem; } }
+
+
+/* Community voting uses Angular Material's accessible slider on the original 0–100 scale. */
+.article-voting { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: clamp(1.25rem, 4vw, 3rem); margin-top: 3rem; padding: clamp(1.1rem, 3vw, 2rem); border: 1px solid var(--glass-border, rgba(255,255,255,.14)); border-radius: 1rem; background: var(--glass-surface, rgba(255,255,255,.035)); }
+.voting-eyebrow { color: var(--mood-accent, #a9a5ff); font-size: .65rem; font-weight: 700; letter-spacing: .14em; }
+.voting-copy h2 { margin: .6rem 0; font-size: clamp(1.2rem, 2.5vw, 1.7rem); line-height: 1.2; }
+.voting-copy p { margin: 0; color: var(--text-muted, #a8adbb); font-size: .85rem; line-height: 1.6; }
+.voting-range { min-width: 0; align-self: center; }
+.range-labels { display: flex; justify-content: space-between; gap: .5rem; color: var(--text-muted, #a8adbb); font-size: .7rem; }
+.range-labels strong { color: var(--mood-accent, #a9a5ff); font-size: .85rem; font-variant-numeric: tabular-nums; }
+.voting-range mat-slider { display: block; width: 100%; margin: .8rem 0 .2rem; --mdc-slider-handle-color: var(--mood-accent, #a9a5ff); --mdc-slider-focus-handle-color: var(--mood-accent, #a9a5ff); --mdc-slider-hover-handle-color: var(--mood-accent, #a9a5ff); --mdc-slider-active-track-color: var(--mood-accent, #a9a5ff); --mdc-slider-inactive-track-color: var(--glass-border, rgba(255,255,255,.2)); }
+.voting-submit { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; }
+.voting-submit button, .voting-submit a { display: inline-flex; align-items: center; justify-content: center; min-height: 2.5rem; padding: .6rem 1rem; border: 1px solid var(--mood-accent, #a9a5ff); border-radius: 999px; color: #111321; background: var(--mood-accent, #a9a5ff); text-decoration: none; font: inherit; font-size: .8rem; font-weight: 700; cursor: pointer; }
+.rating-summary { color: var(--text-muted, #a8adbb); font-size: .75rem; }
+.vote-message { margin: .65rem 0 0; color: var(--text-muted, #a8adbb); font-size: .75rem; }
+@media (max-width: 640px) { .article-voting { grid-template-columns: 1fr; } }
