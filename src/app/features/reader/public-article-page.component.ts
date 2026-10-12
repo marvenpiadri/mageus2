@@ -1,4 +1,4 @@
-import { CommonModule, DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { CommonModule, DOCUMENT, Location, isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, DestroyRef, PLATFORM_ID, inject, signal } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
@@ -50,6 +50,7 @@ interface PublicArticle {
 export class PublicArticlePageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly location = inject(Location);
   private readonly http = inject(HttpClient);
   private readonly titleService = inject(Title);
   private readonly meta = inject(Meta);
@@ -102,6 +103,11 @@ export class PublicArticlePageComponent {
 
     this.route.paramMap.pipe(
       switchMap((params) => {
+        this.progress.set(0);
+        if (isPlatformBrowser(this.platformId)) {
+          const scrollContainer = this.document.querySelector('.public-reader-scroll');
+          if (scrollContainer) scrollContainer.scrollTop = 0;
+        }
         this.loading.set(true);
         this.notFound.set(false);
         const username = encodeURIComponent(params.get('username') ?? '');
@@ -306,6 +312,15 @@ export class PublicArticlePageComponent {
       author: { '@type': 'Person', name: article.author_name, url: canonical.startsWith('http') ? new URL(`/${encodeURIComponent(article.author_username)}`, canonical).toString() : `/${encodeURIComponent(article.author_username)}` },
       publisher: { '@type': 'Organization', name: 'Mageus' }
     }).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
+  }
+
+  goBack(): void {
+    if (isPlatformBrowser(this.platformId) && this.document.defaultView?.history.length && this.document.defaultView.history.length > 1) {
+      this.location.back();
+      return;
+    }
+    const article = this.article();
+    void this.router.navigate(article ? ['/', article.author_username] : ['/']);
   }
 
   onScroll(event: Event): void {
