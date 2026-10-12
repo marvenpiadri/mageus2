@@ -42,8 +42,9 @@ export class MagazineDiscoveryPageComponent {
   constructor() { this.load(); }
 
   updateTitle(value: string): void {
+    const previousGeneratedSlug = this.slugify(this.title());
     this.title.set(value);
-    if (!this.slug() || this.slug() === this.slugify(this.title())) this.slug.set(this.slugify(value));
+    if (!this.slug() || this.slug() === previousGeneratedSlug) this.slug.set(this.slugify(value));
   }
 
   load(): void {
