@@ -60,7 +60,7 @@ authRoutes.post('/register', authWriteLimit, requireAuthConfiguration, async (re
     );
     await client.query('COMMIT');
     setRefreshCookie(res, refreshToken);
-    return res.status(201).json({ user, accessToken: await issueAccessToken(user), tokenType: 'Bearer', expiresIn: 900 });
+    return res.status(201).json({ user: { id: user.id, email: user.email, username: user.username, displayName: user.display_name }, accessToken: await issueAccessToken(user), tokenType: 'Bearer', expiresIn: 900 });
   } catch (error) {
     await client.query('ROLLBACK');
     if (error?.code === '23505') return res.status(409).json({ error: { code: 'ACCOUNT_EXISTS', message: 'That email or username is already in use.' } });
