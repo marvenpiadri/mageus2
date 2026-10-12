@@ -61,7 +61,7 @@ test('accepts every currently supported Mageus 2 block type as a versioned draft
     { id: 'comparison-a', type: 'before_after', beforeImage: '', afterImage: '' },
     { id: 'hotspot-a', type: 'hotspot', imageUrl: '', points: [] },
     { id: 'timeline-a', type: 'timeline', events: [] },
-    { id: 'steps-a', type: 'steps', steps: [] },
+    { id: 'step-a', type: 'text', html: '<p>Step</p>', presentation: 'step' },
     { id: 'data-a', type: 'data_viz', chartType: 'bar', values: [] },
     { id: 'math-a', type: 'math', formula: '' },
     { id: 'product-a', type: 'product', productId: '', displayMode: 'card' },
