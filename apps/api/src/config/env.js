@@ -9,7 +9,13 @@ const envSchema = z.object({
   AUTH_JWT_SECRET: z.string().min(32).optional(),
   ANALYTICS_HASH_SECRET: z.string().min(32).optional(),
   AUTH_ISSUER: z.string().optional(),
-  AUTH_AUDIENCE: z.string().default('mageus')
+  AUTH_AUDIENCE: z.string().default('mageus'),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_REDIRECT_URI: z.string().url().optional(),
+  FACEBOOK_CLIENT_ID: z.string().optional(),
+  FACEBOOK_CLIENT_SECRET: z.string().optional(),
+  FACEBOOK_REDIRECT_URI: z.string().url().optional()
 });
 
 const parsed = envSchema.safeParse(process.env);
