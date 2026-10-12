@@ -100,8 +100,9 @@ export class MagazineDetailPageComponent {
   }
 
   updateIssueTitle(value: string): void {
+    const previousGeneratedSlug = this.slugify(this.issueTitle());
     this.issueTitle.set(value);
-    if (!this.issueSlug() || this.issueSlug() === this.slugify(this.issueTitle())) this.issueSlug.set(this.slugify(value));
+    if (!this.issueSlug() || this.issueSlug() === previousGeneratedSlug) this.issueSlug.set(this.slugify(value));
   }
 
   setArticleSelected(id: string, checked: boolean): void {
