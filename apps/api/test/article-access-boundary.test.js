@@ -94,3 +94,14 @@ test('catalog product and service writes are scoped through the owning storefron
   assert.match(routes, /c\.owner_user_id = \$2/);
   assert.match(routes, /Image URLs must use HTTPS/);
 });
+
+
+test('business menu CRUD is authenticated and validates location ownership', async () => {
+  const routes = await source('../src/modules/social/social.routes.js');
+  assert.match(routes, /get\('\/me\/business\/menus', requireVerifiedIdentity/);
+  assert.match(routes, /post\('\/me\/business\/menus', socialWriteLimit, requireVerifiedIdentity/);
+  assert.match(routes, /patch\('\/me\/business\/menus\/:menuId', socialWriteLimit, requireVerifiedIdentity/);
+  assert.match(routes, /delete\('\/me\/business\/menus\/:menuId', socialWriteLimit, requireVerifiedIdentity/);
+  assert.match(routes, /Choose one of your own locations/);
+  assert.match(routes, /location_menu_items/);
+});
