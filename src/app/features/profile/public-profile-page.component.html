@@ -60,6 +60,7 @@
 
       <nav class="profile-tabs" aria-label="Profile sections">
         <button type="button" [class.active]="section() === 'articles'" (click)="section.set('articles')"><span>▤</span> Articles <small>{{ data.profile.article_count }}</small></button>
+        <button type="button" [class.active]="section() === 'magazines'" (click)="section.set('magazines')"><span>▤</span> Magazines <small>{{ data.magazines.length }}</small></button>
         <button type="button" [class.active]="section() === 'shops'" (click)="section.set('shops')"><span>◇</span> Shops <small>{{ data.storefronts.length }}</small></button>
         <button type="button" [class.active]="section() === 'menus'" (click)="section.set('menus')"><span>☷</span> Menus <small>{{ data.menus.length }}</small></button>
         <button type="button" [class.active]="section() === 'locations'" (click)="section.set('locations')"><span>⌖</span> Locations <small>{{ data.locations.length }}</small></button>
@@ -82,6 +83,18 @@
             <div class="profile-article-pagination"><button type="button" (click)="loadMoreArticles()" [disabled]="articlesLoading()">{{ articlesLoading() ? 'Loading articles…' : 'Load more articles ↓' }}</button></div>
           }
         } @else { <div class="profile-empty"><span>✦</span><h2>No articles yet</h2><p>Published articles appear here. Long-form video and short-form video experiences are planned for a later phase.</p></div> }
+      } @else if (section() === 'magazines') {
+        @if (data.magazines.length) {
+          <div class="profile-magazine-grid">
+            @for (magazine of data.magazines; track magazine.id) {
+              <a class="profile-magazine-card" [routerLink]="['/', data.profile.username, 'magazines', magazine.slug]">
+                <div class="profile-magazine-cover" [style.background-image]="magazine.cover_image_url ? 'url(' + magazine.cover_image_url + ')' : null"><span>MAGEUS / PERIODICAL</span><strong>M.</strong></div>
+                <div class="profile-magazine-meta"><span>{{ magazine.issue_count }} ISSUES</span><span>{{ magazine.published_at | date:'mediumDate' }}</span></div>
+                <h2>{{ magazine.title }}</h2><p>{{ magazine.description || 'A continuing collection of stories and ideas.' }}</p>
+              </a>
+            }
+          </div>
+        } @else { <div class="profile-empty"><span>▤</span><h2>No magazines yet</h2><p>Ongoing publications and curated issues from this channel will appear here.</p>@if (isOwnProfile(data.profile.username)) { <a class="follow-button" routerLink="/magazines">＋ Create a magazine</a> }</div> }
       } @else if (section() === 'shops') {
         @if (data.storefronts.length) {
           <div class="store-list">
