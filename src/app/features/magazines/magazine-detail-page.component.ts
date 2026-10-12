@@ -10,6 +10,7 @@ import { AuthService } from '../../core/auth/auth.service';
 interface MagazineIssue {
   id: string; slug: string; title: string; issue_number: number; summary: string;
   cover_image_url: string | null; published_at: string; article_count?: number;
+  magazine_title?: string; magazine_cover_image_url?: string | null; author_username?: string; author_name?: string;
 }
 interface Magazine {
   id: string; slug: string; title: string; description: string; cover_image_url: string | null;
