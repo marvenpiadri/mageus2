@@ -4,6 +4,23 @@ import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { ArticleBlock } from '../../domain/article.model';
 
+export interface SyncedArticleDraft {
+  id: string;
+  revision: number;
+  title: string;
+  subtitle: string;
+  slug: string;
+  excerpt: string;
+  category: string;
+  language: string;
+  tags: string[];
+  cover_image_url: string | null;
+  blocks: ArticleBlock[];
+  seo_title: string | null;
+  seo_description: string | null;
+  canonical_url: string | null;
+}
+
 export interface ArticleDraftPayload {
   title: string;
   subtitle: string;
@@ -25,6 +42,15 @@ export class ArticleApiService {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
   private readonly endpoint = '/api/v1/articles';
+
+  async loadDraft(articleId: string): Promise<SyncedArticleDraft> {
+    if (!(await this.auth.ensureSession())) throw new Error('Sign in to load your server draft.');
+    const options = { headers: this.auth.authorizationHeaders() };
+    const response = await firstValueFrom(this.http.get<{ articles: SyncedArticleDraft[] }>(`${this.endpoint}/mine`, options));
+    const draft = response.articles.find((article) => article.id === articleId);
+    if (!draft) throw new Error('This server draft is no longer available to your account.');
+    return draft;
+  }
 
   async saveDraft(payload: ArticleDraftPayload, articleId: string | null, expectedRevision: number | null): Promise<{ id: string; revision: number }> {
     if (!(await this.auth.ensureSession())) throw new Error('Sign in to sync this draft to Mageus.');
