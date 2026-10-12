@@ -287,3 +287,160 @@ socialRoutes.patch('/notifications/read-all', socialWriteLimit, requireVerifiedI
     return res.json({ markedRead: result.rowCount });
   } catch (error) { next(error); }
 });
+
+
+// Business owners manage only locations belonging to their own channel.
+const locationInput = z.object({
+  name: z.string().trim().min(1).max(120),
+  slug: z.string().trim().min(1).max(120).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  address: z.string().trim().max(500).default(''),
+  googlePlaceId: z.string().trim().max(255).nullable().optional(),
+  latitude: z.number().min(-90).max(90).nullable().optional(),
+  longitude: z.number().min(-180).max(180).nullable().optional(),
+  phone: z.string().trim().max(40).nullable().optional(),
+  openingHours: z.record(z.string(), z.unknown()).default({}),
+  isPrimary: z.boolean().default(false)
+}).strict().refine((value) => (value.latitude == null) === (value.longitude == null), {
+  message: 'Latitude and longitude must be supplied together.'
+});
+
+socialRoutes.get('/me/business/locations', requireVerifiedIdentity, async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT l.id, l.name, l.slug, l.address, l.google_place_id, l.latitude, l.longitude,
+              l.phone, l.opening_hours, l.is_primary, l.created_at, l.updated_at
+         FROM business_locations l
+         JOIN channels c ON c.id = l.channel_id
+        WHERE c.owner_user_id = $1
+        ORDER BY l.is_primary DESC, l.name ASC`,
+      [req.auth.userId]
+    );
+    return res.json({ locations: rows });
+  } catch (error) { next(error); }
+});
+
+socialRoutes.post('/me/business/locations', socialWriteLimit, requireVerifiedIdentity, async (req, res, next) => {
+  const input = locationInput.safeParse(req.body);
+  if (!input.success) return res.status(400).json({ error: { code: 'INVALID_LOCATION', message: 'Check the location name, URL slug, address, coordinates, and opening hours.' } });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const channel = await client.query('SELECT id FROM channels WHERE owner_user_id = $1 ORDER BY created_at ASC LIMIT 1 FOR UPDATE', [req.auth.userId]);
+    if (!channel.rows[0]) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: { code: 'PROFILE_NOT_FOUND', message: 'Your public profile could not be found.' } });
+    }
+    const channelId = channel.rows[0].id;
+    if (input.data.isPrimary) await client.query('UPDATE business_locations SET is_primary = false, updated_at = now() WHERE channel_id = $1', [channelId]);
+    const { rows } = await client.query(
+      `INSERT INTO business_locations
+         (channel_id, name, slug, address, google_place_id, latitude, longitude, phone, opening_hours, is_primary)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10)
+       RETURNING id, name, slug, address, google_place_id, latitude, longitude, phone, opening_hours, is_primary, created_at, updated_at`,
+      [channelId, input.data.name, input.data.slug, input.data.address, input.data.googlePlaceId ?? null,
+       input.data.latitude ?? null, input.data.longitude ?? null, input.data.phone ?? null,
+       JSON.stringify(input.data.openingHours), input.data.isPrimary]
+    );
+    await client.query('COMMIT');
+    return res.status(201).json({ location: rows[0] });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    if (error?.code === '23505') return res.status(409).json({ error: { code: 'LOCATION_CONFLICT', message: 'A location with this slug or Google place already exists.' } });
+    return next(error);
+  } finally { client.release(); }
+});
+
+socialRoutes.patch('/me/business/locations/:locationId', socialWriteLimit, requireVerifiedIdentity, async (req, res, next) => {
+  const id = uuid.safeParse(req.params.locationId);
+  const input = locationInput.partial().strict().safeParse(req.body);
+  if (!id.success) return res.status(404).json({ error: { code: 'LOCATION_NOT_FOUND', message: 'Location not found.' } });
+  if (!input.success || Object.keys(input.data ?? {}).length === 0) return res.status(400).json({ error: { code: 'INVALID_LOCATION', message: 'Provide valid location fields to update.' } });
+  if (input.data.latitude !== undefined || input.data.longitude !== undefined) {
+    const current = await pool.query(
+      `SELECT l.latitude, l.longitude FROM business_locations l JOIN channels c ON c.id = l.channel_id
+        WHERE l.id = $1 AND c.owner_user_id = $2`,
+      [id.data, req.auth.userId]
+    );
+    if (!current.rows[0]) return res.status(404).json({ error: { code: 'LOCATION_NOT_FOUND', message: 'Location not found.' } });
+    const latitude = input.data.latitude === undefined ? current.rows[0].latitude : input.data.latitude;
+    const longitude = input.data.longitude === undefined ? current.rows[0].longitude : input.data.longitude;
+    if ((latitude == null) !== (longitude == null)) return res.status(400).json({ error: { code: 'INVALID_COORDINATES', message: 'Latitude and longitude must be supplied together.' } });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const owner = await client.query(
+      `SELECT l.channel_id FROM business_locations l JOIN channels c ON c.id = l.channel_id
+        WHERE l.id = $1 AND c.owner_user_id = $2 FOR UPDATE OF l`,
+      [id.data, req.auth.userId]
+    );
+    if (!owner.rows[0]) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: { code: 'LOCATION_NOT_FOUND', message: 'Location not found.' } });
+    }
+    if (input.data.isPrimary) await client.query('UPDATE business_locations SET is_primary = false, updated_at = now() WHERE channel_id = $1', [owner.rows[0].channel_id]);
+    const fields = input.data;
+    const { rows } = await client.query(
+      `UPDATE business_locations SET
+         name = COALESCE($3, name), slug = COALESCE($4, slug), address = COALESCE($5, address),
+         google_place_id = CASE WHEN $6::boolean THEN $7 ELSE google_place_id END,
+         latitude = CASE WHEN $8::boolean THEN $9 ELSE latitude END,
+         longitude = CASE WHEN $10::boolean THEN $11 ELSE longitude END,
+         phone = CASE WHEN $12::boolean THEN $13 ELSE phone END,
+         opening_hours = CASE WHEN $14::boolean THEN $15::jsonb ELSE opening_hours END,
+         is_primary = COALESCE($16, is_primary), updated_at = now()
+       WHERE id = $1 AND channel_id = $2
+       RETURNING id, name, slug, address, google_place_id, latitude, longitude, phone, opening_hours, is_primary, created_at, updated_at`,
+      [id.data, owner.rows[0].channel_id, fields.name ?? null, fields.slug ?? null, fields.address ?? null,
+       fields.googlePlaceId !== undefined, fields.googlePlaceId ?? null,
+       fields.latitude !== undefined, fields.latitude ?? null,
+       fields.longitude !== undefined, fields.longitude ?? null,
+       fields.phone !== undefined, fields.phone ?? null,
+       fields.openingHours !== undefined, JSON.stringify(fields.openingHours ?? {}),
+       fields.isPrimary ?? null]
+    );
+    await client.query('COMMIT');
+    return res.json({ location: rows[0] });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    if (error?.code === '23505') return res.status(409).json({ error: { code: 'LOCATION_CONFLICT', message: 'A location with this slug or Google place already exists.' } });
+    return next(error);
+  } finally { client.release(); }
+});
+
+socialRoutes.delete('/me/business/locations/:locationId', socialWriteLimit, requireVerifiedIdentity, async (req, res, next) => {
+  const id = uuid.safeParse(req.params.locationId);
+  if (!id.success) return res.status(404).json({ error: { code: 'LOCATION_NOT_FOUND', message: 'Location not found.' } });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows } = await client.query(
+      `SELECT l.id, l.channel_id, l.is_primary FROM business_locations l
+        JOIN channels c ON c.id = l.channel_id
+       WHERE l.id = $1 AND c.owner_user_id = $2 FOR UPDATE OF l`,
+      [id.data, req.auth.userId]
+    );
+    if (!rows[0]) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: { code: 'LOCATION_NOT_FOUND', message: 'Location not found.' } });
+    }
+    const attachedMenus = await client.query('SELECT 1 FROM location_menus WHERE location_id = $1 LIMIT 1', [id.data]);
+    if (attachedMenus.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: { code: 'LOCATION_HAS_MENUS', message: 'Move or remove this location’s menus before deleting the location.' } });
+    }
+    await client.query('DELETE FROM business_locations WHERE id = $1 AND channel_id = $2', [id.data, rows[0].channel_id]);
+    if (rows[0].is_primary) {
+      await client.query(
+        `UPDATE business_locations SET is_primary = true, updated_at = now()
+          WHERE id = (SELECT id FROM business_locations WHERE channel_id = $1 ORDER BY created_at ASC LIMIT 1)`,
+        [rows[0].channel_id]
+      );
+    }
+    await client.query('COMMIT');
+    return res.json({ deleted: true, id: id.data });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    return next(error);
+  } finally { client.release(); }
+});
