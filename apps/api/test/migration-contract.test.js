@@ -40,3 +40,10 @@ test('corrective migration removes the accidental whole-document JSONB column', 
   assert.ok(sql.includes('DROP COLUMN IF EXISTS document'));
   assert.ok(sql.includes('blocks'));
 });
+
+test('revision history keeps metadata relational and only revision blocks JSONB', async () => {
+  const sql = await migration('006_revision_blocks_jsonb_only.sql');
+  assert.ok(sql.includes('ADD COLUMN IF NOT EXISTS title text'));
+  assert.ok(sql.includes('ADD COLUMN IF NOT EXISTS blocks jsonb'));
+  assert.ok(sql.includes('DROP COLUMN IF EXISTS snapshot'));
+});
