@@ -25,3 +25,9 @@
 .feed-empty p { max-width: 44ch; color: var(--text-muted,#a8adbb); font-size: .83rem; line-height: 1.6; }
 .feed-empty a { color: var(--accent); font-size: .8rem; text-decoration: none; }
 @media (max-width: 620px) { .feed-heading { align-items: start; flex-direction: column; } .feed-story { grid-template-columns: 1fr; } .feed-story > img { aspect-ratio: 16/9; min-height: auto; max-height: 15rem; } }
+
+.feed-pagination { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: .75rem; padding: 1.5rem 0; }
+.feed-pagination p { color: var(--text-muted,#a8adbb); font-size: .8rem; }
+.feed-pagination button { border: 1px solid var(--glass-border); border-radius: 999px; padding: .7rem 1.1rem; background: rgba(0,0,0,.18); color: var(--text-primary,#fff); font: inherit; font-size: .78rem; cursor: pointer; }
+.feed-pagination button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.feed-pagination button:disabled { opacity: .55; cursor: wait; }
