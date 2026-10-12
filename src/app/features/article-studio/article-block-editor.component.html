@@ -1,7 +1,7 @@
 @let current = block();
 <div class="block-editor">
   @switch (current.type) {
-    @case ('text') { <label>Text content<textarea rows="7" [value]="plainText(current.html)" (input)="patch({ html: '<p>' + $any($event.target).value + '</p>' })" placeholder="Write your paragraph…"></textarea></label><small>Structured rich-text controls can be added without changing the reader contract.</small> }
+    @case ('text') { <label>Display style<select [value]="current.presentation || 'regular'" (change)="updateTextPresentation($any($event.target).value)"><option value="regular">Regular text</option><option value="step">Tutorial step</option></select></label><label>Text content<textarea rows="7" [value]="plainText(current.html)" (input)="patch({ html: '<p>' + $any($event.target).value + '</p>' })" placeholder="Write your paragraph…"></textarea></label><small>Steps stay as ordinary text blocks. Consecutive step blocks are numbered automatically.</small> }
     @case ('heading') {
       <label>Heading text<input [value]="current.text" (input)="patch({ text: $any($event.target).value })" placeholder="Section heading" /></label>
       <label>Heading level<select [value]="current.level" (change)="updateHeadingLevel($any($event.target).value)"><option [value]="2">Heading 2</option><option [value]="3">Heading 3</option><option [value]="4">Heading 4</option></select></label>
