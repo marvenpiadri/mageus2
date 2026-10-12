@@ -19,8 +19,8 @@ This roadmap is the release checklist. A phase is **not complete because its cod
 | Phase | Status | Current evidence / gap |
 | --- | --- | --- |
 | 0. Audit and baseline | In progress | Legacy route inventory, backend migration notes, and the first [source-to-target UI map](./SOURCE-TO-TARGET-MAP.md) now exist. The endpoint/data-contract inventory and a consolidated baseline are still in progress. |
-| 1. Application foundation | Needs verification | Production build passed on commit `9ed826b` (run [38279510822](https://github.com/marvenpiadri/mageus2/actions/runs/38279510822)). SSR/browser behavior, mood interaction, and visual parity still need manual verification. |
-| 2. Article Studio core | In progress | Typed block model, registry, editor component, renderer, and draft workflow exist. Expanded block types were added; editor completeness, migration/versioning, accessibility, and acceptance tests remain. |
+| 1. Application foundation | Needs verification | Production build and API checks passed on commit `f17a158` (run [38280359658](https://github.com/marvenpiadri/mageus2/actions/runs/38280359658)). SSR/browser behavior, mood interaction, and visual parity still need manual verification. |
+| 2. Article Studio core | In progress | Typed block model, registry, editor component, renderer, and draft workflow exist. API schema tests now exercise all 22 supported block types. Editor completeness, migration/versioning, accessibility, registry/editor/renderer parity, and end-to-end acceptance tests remain. |
 | 3. Neon and API | In progress | API modules, schema validation, migrations, and Neon connection scaffold exist. No live Neon project/credentials have been configured or verified here. |
 | 4. Public reader and SEO | Needs verification | Public read API and reader foundation exist. End-to-end public SSR pages, canonical URLs, structured data, sitemap, and search indexing need verification. |
 | 5. Identity and engagement | Needs verification | Authentication boundary and engagement routes exist. Session hardening, integration tests, moderation, and threat review remain. |
@@ -41,7 +41,7 @@ This roadmap is the release checklist. A phase is **not complete because its cod
 - [ ] Legacy endpoint inventory has route, auth expectation, public/private status, target endpoint, and migration notes.
 - [ ] Article payload examples are documented without copying secrets or personal data.
 - [ ] Known defects are tracked; no hidden credential literals are carried into the new version.
-- [ ] A clean production build and API test run are linked.
+- [x] A clean production build and API test run are linked: [CI run 38280359658](https://github.com/marvenpiadri/mageus2/actions/runs/38280359658) passed both jobs. This does not verify live Neon persistence or end-to-end browser/SSR behavior.
 
 ## Phase 1 — Stable application foundation
 
