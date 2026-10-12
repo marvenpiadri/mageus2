@@ -115,6 +115,21 @@ engagementRoutes.get('/articles/:articleId/votes', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+engagementRoutes.get('/articles/:articleId/votes/mine', requireVerifiedIdentity, async (req, res, next) => {
+  const id = uuid.safeParse(req.params.articleId);
+  if (!id.success) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
+  try {
+    const { rows } = await pool.query(
+      `SELECT v.value
+         FROM article_votes v
+         JOIN articles a ON a.id = v.article_id
+        WHERE v.article_id = $1 AND v.user_id = $2 AND a.status = 'published'`,
+      [id.data, req.auth.userId]
+    );
+    return res.json({ userVote: rows[0]?.value ?? null });
+  } catch (error) { next(error); }
+});
+
 engagementRoutes.put('/articles/:articleId/votes', engagementWriteLimit, requireVerifiedIdentity, async (req, res, next) => {
   const id = uuid.safeParse(req.params.articleId);
   const vote = z.object({ value: z.number().int().min(0).max(100) }).safeParse(req.body);
