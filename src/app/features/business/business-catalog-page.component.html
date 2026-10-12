@@ -1,0 +1,49 @@
+<section class="catalog-page">
+  <header class="catalog-header">
+    <div><a routerLink="/business/locations" class="catalog-back">← Business locations</a><span class="catalog-kicker">BUSINESS PROFILE</span><h1>Shops & storefronts</h1><p>Create different shops under one profile, such as a shoe shop and a jacket shop. Each can be online-only or attached to one of your locations.</p></div>
+    <button type="button" class="catalog-primary" (click)="newStorefront()">＋ New shop</button>
+  </header>
+  @if (loading()) { <div class="catalog-state"><span>✦</span><p>Loading your shops…</p></div> }
+  @else {
+    @if (error()) { <p class="catalog-error" role="alert">{{ error() }}</p> }
+    <div class="catalog-layout">
+      <section class="catalog-list-panel">
+        <div class="catalog-panel-heading"><div><span class="catalog-kicker">YOUR CATALOG</span><h2>Saved shops</h2></div><span class="catalog-count">{{ storefronts().length }}</span></div>
+        @if (!storefronts().length) {
+          <div class="catalog-empty"><span>▱</span><h3>Your first shop starts here</h3><p>Create a storefront before adding products or services.</p><button type="button" class="catalog-primary" (click)="newStorefront()">Create a shop</button></div>
+        } @else {
+          <div class="storefront-list">
+            @for (store of storefronts(); track store.id) {
+              <article class="storefront-card">
+                <div class="storefront-icon">▱</div>
+                <div class="storefront-details">
+                  <div class="storefront-title"><h3>{{ store.name }}</h3><span class="status-pill" [class.status-published]="store.status === 'published'" [class.status-archived]="store.status === 'archived'">{{ store.status }}</span></div>
+                  <p class="storefront-slug">/{{ store.slug }}</p>
+                  @if (store.description) { <p class="storefront-description">{{ store.description }}</p> }
+                  <div class="storefront-meta"><span>{{ store.fulfillment_type }}</span><span>·</span><span>{{ store.location_name || 'No location' }}</span></div>
+                  <div class="storefront-counts"><span>{{ store.product_count }} products</span><span>{{ store.service_count }} services</span></div>
+                  <div class="storefront-actions"><button type="button" class="catalog-secondary" (click)="edit(store)">Edit</button>@if (store.status !== 'archived') { <button type="button" class="catalog-secondary" (click)="publish(store)">{{ store.status === 'published' ? 'Unpublish' : 'Publish' }}</button><button type="button" class="catalog-danger" (click)="archive(store)">Archive</button> }</div>
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </section>
+
+      <section class="catalog-form-panel">
+        <div class="catalog-panel-heading"><div><span class="catalog-kicker">{{ editingId() ? 'UPDATE SHOP' : 'CREATE SHOP' }}</span><h2>{{ editingId() ? 'Edit storefront' : 'New storefront' }}</h2></div></div>
+        <form (submit)="$event.preventDefault(); save()">
+          <label>Shop name<input name="store-name" required maxlength="120" [value]="name()" (input)="onNameInput($any($event.target).value)" placeholder="e.g. Atelier Shoes" /></label>
+          <label>URL slug<input name="store-slug" required maxlength="120" pattern="[a-z0-9]+(-[a-z0-9]+)*" [value]="slug()" (input)="slug.set($any($event.target).value)" placeholder="atelier-shoes" /><small>Must be unique among your shops.</small></label>
+          <label>Description<textarea name="store-description" rows="3" maxlength="3000" [value]="description()" (input)="description.set($any($event.target).value)" placeholder="What does this shop offer?"></textarea></label>
+          <label>How does this shop operate?<select name="fulfillment-type" [value]="fulfillmentType()" (change)="fulfillmentType.set($any($event.target).value)"><option value="online">Online only</option><option value="physical">Physical shop</option><option value="hybrid">Online and physical</option></select></label>
+          <label>Associated location<select name="store-location" [value]="locationId()" (change)="locationId.set($any($event.target).value)"><option value="">No location / online-only</option>@for (location of locations(); track location.id) { <option [value]="location.id">{{ location.name }}</option> }</select><small>Physical shops need a location. Online shops can stay location-free.</small></label>
+          <label>Visibility<select name="store-status" [value]="status()" (change)="status.set($any($event.target).value)"><option value="draft">Draft — only you can manage it</option><option value="published">Published — show it publicly</option><option value="archived">Archived — keep it hidden</option></select></label>
+          @if (message()) { <p class="catalog-message" aria-live="polite">{{ message() }}</p> }
+          @if (error()) { <p class="catalog-error" role="alert">{{ error() }}</p> }
+          <div class="catalog-form-actions"><button type="submit" class="catalog-primary" [disabled]="saving()">{{ saving() ? 'Saving…' : (editingId() ? 'Save changes' : 'Create shop') }}</button>@if (editingId()) { <button type="button" class="catalog-secondary" (click)="newStorefront()">Cancel</button> }</div>
+        </form>
+      </section>
+    </div>
+  }
+</section>
