@@ -43,3 +43,13 @@
   .studio-header-actions { flex-direction: column; align-items: stretch; }
   .field-pair { grid-template-columns: 1fr; }
 }
+
+.metadata-details { margin-top: 1.2rem; padding-top: 1rem; border-top: 1px solid var(--glass-border, rgba(255,255,255,.12)); }
+.metadata-details summary { margin-bottom: .9rem; cursor: pointer; color: var(--text-muted, #b3b8c8); font-size: .8rem; }
+.metadata-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
+.metadata-grid label { display: grid; gap: .35rem; }
+.metadata-grid input, .metadata-grid textarea { min-width: 0; width: 100%; border: 1px solid var(--glass-border, rgba(255,255,255,.14)); border-radius: .7rem; padding: .7rem .8rem; background: rgba(10,12,20,.3); color: var(--text-primary, #f4f5fa); font: inherit; }
+.metadata-grid small { color: var(--text-muted, #a4a9b8); font-size: .72rem; }
+.cover-preview { display: block; width: 100%; max-height: 340px; margin-top: 1rem; border-radius: .8rem; object-fit: cover; }
+.studio-header-actions .save-button:disabled { opacity: .5; cursor: not-allowed; }
+@media (max-width: 680px) { .metadata-grid { grid-template-columns: 1fr; } }
