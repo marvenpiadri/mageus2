@@ -13,6 +13,10 @@ h1 em { color: var(--accent); font-weight: 400; }
 .count-label { color: rgba(255,255,255,.45); font: .68rem var(--font-mono); }
 .article-grid { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 1.2rem; padding-top: 1.4rem; }
 .article-card { display: block; min-width: 0; color: #fff; text-decoration: none; }
+.article-card:hover .card-image,.article-card:focus-visible .card-image { border-color: var(--accent); }.article-card:hover .card-open,.article-card:focus-visible .card-open { background: var(--accent); color: #061211; }
+.article-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 12px; }
+.home-state { min-height: 180px; display: grid; align-content: center; gap: .5rem; padding: 2rem; border: 1px solid rgba(255,255,255,.12); border-radius: 12px; color: rgba(255,255,255,.8); }
+.home-state p { margin: 0; color: rgba(255,255,255,.52); font-size: .85rem; line-height: 1.6; }
 .card-image { position: relative; aspect-ratio: 4/3; overflow: hidden; border-radius: 12px; background-color: rgba(255,255,255,.05); background-position: center; background-size: cover; border: 1px solid rgba(255,255,255,.12); }
 .card-image::after { content: ''; position: absolute; inset: 35% 0 0; background: linear-gradient(transparent,rgba(0,0,0,.45)); }
 .card-number,.card-open { position: absolute; z-index: 1; top: .75rem; display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid rgba(255,255,255,.3); border-radius: 50%; background: rgba(0,0,0,.28); backdrop-filter: blur(12px); font: .67rem var(--font-mono); }
