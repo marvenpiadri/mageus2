@@ -58,6 +58,12 @@ function publicationIssues(article) {
   if (parsed.success) for (const [index, block] of parsed.data.entries()) {
     const label = `Block ${index + 1}`;
     if (block.type === 'text' && !block.html.replace(/<[^>]*>/g, '').trim()) issues.push(`${label}: add text content.`);
+    if (block.type === 'heading' && !block.text.trim()) issues.push(`${label}: add heading text.`);
+    if (block.type === 'callout' && !block.body.trim()) issues.push(`${label}: add the callout message.`);
+    if (block.type === 'table' && (!block.rows.length || block.headers.some((header) => !header.trim()) || block.rows.some((row) => row.length !== block.headers.length))) issues.push(`${label}: add rows and ensure every row matches the table columns.`);
+    if (block.type === 'code' && !block.code.trim()) issues.push(`${label}: add a code sample.`);
+    if (block.type === 'video' && !validUrl(block.url)) issues.push(`${label}: add a valid hosted video URL.`);
+    if (block.type === 'audio' && !validUrl(block.url)) issues.push(`${label}: add a valid hosted audio URL.`);
     if (block.type === 'image' && (!validUrl(block.imageUrl) || !block.alt.trim())) issues.push(`${label}: add an image and its alternative text.`);
     if (block.type === 'gallery' && (!block.images.length || block.images.some((image) => !validUrl(image.url) || !image.alt.trim()))) issues.push(`${label}: add gallery images with URLs and alternative text.`);
     if (block.type === 'slide' && (!block.slides.length || block.slides.some((slide) => !validUrl(slide.imageUrl)))) issues.push(`${label}: add at least one slide with an image.`);
