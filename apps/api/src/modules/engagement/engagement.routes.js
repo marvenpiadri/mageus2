@@ -94,3 +94,48 @@ engagementRoutes.post('/articles/:articleId/comments', engagementWriteLimit, req
     return res.status(201).json({ comment: rows[0] });
   } catch (error) { next(error); }
 });
+
+
+// Article ratings are a 0–100 scale, distinct from a binary like.
+// Reading the aggregate is public; casting or changing a vote requires identity.
+engagementRoutes.get('/articles/:articleId/votes', async (req, res, next) => {
+  const id = uuid.safeParse(req.params.articleId);
+  if (!id.success) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
+  try {
+    const article = await pool.query("SELECT 1 FROM articles WHERE id = $1 AND status = 'published'", [id.data]);
+    if (!article.rowCount) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
+    const { rows } = await pool.query(
+      `SELECT COALESCE(round(avg(v.value)::numeric, 1), 0)::numeric AS average,
+              count(v.value)::int AS count
+         FROM article_votes v
+        WHERE v.article_id = $1`,
+      [id.data]
+    );
+    return res.json({ average: Number(rows[0].average), count: rows[0].count });
+  } catch (error) { next(error); }
+});
+
+engagementRoutes.put('/articles/:articleId/votes', engagementWriteLimit, requireVerifiedIdentity, async (req, res, next) => {
+  const id = uuid.safeParse(req.params.articleId);
+  const vote = z.object({ value: z.number().int().min(0).max(100) }).safeParse(req.body);
+  if (!id.success) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
+  if (!vote.success) return res.status(400).json({ error: { code: 'INVALID_VOTE', message: 'Vote value must be an integer from 0 to 100.' } });
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO article_votes (article_id, user_id, value)
+       SELECT a.id, $2, $3 FROM articles a
+        WHERE a.id = $1 AND a.status = 'published'
+       ON CONFLICT (article_id, user_id)
+       DO UPDATE SET value = EXCLUDED.value, updated_at = now()
+       RETURNING value`,
+      [id.data, req.auth.userId, vote.data.value]
+    );
+    if (!rows[0]) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
+    const { rows: summary } = await pool.query(
+      `SELECT round(avg(value)::numeric, 1)::numeric AS average, count(*)::int AS count
+         FROM article_votes WHERE article_id = $1`,
+      [id.data]
+    );
+    return res.json({ userVote: rows[0].value, average: Number(summary[0].average), count: summary[0].count });
+  } catch (error) { next(error); }
+});
