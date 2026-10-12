@@ -79,7 +79,6 @@ export class PublicArticlePageComponent {
       takeUntilDestroyed(this.destroyRef)
     ).subscribe((result) => {
       if (!result) return;
-      this.voteValue.set(result.userVote);
       this.voteAverage.set(result.average);
       this.voteCount.set(result.count);
       this.voteMessage.set('Vote saved automatically.');
@@ -99,6 +98,8 @@ export class PublicArticlePageComponent {
     ).subscribe((response) => {
       const article = response?.article ?? null;
       this.article.set(article);
+      this.voteValue.set(50);
+      this.voteMessage.set('');
       this.loading.set(false);
       this.notFound.set(!article);
       if (article) {
