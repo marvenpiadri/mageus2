@@ -98,9 +98,9 @@ export class AccountSettingsPageComponent {
     this.loading.set(true);
     this.loadError.set('');
     forkJoin({
-      profile: this.http.get<{ profile: AccountProfile }>('/api/v1/account/profile'),
-      settings: this.http.get<{ settings: AccountSettings }>('/api/v1/account/settings'),
-      connections: this.http.get<{ connections: AppConnection[]; identities: ExternalIdentity[] }>('/api/v1/account/connections')
+      profile: this.http.get<{ profile: AccountProfile }>('/api/v1/account/profile', { headers: this.auth.authorizationHeaders() }),
+      settings: this.http.get<{ settings: AccountSettings }>('/api/v1/account/settings', { headers: this.auth.authorizationHeaders() }),
+      connections: this.http.get<{ connections: AppConnection[]; identities: ExternalIdentity[] }>('/api/v1/account/connections', { headers: this.auth.authorizationHeaders() })
     }).pipe(
       catchError((error) => {
         this.loadError.set(error?.error?.error?.message || 'Account settings could not be loaded. Please try again.');
@@ -142,7 +142,7 @@ export class AccountSettingsPageComponent {
     this.profileMessage.set('');
     this.http.patch<{ profile: AccountProfile }>('/api/v1/account/profile', {
       username, displayName, bio, avatarUrl: avatarUrl || null
-    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    }, { headers: this.auth.authorizationHeaders() }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (result) => {
         this.profile.set(result.profile);
         this.auth.user.update((user) => user ? {
@@ -177,7 +177,7 @@ export class AccountSettingsPageComponent {
       discoverableByEmail: value.discoverable_by_email,
       emailNotifications: value.email_notifications,
       pushNotifications: value.push_notifications
-    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    }, { headers: this.auth.authorizationHeaders() }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (result) => {
         this.settings.set({ ...DEFAULT_SETTINGS, ...result.settings });
         this.settingsMessage.set('Preferences saved.');
@@ -200,7 +200,7 @@ export class AccountSettingsPageComponent {
     this.passwordMessage.set('');
     this.http.post<{ message: string }>('/api/v1/account/password', {
       currentPassword: this.currentPassword(), newPassword: this.newPassword()
-    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    }, { headers: this.auth.authorizationHeaders() }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (result) => {
         this.currentPassword.set('');
         this.newPassword.set('');
@@ -219,7 +219,7 @@ export class AccountSettingsPageComponent {
     this.disconnecting.set(application);
     this.connectionMessage.set('');
     this.http.delete<{ disconnected: boolean; application: string }>(
-      `/api/v1/account/connections/${encodeURIComponent(application)}`
+      `/api/v1/account/connections/${encodeURIComponent(application)}`, { headers: this.auth.authorizationHeaders() }
     ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.connections.update((items) => items.filter((item) => item.application !== application));
