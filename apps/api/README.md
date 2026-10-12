@@ -25,3 +25,22 @@ Likes and comment creation are deliberately fail-closed until Mageus's new ident
 ## Migrations and deployment
 
 SQL files in `migrations/` are ordered, versioned, and recorded in `schema_migrations`. Test migrations against a separate Neon development branch first, then staging, and only then production. Use Neon pooled URLs for runtime traffic and a direct connection when a migration operation specifically requires it. Never commit `.env`, database URLs, JWT keys, OAuth secrets, or storage credentials.
+
+## Magazines and issues
+
+Magazines are persistent channel-owned publications. Issues are numbered editions that reference the channel's existing published articles in a saved reading order; articles are not copied into a second content store.
+
+Public routes:
+- `GET /api/v1/magazines?limit=24&cursor=<opaque cursor>` lists published magazines.
+- `GET /api/v1/magazines/:username/:magazineSlug` returns a public magazine and its published issues.
+- `GET /api/v1/magazines/:username/:magazineSlug/issues/:issueSlug` returns one published issue and its ordered articles.
+- `GET /api/v1/social/profiles/:username` includes the channel's published magazines.
+
+Authenticated authoring routes:
+- `POST /api/v1/magazines` creates a draft magazine owned by the current channel.
+- `PATCH /api/v1/magazines/:magazineId/publish` publishes that magazine.
+- `POST /api/v1/magazines/:magazineId/issues` creates a draft issue with a positive issue number.
+- `PUT /api/v1/magazines/:magazineId/issues/:issueId/articles` saves up to 100 unique published articles from the same channel, in the submitted order.
+- `PATCH /api/v1/magazines/:magazineId/issues/:issueId/publish` publishes an issue after its parent magazine is public and at least one article has been selected.
+
+Public magazine and issue pages emit canonical URLs, Open Graph metadata, and JSON-LD. The `012_magazines_and_issues.sql` migration creates the relational publication, edition, and ordered-article tables. CI applies every migration to a clean PostgreSQL 16 database; the target Neon database still requires the normal staged migration procedure before release.
