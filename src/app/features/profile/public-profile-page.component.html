@@ -35,7 +35,7 @@
         </div>
         @if (data.menus.length) {
           <div class="profile-menu-shortcuts">
-            <span class="shortcut-label">MENUS NEAR YOU</span>
+            <span class="shortcut-label">LOCATION MENUS</span>
             @for (menu of data.menus.slice(0, 3); track menu.id) {
               <button type="button" (click)="section.set('menus')"><span>☷</span><span><strong>{{ menu.name }}</strong><small>{{ menu.location_name }}</small></span><span class="shortcut-arrow">↗</span></button>
             }
