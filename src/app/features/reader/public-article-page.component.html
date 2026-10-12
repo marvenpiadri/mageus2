@@ -91,7 +91,7 @@
               <div class="comment-list">
                 @for (comment of comments(); track comment.id) {
                   <article class="comment-item">
-                    <div class="comment-byline"><a [routerLink]="['/', comment.author_username]">@{{ comment.author_username }}</a><time [attr.datetime]="comment.created_at">{{ comment.created_at | date:'mediumDate' }}</time></div>
+                    <div class="comment-byline"><a [routerLink]="['/', comment.author_username]">&#64;{{ comment.author_username }}</a><time [attr.datetime]="comment.created_at">{{ comment.created_at | date:'mediumDate' }}</time></div>
                     <p>{{ comment.body }}</p>
                   </article>
                 }
