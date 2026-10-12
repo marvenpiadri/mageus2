@@ -17,7 +17,6 @@ export type ArticleBlockType =
   | 'before_after'
   | 'hotspot'
   | 'timeline'
-  | 'steps'
   | 'data_viz'
   | 'math'
   | 'product'
@@ -140,12 +139,6 @@ export interface TimelineBlock extends ArticleBlockBase {
   events: Array<{ date: string; title: string; description: string }>;
 }
 
-export interface StepsBlock extends ArticleBlockBase {
-  type: 'steps';
-  title?: string;
-  steps: Array<{ title: string; description: string }>;
-}
-
 export interface DataVizBlock extends ArticleBlockBase {
   type: 'data_viz';
   title?: string;
@@ -180,7 +173,7 @@ export interface MagazineReferenceBlock extends ArticleBlockBase {
 export type ArticleBlock =
   | TextBlock | HeadingBlock | DividerBlock | CalloutBlock | TableBlock | CodeBlock | VideoBlock | AudioBlock | ImageBlock | QuoteBlock | GalleryBlock | SlideBlock
   | EmbedBlock | BeforeAfterBlock | HotspotBlock | TimelineBlock
-  | StepsBlock | DataVizBlock | MathBlock | ProductBlock
+  | DataVizBlock | MathBlock | ProductBlock
   | ProductCollectionBlock | MagazineReferenceBlock;
 
 export type ArticleStatus = 'draft' | 'published' | 'archival';
