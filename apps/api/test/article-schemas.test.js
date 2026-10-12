@@ -81,3 +81,21 @@ test('rejects table rows that exceed the maximum supported column count', () => 
   });
   assert.equal(result.success, false);
 });
+
+
+test('rejects duplicate block IDs so Studio edits target one stable block', () => {
+  const result = articleBlocksSchema.safeParse([
+    { id: 'duplicate', type: 'text', html: '<p>First</p>' },
+    { id: 'duplicate', type: 'heading', text: 'Second', level: 2 }
+  ]);
+  assert.equal(result.success, false);
+  assert.ok(result.error.issues.some((issue) => issue.path.join('.') === '1.id'));
+});
+
+test('accepts distinct IDs when blocks use different modular types', () => {
+  const result = articleBlocksSchema.safeParse([
+    { id: 'text-1', type: 'text', html: '<p>Story</p>' },
+    { id: 'heading-1', type: 'heading', text: 'Section', level: 2 }
+  ]);
+  assert.equal(result.success, true);
+});
