@@ -33,6 +33,8 @@ export interface ArticleBlockBase {
 export interface TextBlock extends ArticleBlockBase {
   type: 'text';
   html: string;
+  /** Optional display treatment; content blocks remain flat and independently reorderable. */
+  presentation?: 'regular' | 'step';
 }
 
 export interface HeadingBlock extends ArticleBlockBase {
