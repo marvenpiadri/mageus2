@@ -68,6 +68,6 @@ test('business location management is authenticated and scoped to the caller-own
   assert.match(routes, /post\('\/me\/business\/locations', socialWriteLimit, requireVerifiedIdentity/);
   assert.match(routes, /patch\('\/me\/business\/locations\/:locationId', socialWriteLimit, requireVerifiedIdentity/);
   assert.match(routes, /delete\('\/me\/business\/locations\/:locationId', socialWriteLimit, requireVerifiedIdentity/);
-  assert.match(routes, /WHERE c\.owner_user_id = \$2/);
+  assert.match(routes, /c\\.owner_user_id = \\$2/);
   assert.match(routes, /LOCATION_HAS_MENUS/);
 });
