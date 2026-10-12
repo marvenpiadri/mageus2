@@ -7,6 +7,10 @@
     <a class="brand-mark" routerLink="/" aria-label="Mageus home">M</a>
     <nav class="rail-links">
       <a routerLink="/" aria-label="Explore articles" title="Explore">⌂</a>
+      @if (auth.isAuthenticated()) {
+        <a routerLink="/feed" aria-label="Your feed" title="Feed">◉</a>
+        <a routerLink="/notifications" aria-label="Notifications" title="Notifications">♧</a>
+      }
       <a routerLink="/write" aria-label="Write an article" title="Write">＋</a>
     </nav>
     <div class="rail-bottom" aria-hidden="true">✦</div>
@@ -18,7 +22,7 @@
       <div class="topbar-context">A space to read, create, and explore</div>
       @if (auth.isAuthenticated()) {
         <nav class="social-links" aria-label="Social navigation"><a routerLink="/feed">Feed</a><a routerLink="/notifications">Notifications</a></nav>
-        <span class="account-chip">{{ auth.user()?.username }}</span>
+        <a class="account-chip" [routerLink]="['/', auth.user()?.username]">@{{ auth.user()?.username }}</a>
         <button class="sign-in-link" type="button" (click)="logout()">Sign out</button>
       } @else {
         <a class="sign-in-link" routerLink="/sign-in">Sign in</a>
