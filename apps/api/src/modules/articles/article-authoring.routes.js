@@ -58,9 +58,9 @@ function publicationIssues(article) {
   if (parsed.success) for (const [index, block] of parsed.data.entries()) {
     const label = `Block ${index + 1}`;
     if (block.type === 'text' && !block.html.replace(/<[^>]*>/g, '').trim()) issues.push(`${label}: add text content.`);
-    if (block.type === 'image' && (!block.imageUrl.trim() || !block.alt.trim())) issues.push(`${label}: add an image and its alternative text.`);
-    if (block.type === 'gallery' && (!block.images.length || block.images.some((image) => !image.url.trim() || !image.alt.trim()))) issues.push(`${label}: add gallery images with URLs and alternative text.`);
-    if (block.type === 'slide' && (!block.slides.length || block.slides.some((slide) => !slide.imageUrl.trim()))) issues.push(`${label}: add at least one slide with an image.`);
+    if (block.type === 'image' && (!validUrl(block.imageUrl) || !block.alt.trim())) issues.push(`${label}: add an image and its alternative text.`);
+    if (block.type === 'gallery' && (!block.images.length || block.images.some((image) => !validUrl(image.url) || !image.alt.trim()))) issues.push(`${label}: add gallery images with URLs and alternative text.`);
+    if (block.type === 'slide' && (!block.slides.length || block.slides.some((slide) => !validUrl(slide.imageUrl)))) issues.push(`${label}: add at least one slide with an image.`);
     if (block.type === 'quote' && !block.quote.trim()) issues.push(`${label}: add the quotation text.`);
     if (block.type === 'embed' && !validUrl(block.url)) issues.push(`${label}: enter a valid HTTP(S) URL.`);
     if (block.type === 'before_after' && (!validUrl(block.beforeImage) || !validUrl(block.afterImage))) issues.push(`${label}: add valid before and after image URLs.`);
