@@ -119,6 +119,7 @@ export class PublicProfilePageComponent {
       this.profileData.set(data);
       if (data) {
         const articleKey = this.articleKey(data.profile.username);
+        this.exploration.registerContext(`/${data.profile.username}`, articleKey);
         const existingArticleState = this.exploration.state<ProfileArticle>(articleKey)();
         if (!existingArticleState.items.length) {
           this.exploration.replacePage(articleKey, data.articles, data.articlesNextCursor ?? null);
