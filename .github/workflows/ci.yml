@@ -30,3 +30,4 @@ jobs:
           node-version: 22
       - run: npm install
       - run: npm run check
+      - run: npm test
