@@ -26,8 +26,8 @@ export const routes: Routes = [
     loadComponent: () => import('./features/notifications/notifications-page.component').then((module) => module.NotificationsPageComponent)
   },
   {
-    path: 'settings',
-    loadComponent: () => import('./features/account/account-settings-page.component').then((module) => module.AccountSettingsPageComponent)
+    path: 'business/locations',
+    loadComponent: () => import('./features/business/business-locations-page.component').then((module) => module.BusinessLocationsPageComponent)
   },
   {
     // Published article pages are public and crawlable; no auth guard belongs here.
