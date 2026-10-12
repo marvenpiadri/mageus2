@@ -37,3 +37,13 @@ test('public article view tracking uses privacy-preserving identifiers and repea
   assert.match(routes, /interval '30 minutes'/);
   assert.doesNotMatch(routes, /anonymous_visitor_hash,\s*req\.ip/);
 });
+
+
+test('profile editing requires identity and scopes changes to the authenticated channel owner', async () => {
+  const routes = await source('../src/modules/social/social.routes.js');
+  assert.match(routes, /patch\('\/me\/profile', socialWriteLimit, requireVerifiedIdentity/);
+  assert.match(routes, /WHERE owner_user_id = \$1/);
+  assert.match(routes, /WHERE id = \$1 AND owner_user_id = \$5/);
+  assert.match(routes, /await client\.query\('BEGIN'\)/);
+  assert.match(routes, /await client\.query\('COMMIT'\)/);
+});
