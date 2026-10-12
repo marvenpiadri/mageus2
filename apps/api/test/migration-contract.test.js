@@ -72,3 +72,11 @@ test('database guardrails constrain block JSON and index relational query paths'
   assert.ok(sql.includes('articles_tags_gin_idx'));
   assert.ok(sql.includes('article_comments_parent_thread_idx'));
 });
+
+test('article voting uses one relational 0–100 value per user and article', async () => {
+  const sql = await migration('008_article_votes.sql');
+  assert.ok(sql.includes('CREATE TABLE IF NOT EXISTS article_votes'));
+  assert.ok(sql.includes('PRIMARY KEY (article_id, user_id)'));
+  assert.ok(sql.includes('CHECK (value BETWEEN 0 AND 100)'));
+  assert.ok(sql.includes('updated_at timestamptz'));
+});
