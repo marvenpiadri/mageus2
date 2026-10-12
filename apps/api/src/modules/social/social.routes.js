@@ -539,7 +539,7 @@ socialRoutes.patch('/me/business/storefronts/:storefrontId', socialWriteLimit, r
 const menuItemInput = z.object({
   name: z.string().trim().min(1).max(160),
   description: z.string().trim().max(2000).default(''),
-  imageUrl: z.string().trim().url().max(2048).nullable().optional(),
+  imageUrl: z.string().trim().url().max(2048).refine((value) => value.startsWith('https://'), 'Image URLs must use HTTPS.').nullable().optional(),
   priceAmount: z.number().finite().min(0).max(9999999999).nullable().optional(),
   currency: z.string().trim().regex(/^[A-Za-z]{3}$/).default('USD').transform((value) => value.toUpperCase()),
   category: z.string().trim().max(120).default(''),
@@ -551,7 +551,7 @@ const menuInput = z.object({
   name: z.string().trim().min(1).max(160),
   slug: z.string().trim().min(1).max(120).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   description: z.string().trim().max(2000).default(''),
-  pdfUrl: z.string().trim().url().max(2048).nullable().optional(),
+  pdfUrl: z.string().trim().url().max(2048).refine((value) => value.startsWith('https://'), 'Menu PDF URLs must use HTTPS.').nullable().optional(),
   status: z.enum(['draft', 'published', 'archived']).default('draft'),
   items: z.array(menuItemInput).max(300).default([])
 }).strict();
