@@ -51,7 +51,7 @@ export class FeedPageComponent {
       if (!user) return;
       this.exploration.registerContext('/feed', this.keyFor(user.id));
       const state = this.exploration.state<FeedArticle>(this.keyFor(user.id))();
-      if (!state.items.length && !state.loading && !state.failed) this.loadPage(user.id, true);
+      if (!state.items.length && state.hasMore && !state.loading && !state.failed) this.loadPage(user.id, true);
     });
   }
 
