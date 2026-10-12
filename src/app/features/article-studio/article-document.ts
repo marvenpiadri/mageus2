@@ -122,6 +122,24 @@ export function validateArticleDocument(document: ArticleDocument): DocumentIssu
       case 'text':
         if (!block.html.replace(/<[^>]*>/g, '').trim()) issues.push({ code: 'empty-block', path: `${path}.html`, message: 'Add some text content.', severity: 'error' });
         break;
+      case 'heading': required('text', block.text, 'Add heading text.'); break;
+      case 'divider': break;
+      case 'callout': required('body', block.body, 'Add the callout message.'); break;
+      case 'table':
+        if (!block.rows.length) issues.push({ code: 'empty-block', path: `${path}.rows`, message: 'Add at least one table row.', severity: 'error' });
+        if (!block.headers.length || block.headers.some((header) => !header.trim()) || block.rows.some((row) => row.length !== block.headers.length)) {
+          issues.push({ code: 'required', path: `${path}.headers`, message: 'Add column headings and ensure every row matches the number of columns.', severity: 'error' });
+        }
+        break;
+      case 'code': required('code', block.code, 'Add a code sample.'); break;
+      case 'video':
+        required('url', block.url, 'Add a hosted video URL.');
+        if (block.url) url('url', block.url);
+        break;
+      case 'audio':
+        required('url', block.url, 'Add a hosted audio URL.');
+        if (block.url) url('url', block.url);
+        break;
       case 'image':
         required('imageUrl', block.imageUrl, 'Choose an image.');
         if (block.imageUrl) url('imageUrl', block.imageUrl);
