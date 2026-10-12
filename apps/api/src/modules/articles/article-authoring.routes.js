@@ -10,12 +10,12 @@ articleAuthoringRoutes.use(requireDatabase);
 const uuid = z.string().uuid();
 const articleColumns = `
   id, channel_id, slug, title, subtitle, excerpt, category, language, tags,
-  cover_image_url, blocks, document, schema_version, status, seo_title, seo_description,
+  cover_image_url, blocks, schema_version, status, seo_title, seo_description,
   canonical_url, published_at, created_at, updated_at, revision
 `;
 const publicArticleFields = `
   a.id, a.slug, a.title, a.subtitle, a.excerpt, a.category, a.language, a.tags, a.cover_image_url,
-  a.blocks, a.document, a.schema_version, a.status, a.seo_title, a.seo_description,
+  a.blocks, a.schema_version, a.status, a.seo_title, a.seo_description,
   a.canonical_url, a.published_at, a.created_at, a.updated_at, a.revision,
   c.username AS author_username, c.display_name AS author_name
 `;
@@ -28,7 +28,7 @@ function dto(row) {
   return {
     id: row.id, channelId: row.channel_id, slug: row.slug, title: row.title,
     subtitle: row.subtitle, excerpt: row.excerpt, category: row.category, language: row.language,
-    tags: row.tags, coverImageUrl: row.cover_image_url, blocks: row.blocks, document: row.document,
+    tags: row.tags, coverImageUrl: row.cover_image_url, blocks: row.blocks,
     schemaVersion: row.schema_version, status: row.status, seoTitle: row.seo_title,
     seoDescription: row.seo_description, canonicalUrl: row.canonical_url,
     publishedAt: row.published_at, createdAt: row.created_at, updatedAt: row.updated_at,
