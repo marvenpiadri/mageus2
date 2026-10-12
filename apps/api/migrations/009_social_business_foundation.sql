@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS notifications (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   recipient_user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   actor_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
-  type text NOT NULL CHECK (type IN ('follow', 'comment', 'vote', 'mention', 'publication', 'system')),
+  type text NOT NULL CHECK (type IN ('follow', 'like', 'comment', 'vote', 'mention', 'publication', 'system')),
   entity_type text CHECK (entity_type IS NULL OR entity_type IN ('channel', 'article', 'comment', 'product', 'service', 'menu', 'video', 'magazine')),
   entity_id uuid,
   payload jsonb NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(payload) = 'object'),
