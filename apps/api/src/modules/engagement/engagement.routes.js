@@ -31,6 +31,18 @@ engagementRoutes.post('/articles/:articleId/likes', engagementWriteLimit, requir
     if (!result.rowCount) {
       const exists = await pool.query("SELECT 1 FROM articles WHERE id = $1 AND status = 'published'", [id.data]);
       if (!exists.rowCount) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
+    } else {
+      const owner = await pool.query(
+        `SELECT c.owner_user_id FROM articles a JOIN channels c ON c.id = a.channel_id WHERE a.id = $1`,
+        [id.data]
+      );
+      if (owner.rows[0]?.owner_user_id && owner.rows[0].owner_user_id !== req.auth.userId) {
+        await pool.query(
+          `INSERT INTO notifications (recipient_user_id, actor_user_id, type, entity_type, entity_id)
+           VALUES ($1, $2, 'like', 'article', $3)`,
+          [owner.rows[0].owner_user_id, req.auth.userId, id.data]
+        );
+      }
     }
     const count = await pool.query('SELECT count(*)::int AS count FROM article_likes WHERE article_id = $1', [id.data]);
     return res.json({ liked: true, likeCount: count.rows[0].count });
@@ -91,6 +103,17 @@ engagementRoutes.post('/articles/:articleId/comments', engagementWriteLimit, req
       [id.data, req.auth.userId, body.data.parentCommentId ?? null, body.data.body]
     );
     if (!rows[0]) return res.status(404).json({ error: { code: 'ARTICLE_OR_PARENT_NOT_FOUND', message: 'Article or parent comment not found.' } });
+    const owner = await pool.query(
+      `SELECT c.owner_user_id FROM articles a JOIN channels c ON c.id = a.channel_id WHERE a.id = $1`,
+      [id.data]
+    );
+    if (owner.rows[0]?.owner_user_id && owner.rows[0].owner_user_id !== req.auth.userId) {
+      await pool.query(
+        `INSERT INTO notifications (recipient_user_id, actor_user_id, type, entity_type, entity_id)
+         VALUES ($1, $2, 'comment', 'article', $3)`,
+        [owner.rows[0].owner_user_id, req.auth.userId, id.data]
+      );
+    }
     return res.status(201).json({ comment: rows[0] });
   } catch (error) { next(error); }
 });
@@ -142,10 +165,23 @@ engagementRoutes.put('/articles/:articleId/votes', engagementWriteLimit, require
         WHERE a.id = $1 AND a.status = 'published'
        ON CONFLICT (article_id, user_id)
        DO UPDATE SET value = EXCLUDED.value, updated_at = now()
-       RETURNING value`,
+       RETURNING value, (xmax = 0) AS created`,
       [id.data, req.auth.userId, vote.data.value]
     );
     if (!rows[0]) return res.status(404).json({ error: { code: 'ARTICLE_NOT_FOUND', message: 'Article not found.' } });
+    if (rows[0].created) {
+      const owner = await pool.query(
+        `SELECT c.owner_user_id FROM articles a JOIN channels c ON c.id = a.channel_id WHERE a.id = $1`,
+        [id.data]
+      );
+      if (owner.rows[0]?.owner_user_id && owner.rows[0].owner_user_id !== req.auth.userId) {
+        await pool.query(
+          `INSERT INTO notifications (recipient_user_id, actor_user_id, type, entity_type, entity_id)
+           VALUES ($1, $2, 'vote', 'article', $3)`,
+          [owner.rows[0].owner_user_id, req.auth.userId, id.data]
+        );
+      }
+    }
     const { rows: summary } = await pool.query(
       `SELECT round(avg(value)::numeric, 1)::numeric AS average, count(*)::int AS count
          FROM article_votes WHERE article_id = $1`,
