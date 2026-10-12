@@ -1,0 +1,17 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&display=swap');
+:root { color-scheme: dark; --accent: #66ccc3; --glass-surface: rgba(12,14,17,.36); --glass-border: rgba(255,255,255,.15); --glass-blur: 26px; --text-primary: #fff; --font-editorial: 'Playfair Display',Georgia,serif; --font-reading: 'DM Sans',Arial,sans-serif; --font-mono: 'DM Mono',monospace; }
+* { box-sizing: border-box; }
+html { min-width: 320px; min-height: 100%; background: #050607; scroll-behavior: smooth; }
+body { min-width: 320px; min-height: 100vh; margin: 0; color: var(--text-primary); background: #050607; font-family: var(--font-reading); -webkit-font-smoothing: antialiased; }
+button,input,textarea,select { font: inherit; }
+button,a,input,textarea,select { -webkit-tap-highlight-color: transparent; }
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+img { max-width: 100%; }
+::selection { color: #061211; background: var(--accent); }
+.mood-stars { --accent: #66ccc3; --glass-surface: rgba(12,14,17,.36); --glass-border: rgba(102,204,195,.25); --glass-blur: 28px; }
+.mood-midnight { --accent: #66ccc3; --glass-surface: rgba(2,5,8,.54); --glass-border: rgba(102,204,195,.22); --glass-blur: 32px; }
+.mood-moonlight { --accent: #a5b4fc; --glass-surface: rgba(14,16,30,.42); --glass-border: rgba(165,180,252,.23); --glass-blur: 28px; }
+.mood-eclipse { --accent: #f59e0b; --glass-surface: rgba(20,12,5,.44); --glass-border: rgba(245,158,11,.24); --glass-blur: 26px; }
+.mood-aurora { --accent: #34d399; --glass-surface: rgba(4,18,17,.43); --glass-border: rgba(52,211,153,.24); --glass-blur: 30px; }
+.mood-nordic { --accent: #94a3b8; --glass-surface: rgba(13,16,20,.45); --glass-border: rgba(148,163,184,.22); --glass-blur: 24px; }
+@media (prefers-reduced-motion: reduce) { *,*::before,*::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
