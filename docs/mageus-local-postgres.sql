@@ -2,7 +2,9 @@
 -- Generated from migrations 001-009 plus migration 010 identity/settings tables.
 -- For an empty local database: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f docs/mageus-local-postgres.sql
 -- This file is a fresh-database bootstrap, not an incremental migration for an existing DB.
-\n-- ===== 001_initial_publishing.sql =====\nCREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- ===== 001_initial_publishing.sql =====
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE IF NOT EXISTS users (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -92,7 +94,10 @@ CREATE TABLE IF NOT EXISTS media_assets (
   alt_text text NOT NULL DEFAULT '',
   created_at timestamptz NOT NULL DEFAULT now()
 );
-\n\n-- ===== 002_auth_sessions.sql =====\nCREATE TABLE IF NOT EXISTS auth_sessions (
+
+
+-- ===== 002_auth_sessions.sql =====
+CREATE TABLE IF NOT EXISTS auth_sessions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   refresh_token_hash text NOT NULL UNIQUE,
@@ -103,7 +108,10 @@ CREATE TABLE IF NOT EXISTS media_assets (
 );
 CREATE INDEX IF NOT EXISTS auth_sessions_user_active_idx
   ON auth_sessions (user_id, expires_at DESC) WHERE revoked_at IS NULL;
-\n\n-- ===== 003_article_revisions.sql =====\nALTER TABLE articles
+
+
+-- ===== 003_article_revisions.sql =====
+ALTER TABLE articles
   ADD COLUMN IF NOT EXISTS revision integer NOT NULL DEFAULT 1;
 
 -- Drafts may coexist with the published version of the same slug. Public URLs remain unique.
@@ -124,7 +132,10 @@ CREATE TABLE IF NOT EXISTS article_revisions (
 );
 CREATE INDEX IF NOT EXISTS article_revisions_article_history_idx
   ON article_revisions (article_id, revision DESC);
-\n\n-- ===== 004_article_jsonb_document.sql =====\n-- Keep a complete, versioned article payload in JSONB while retaining relational
+
+
+-- ===== 004_article_jsonb_document.sql =====
+-- Keep a complete, versioned article payload in JSONB while retaining relational
 -- columns for ownership checks, indexing, and public URL lookups.
 ALTER TABLE articles
   ADD COLUMN IF NOT EXISTS document jsonb NOT NULL DEFAULT '{}'::jsonb;
@@ -167,7 +178,10 @@ EXECUTE FUNCTION sync_article_document();
 
 -- Backfill existing rows using the same trigger-backed canonical document.
 UPDATE articles SET updated_at = updated_at;
-\n\n-- ===== 005_keep_article_metadata_relational.sql =====\n-- Correct the accidental whole-article JSONB document design.
+
+
+-- ===== 005_keep_article_metadata_relational.sql =====
+-- Correct the accidental whole-article JSONB document design.
 -- Article content blocks alone use JSONB; metadata and relationships remain relational.
 DROP TRIGGER IF EXISTS articles_sync_document ON articles;
 DROP FUNCTION IF EXISTS sync_article_document();
@@ -175,7 +189,10 @@ ALTER TABLE articles DROP COLUMN IF EXISTS document;
 
 COMMENT ON COLUMN articles.blocks IS
   'Typed article content blocks stored as JSONB. Article metadata and relations remain in relational columns/tables.';
-\n\n-- ===== 006_revision_blocks_jsonb_only.sql =====\n-- Keep article revision metadata relational too. Only each revision's modular
+
+
+-- ===== 006_revision_blocks_jsonb_only.sql =====
+-- Keep article revision metadata relational too. Only each revision's modular
 -- Studio content blocks are JSONB, matching the articles table.
 ALTER TABLE article_revisions
   ADD COLUMN IF NOT EXISTS slug text,
@@ -222,7 +239,10 @@ SET slug = COALESCE(slug, snapshot->>'slug'),
 WHERE snapshot IS NOT NULL;
 
 ALTER TABLE article_revisions DROP COLUMN IF EXISTS snapshot;
-\n\n-- ===== 007_article_schema_guardrails.sql =====\n-- Strengthen the relational publishing model without changing its shape.
+
+
+-- ===== 007_article_schema_guardrails.sql =====
+-- Strengthen the relational publishing model without changing its shape.
 -- Article Studio modules stay flexible JSONB arrays; all metadata remains relational.
 
 DO $$
@@ -282,7 +302,10 @@ CREATE INDEX IF NOT EXISTS article_comments_parent_thread_idx
 CREATE INDEX IF NOT EXISTS media_assets_owner_created_idx
   ON media_assets (owner_user_id, created_at DESC)
   WHERE owner_user_id IS NOT NULL;
-\n\n-- ===== 008_article_votes.sql =====\n-- A user's 0–100 rating is a single mutable vote per published article.
+
+
+-- ===== 008_article_votes.sql =====
+-- A user's 0–100 rating is a single mutable vote per published article.
 -- Keep ratings relational: this is engagement data, not article-block JSONB.
 CREATE TABLE IF NOT EXISTS article_votes (
   article_id uuid NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
@@ -295,7 +318,10 @@ CREATE TABLE IF NOT EXISTS article_votes (
 
 CREATE INDEX IF NOT EXISTS article_votes_article_value_idx
   ON article_votes (article_id, value);
-\n\n-- ===== 009_social_business_foundation.sql =====\n-- Social identity and business structures for Mageus.
+
+
+-- ===== 009_social_business_foundation.sql =====
+-- Social identity and business structures for Mageus.
 -- Public-facing content belongs to a channel; authenticated actions belong to a user.
 CREATE TABLE IF NOT EXISTS channel_follows (
   follower_user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -463,7 +489,9 @@ CREATE TABLE IF NOT EXISTS location_menu_items (
 CREATE INDEX IF NOT EXISTS location_menu_items_order_idx
   ON location_menu_items (menu_id, sort_order, created_at);
 
-\n-- ===== 010_identity_settings_federation.sql =====\n-- Identity providers and cross-application connections.
+
+-- ===== 010_identity_settings_federation.sql =====
+-- Identity providers and cross-application connections.
 -- External identities are linked only after a provider callback has been verified.
 CREATE TABLE IF NOT EXISTS user_external_identities (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -540,5 +568,6 @@ CREATE TABLE IF NOT EXISTS oauth_clients (
   CHECK (cardinality(redirect_uris) > 0)
 );
 
-\n-- Helpful account/profile defaults for existing and new users.
+
+-- Helpful account/profile defaults for existing and new users.
 INSERT INTO user_settings (user_id) SELECT id FROM users ON CONFLICT (user_id) DO NOTHING;
