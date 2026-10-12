@@ -8,7 +8,7 @@ import { catchError, of, switchMap } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { ExplorationListState, ExplorationStateService } from '../../core/exploration-state.service';
 
-type ProfileSection = 'articles' | 'shops' | 'menus' | 'locations';
+type ProfileSection = 'articles' | 'magazines' | 'shops' | 'menus' | 'locations';
 
 interface ProfileLocation {
   id: string; name: string; slug: string; address: string; google_place_id: string | null;
@@ -32,6 +32,10 @@ interface ProfileMenu {
   id: string; name: string; slug: string; description: string; pdf_url: string | null; location_id: string;
   location_name: string; location_slug: string; items: ProfileMenuItem[];
 }
+interface ProfileMagazine {
+  id: string; slug: string; title: string; description: string;
+  cover_image_url: string | null; published_at: string; issue_count: number;
+}
 interface ProfileArticle {
   id: string; slug: string; title: string; subtitle: string; excerpt: string; category: string;
   cover_image_url: string | null; published_at: string;
@@ -45,6 +49,7 @@ interface PublicProfile {
   storefronts: ProfileStore[];
   menus: ProfileMenu[];
   articles: ProfileArticle[];
+  magazines: ProfileMagazine[];
   articlesNextCursor?: string | null;
 }
 
@@ -137,7 +142,7 @@ export class PublicProfilePageComponent {
       if (data) {
         const name = data.profile.display_name || data.profile.username;
         this.titleService.setTitle(`@${data.profile.username} · ${name} | Mageus`);
-        this.meta.updateTag({ name: 'description', content: (data.profile.bio || `Explore articles, shops, menus, and services from ${name} on Mageus.`).slice(0, 300) });
+        this.meta.updateTag({ name: 'description', content: (data.profile.bio || `Explore articles, magazines, shops, menus, and services from ${name} on Mageus.`).slice(0, 300) });
         this.meta.updateTag({ property: 'og:type', content: 'profile' });
         this.meta.updateTag({ property: 'og:title', content: `@${data.profile.username} · ${name}` });
         this.meta.updateTag({ property: 'og:description', content: data.profile.bio || `Explore ${name} on Mageus.` });
