@@ -47,3 +47,13 @@ test('revision history keeps metadata relational and only revision blocks JSONB'
   assert.ok(sql.includes('ADD COLUMN IF NOT EXISTS blocks jsonb'));
   assert.ok(sql.includes('DROP COLUMN IF EXISTS snapshot'));
 });
+
+
+test('article schema guardrails keep blocks as arrays and index relational queries', async () => {
+  const sql = await migration('007_article_schema_guardrails.sql');
+  assert.ok(sql.includes('articles_blocks_must_be_array'));
+  assert.ok(sql.includes('article_revisions_blocks_must_be_array'));
+  assert.ok(sql.includes('article_revisions_schema_version_positive'));
+  assert.ok(sql.includes('articles_tags_gin_idx'));
+  assert.ok(sql.includes('article_comments_parent_thread_idx'));
+});
