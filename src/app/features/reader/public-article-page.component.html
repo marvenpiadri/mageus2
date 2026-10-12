@@ -62,6 +62,19 @@
               <mat-slider min="0" max="100" step="1" discrete>
                 <input matSliderThumb [value]="voteValue()" (valueChange)="onVoteValueChange($event)" aria-label="Article score from 0 to 100" />
               </mat-slider>
+              <div class="vote-emoji-scale" aria-label="Emoji guide for vote scores">
+                <span title="0–9: Very poor">😖<small>0</small></span>
+                <span title="10–19: Poor">😞<small>10</small></span>
+                <span title="20–29: Disappointing">🙁<small>20</small></span>
+                <span title="30–39: Below average">😕<small>30</small></span>
+                <span title="40–49: Fair">😐<small>40</small></span>
+                <span title="50–59: Okay">🙂<small>50</small></span>
+                <span title="60–69: Good">😊<small>60</small></span>
+                <span title="70–79: Very good">😄<small>70</small></span>
+                <span title="80–89: Excellent">🤩<small>80</small></span>
+                <span title="90–99: Outstanding">🔥<small>90</small></span>
+                <span title="100: Perfect score">💯<small>100</small></span>
+              </div>
               <div class="voting-status">
                 <span class="rating-summary">{{ voteCount() ? (voteAverage() + ' / 100 · ' + voteCount() + (voteCount() === 1 ? ' vote' : ' votes')) : 'Be the first to rate' }}</span>
                 @if (!auth.isAuthenticated()) {
