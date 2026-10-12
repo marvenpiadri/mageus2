@@ -186,12 +186,8 @@ export class ArticleStudioPageComponent {
   saveDraft(): void {
     const errors = this.validateDraft();
     this.validationMessages.set(errors);
-    if (!this.title().trim()) {
-      this.statusMessage.set('Add an article title before publishing.');
-      return;
-    }
     this.persistDraft();
-    this.statusMessage.set(errors.length ? 'Draft saved locally · fix validation warnings before publishing' : 'Draft saved on this device · server sync is not connected yet');
+    this.statusMessage.set(errors.length ? 'Local draft saved · resolve validation notes before publishing.' : 'Local draft saved. Use Sync draft to save it to your account.');
   }
 
   async syncDraft(): Promise<void> {
