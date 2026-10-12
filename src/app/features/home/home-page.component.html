@@ -27,6 +27,7 @@
     <div class="home-state" role="status">
       <span>{{ loadFailed() ? 'The reading room is temporarily unavailable.' : 'Your reading room is ready.' }}</span>
       <p>{{ loadFailed() ? 'Published stories could not be loaded right now. Please try again shortly.' : 'Published articles will appear here as creators share their work.' }}</p>
+      @if (loadFailed()) { <button type="button" class="load-more-button" (click)="loadMore()">Try again</button> }
     </div>
   }
   <footer class="home-footer"><span>READ WITH INTENTION</span><span>SCROLL SLOWLY · STAY CURIOUS</span></footer>
