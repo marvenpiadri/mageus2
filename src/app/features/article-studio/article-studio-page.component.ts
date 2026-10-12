@@ -226,10 +226,10 @@ export class ArticleStudioPageComponent {
     this.statusMessage.set(errors.length ? 'Local draft saved · resolve validation notes before publishing.' : 'Local draft saved. Use Sync draft to save it to your account.');
   }
 
-  async syncDraft(): Promise<void> {
+  async syncDraft(): Promise<boolean> {
     this.persistDraft();
-    if (!this.title().trim()) { this.statusMessage.set('Local draft saved · add a title before syncing.'); return; }
-    if (!this.auth.isAuthenticated()) { await this.router.navigateByUrl('/sign-in'); return; }
+    if (!this.title().trim()) { this.statusMessage.set('Local draft saved · add a title before syncing.'); return false; }
+    if (!this.auth.isAuthenticated()) { await this.router.navigateByUrl('/sign-in'); return false; }
     try {
       const payload: ArticleDraftPayload = {
         title: this.title().trim(), subtitle: this.subtitle(), slug: this.slug().trim() || this.slugify(this.title()),
@@ -239,14 +239,16 @@ export class ArticleStudioPageComponent {
       };
       const saved = await this.api.saveDraft(payload, this.serverArticleId(), this.serverRevision());
       this.serverArticleId.set(saved.id); this.serverRevision.set(saved.revision); this.persistDraft(); this.statusMessage.set('Draft synced to your Mageus account.');
-    } catch (error: any) { this.statusMessage.set(error?.error?.error?.message || error?.message || 'Could not sync. Your local recovery copy is safe.'); }
+      return true;
+    } catch (error: any) { this.statusMessage.set(error?.error?.error?.message || error?.message || 'Could not sync. Your local recovery copy is safe.'); return false; }
   }
 
   async publishArticle(): Promise<void> {
     const errors = this.validateDraft(); this.validationMessages.set(errors);
     if (errors.length) { this.statusMessage.set('Resolve the validation notes before publishing.'); return; }
     if (!this.auth.isAuthenticated()) { await this.router.navigateByUrl('/sign-in'); return; }
-    if (!this.serverArticleId()) await this.syncDraft();
+    const synced = await this.syncDraft();
+    if (!synced) return;
     const id = this.serverArticleId(); if (!id) return;
     try {
       const path = await this.api.publish(id, this.serverRevision());
