@@ -14,6 +14,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/reader/reader-page.component').then((module) => module.ReaderPageComponent)
   },
   {
+    path: 'sign-in',
+    loadComponent: () => import('./features/auth/auth-page.component').then((module) => module.AuthPageComponent)
+  },
+  {
     // Published article pages are public and crawlable; no auth guard belongs here.
     path: ':username/:slug',
     loadComponent: () => import('./features/reader/public-article-page.component').then((module) => module.PublicArticlePageComponent)
