@@ -176,7 +176,7 @@ articleRoutes.post('/', requireDatabase, requireVerifiedIdentity, async (req, re
 articleRoutes.get('/drafts', requireDatabase, requireVerifiedIdentity, async (req, res, next) => {
   try {
     const { rows } = await pool.query(
-      `SELECT ${articleColumns.split(', ').map((column) => column.includes(' ') ? column : 'a.' + column).join(', ')}
+      `SELECT a.*
          FROM articles a JOIN channels c ON c.id = a.channel_id
         WHERE c.owner_user_id = $1 AND a.status = 'draft'
         ORDER BY a.updated_at DESC LIMIT 100`,
@@ -295,6 +295,7 @@ articleRoutes.post('/:articleId/publish', requireDatabase, requireVerifiedIdenti
     let published;
     if (collision.rows[0]) {
       const live = collision.rows[0];
+      await writeRevision(client, live, req.auth.userId);
       const updated = await client.query(
         `UPDATE articles SET title=$2, subtitle=$3, excerpt=$4, category=$5, language=$6, tags=$7,
             cover_image_url=$8, blocks=$9::jsonb, schema_version=$10, seo_title=$11,
