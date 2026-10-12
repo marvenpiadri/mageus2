@@ -134,7 +134,7 @@ export class BusinessMenusPageComponent {
         sortOrder: index, isAvailable: item.isAvailable
       }))
     };
-    const invalidItem = payload.items.find((item) => !item.name || (item.priceAmount !== null && (!Number.isFinite(item.priceAmount) || item.priceAmount < 0)) || (item.imageUrl !== null && !this.isHttpUrl(item.imageUrl)) || !/^[A-Z]{3}$/.test(item.currency));
+    const invalidItem = payload.items.find((item) => !item.name || (item.priceAmount !== null && (!Number.isFinite(item.priceAmount) || item.priceAmount < 0)) || (item.imageUrl !== null && !this.isHttpsUrl(item.imageUrl)) || !/^[A-Z]{3}$/.test(item.currency));
     if (invalidItem) { this.error.set('Every menu item needs a name. Prices must be non-negative, and image links and currency codes must be valid.'); return; }
     this.saving.set(true); this.error.set(''); this.message.set('');
     const options = { headers: this.auth.authorizationHeaders() };
