@@ -87,6 +87,17 @@ export class PublicArticlePageComponent {
     return '/api/v1/articles';
   }
 
+  isStepBlock(block: ArticleBlock | undefined): boolean {
+    return block?.type === 'text' && block.presentation === 'step';
+  }
+
+  stepNumberAt(blocks: ArticleBlock[], index: number): number {
+    if (!this.isStepBlock(blocks[index])) return 0;
+    let number = 1;
+    for (let cursor = index - 1; cursor >= 0 && this.isStepBlock(blocks[cursor]); cursor--) number++;
+    return number;
+  }
+
   private updateSeo(article: PublicArticle): void {
     const pageTitle = (article.seo_title || article.title).trim();
     const description = (article.seo_description || article.excerpt || article.subtitle || '').trim().slice(0, 300);
