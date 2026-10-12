@@ -2,6 +2,13 @@ export const ARTICLE_SCHEMA_VERSION = 1 as const;
 
 export type ArticleBlockType =
   | 'text'
+  | 'heading'
+  | 'divider'
+  | 'callout'
+  | 'table'
+  | 'code'
+  | 'video'
+  | 'audio'
   | 'image'
   | 'gallery'
   | 'slide'
@@ -26,6 +33,54 @@ export interface ArticleBlockBase {
 export interface TextBlock extends ArticleBlockBase {
   type: 'text';
   html: string;
+}
+
+export interface HeadingBlock extends ArticleBlockBase {
+  type: 'heading';
+  text: string;
+  level: 2 | 3 | 4;
+  anchor?: string;
+}
+
+export interface DividerBlock extends ArticleBlockBase {
+  type: 'divider';
+  style: 'line' | 'dots' | 'space';
+}
+
+export interface CalloutBlock extends ArticleBlockBase {
+  type: 'callout';
+  title?: string;
+  body: string;
+  tone: 'note' | 'tip' | 'warning' | 'success';
+}
+
+export interface TableBlock extends ArticleBlockBase {
+  type: 'table';
+  headers: string[];
+  rows: string[][];
+  caption?: string;
+}
+
+export interface CodeBlock extends ArticleBlockBase {
+  type: 'code';
+  language: string;
+  code: string;
+  caption?: string;
+}
+
+export interface VideoBlock extends ArticleBlockBase {
+  type: 'video';
+  url: string;
+  title: string;
+  posterUrl?: string;
+  caption?: string;
+}
+
+export interface AudioBlock extends ArticleBlockBase {
+  type: 'audio';
+  url: string;
+  title: string;
+  caption?: string;
 }
 
 export interface ImageBlock extends ArticleBlockBase {
@@ -121,7 +176,7 @@ export interface MagazineReferenceBlock extends ArticleBlockBase {
 }
 
 export type ArticleBlock =
-  | TextBlock | ImageBlock | QuoteBlock | GalleryBlock | SlideBlock
+  | TextBlock | HeadingBlock | DividerBlock | CalloutBlock | TableBlock | CodeBlock | VideoBlock | AudioBlock | ImageBlock | QuoteBlock | GalleryBlock | SlideBlock
   | EmbedBlock | BeforeAfterBlock | HotspotBlock | TimelineBlock
   | StepsBlock | DataVizBlock | MathBlock | ProductBlock
   | ProductCollectionBlock | MagazineReferenceBlock;
