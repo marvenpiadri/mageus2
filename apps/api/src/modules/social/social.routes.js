@@ -146,8 +146,8 @@ socialRoutes.get('/profiles/:username', async (req, res, next) => {
     const articlesNextCursor = articles.rows.length > 12 && lastProfileArticle
       ? Buffer.from(JSON.stringify({ publishedAt: lastProfileArticle.published_at, id: lastProfileArticle.id })).toString('base64url')
       : null;
-    res.set('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=600');
-    res.set('X-Robots-Tag', 'index, follow');
+    res.set('Cache-Control', visibility === 'private' ? 'private, no-store' : 'public, max-age=30, s-maxage=120, stale-while-revalidate=600');
+    res.set('X-Robots-Tag', visibility === 'private' ? 'noindex, nofollow' : 'index, follow');
     return res.json({
       profile,
       locations: locations.rows,
