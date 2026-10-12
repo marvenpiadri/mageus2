@@ -33,7 +33,7 @@ test('public comment reading is distinct from authenticated comment creation', a
 test('public article view tracking uses privacy-preserving identifiers and repeat-view deduplication', async () => {
   const routes = await source('../src/modules/engagement/engagement.routes.js');
   assert.match(routes, /post\('\/articles\/:articleId\/views', async \(req, res, next\) => \{/);
-  assert.match(routes, /c\.owner_user_id = \$2/);
+  assert.match(routes, /createHmac\('sha256', hashSecret\)\.update\(ip\)\.digest\('hex'\)/);
   assert.match(routes, /viewer_user_id, anonymous_visitor_hash, referrer_host/);
   assert.match(routes, /interval '30 minutes'/);
   assert.doesNotMatch(routes, /anonymous_visitor_hash,\s*req\.ip/);
