@@ -26,7 +26,7 @@ engagementRoutes.post('/articles/:articleId/views', async (req, res, next) => {
   try {
     let viewerUserId = null;
     const authorization = req.headers.authorization ?? '';
-    const match = /^Bearer\\s+(.+)$/i.exec(authorization);
+    const match = /^Bearer\s+(.+)$/i.exec(authorization);
     if (match) {
       try {
         const identity = await verifyAccessToken(match[1]);
