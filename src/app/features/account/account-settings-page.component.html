@@ -1,0 +1,83 @@
+<section class="account-settings-page">
+  <header class="account-settings-header">
+    <a routerLink="/" class="settings-back">← Mageus</a>
+    <div><span class="settings-kicker">YOUR ACCOUNT</span><h1>Account settings</h1><p>Manage your identity, privacy, and sign-in preferences.</p></div>
+    <button type="button" class="settings-secondary" (click)="openPublicProfile()">View public profile ↗</button>
+  </header>
+
+  @if (loading()) {
+    <div class="settings-state"><span>✦</span><p>Loading your settings…</p></div>
+  } @else if (loadError()) {
+    <div class="settings-state settings-error"><h2>Settings unavailable</h2><p>{{ loadError() }}</p><button type="button" class="settings-primary" (click)="load()">Try again</button></div>
+  } @else {
+    <div class="settings-layout">
+      <nav class="settings-index" aria-label="Settings sections">
+        <a href="#profile-settings">Profile</a><a href="#privacy-settings">Privacy & preferences</a><a href="#password-settings">Password</a><a href="#connection-settings">Connected apps</a>
+      </nav>
+
+      <div class="settings-panels">
+        <section class="settings-panel" id="profile-settings">
+          <header><span class="panel-number">01</span><div><h2>Public profile</h2><p>This information appears on your Mageus channel.</p></div></header>
+          <form (submit)="$event.preventDefault(); saveProfile()">
+            <label>Username
+              <input name="username" autocomplete="username" required minlength="2" maxlength="30" pattern="[A-Za-z0-9][A-Za-z0-9._-]*" [value]="username()" (input)="username.set($any($event.target).value)" />
+              <small>Your public address will be /{{ username() }}.</small>
+            </label>
+            <label>Display name<input name="displayName" autocomplete="name" required maxlength="100" [value]="displayName()" (input)="displayName.set($any($event.target).value)" /></label>
+            <label>Bio<textarea name="bio" rows="3" maxlength="500" [value]="bio()" (input)="bio.set($any($event.target).value)" placeholder="What do you create or offer?"></textarea><small>{{ bio().length }} / 500</small></label>
+            <label>Avatar image URL<input name="avatarUrl" type="url" [value]="avatarUrl()" (input)="avatarUrl.set($any($event.target).value)" placeholder="https://…" /><small>Use a public HTTPS image URL. Image uploads can be added with media storage later.</small></label>
+            <div class="settings-form-footer">@if (profileMessage()) { <p aria-live="polite">{{ profileMessage() }}</p> }<button type="submit" class="settings-primary" [disabled]="profileBusy()">{{ profileBusy() ? 'Saving…' : 'Save profile' }}</button></div>
+          </form>
+          @if (profile()?.email) { <p class="account-email">Account email · {{ profile()?.email }}</p> }
+        </section>
+
+        <section class="settings-panel" id="privacy-settings">
+          <header><span class="panel-number">02</span><div><h2>Privacy & preferences</h2><p>Choose how Mageus presents your account and sends updates.</p></div></header>
+          <div class="settings-fields">
+            <label>Language / locale<input name="locale" maxlength="20" [value]="settings().locale" (input)="updateSettings({ locale: $any($event.target).value })" /></label>
+            <label>Time zone<input name="timezone" maxlength="100" [value]="settings().timezone" (input)="updateSettings({ timezone: $any($event.target).value })" placeholder="UTC" /></label>
+            <label>Appearance<select name="theme" [value]="settings().theme" (change)="updateSettings({ theme: $any($event.target).value })"><option value="system">Use device setting</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
+            <label>Profile visibility<select name="visibility" [value]="settings().profile_visibility" (change)="updateSettings({ profile_visibility: $any($event.target).value })"><option value="public">Public</option><option value="private">Private</option></select></label>
+          </div>
+          <div class="settings-toggles">
+            <label><span><strong>Discoverable by email</strong><small>Allow people who know your email to find your account.</small></span><input type="checkbox" [checked]="settings().discoverable_by_email" (change)="updateSettings({ discoverable_by_email: $any($event.target).checked })" /></label>
+            <label><span><strong>Email notifications</strong><small>Receive account and activity updates by email.</small></span><input type="checkbox" [checked]="settings().email_notifications" (change)="updateSettings({ email_notifications: $any($event.target).checked })" /></label>
+            <label><span><strong>Push notifications</strong><small>Allow supported devices to notify you about activity.</small></span><input type="checkbox" [checked]="settings().push_notifications" (change)="updateSettings({ push_notifications: $any($event.target).checked })" /></label>
+          </div>
+          <div class="settings-form-footer">@if (settingsMessage()) { <p aria-live="polite">{{ settingsMessage() }}</p> }<button type="button" class="settings-primary" [disabled]="settingsBusy()" (click)="saveSettings()">{{ settingsBusy() ? 'Saving…' : 'Save preferences' }}</button></div>
+          <p class="settings-note">Preference storage is ready; theme and notification delivery still depend on their respective app integrations.</p>
+        </section>
+
+        <section class="settings-panel" id="password-settings">
+          <header><span class="panel-number">03</span><div><h2>Password</h2><p>Change your password. Existing refresh sessions will be revoked.</p></div></header>
+          <form (submit)="$event.preventDefault(); changePassword()">
+            <label>Current password<input name="currentPassword" type="password" autocomplete="current-password" required [value]="currentPassword()" (input)="currentPassword.set($any($event.target).value)" /></label>
+            <label>New password<input name="newPassword" type="password" autocomplete="new-password" required minlength="12" maxlength="128" [value]="newPassword()" (input)="newPassword.set($any($event.target).value)" /><small>Use at least 12 characters.</small></label>
+            <div class="settings-form-footer">@if (passwordMessage()) { <p aria-live="polite">{{ passwordMessage() }}</p> }<button type="submit" class="settings-primary" [disabled]="passwordBusy()">{{ passwordBusy() ? 'Changing…' : 'Change password' }}</button></div>
+          </form>
+        </section>
+
+        <section class="settings-panel" id="connection-settings">
+          <header><span class="panel-number">04</span><div><h2>Connected apps & identities</h2><p>Review existing app connections and sign-in identities.</p></div></header>
+          @if (connections().length) {
+            <div class="connection-list">
+              @for (connection of connections(); track connection.application) {
+                <article class="connection-item"><span class="connection-mark">↗</span><div><strong>{{ connection.application }}</strong><small>@if (connection.external_username) { {{ connection.external_username }} · } Connected {{ connection.connected_at | date:'mediumDate' }}</small></div><button type="button" class="settings-secondary" [disabled]="disconnecting() === connection.application" (click)="disconnect(connection.application)">{{ disconnecting() === connection.application ? 'Disconnecting…' : 'Disconnect' }}</button></article>
+              }
+            </div>
+          } @else { <p class="settings-empty">No external applications are connected.</p> }
+          @if (identities().length) {
+            <h3 class="identity-heading">Sign-in identities</h3>
+            <div class="connection-list">
+              @for (identity of identities(); track identity.provider) {
+                <article class="connection-item"><span class="connection-mark">◎</span><div><strong>{{ identity.provider }}</strong><small>{{ identity.provider_email || 'Email not provided' }} · {{ identity.email_verified ? 'Verified' : 'Not verified' }}</small></div></article>
+              }
+            </div>
+          }
+          @if (connectionMessage()) { <p class="settings-message" aria-live="polite">{{ connectionMessage() }}</p> }
+          <p class="settings-note">Connecting new apps and linking external identities will be enabled when their authorization flows are ready.</p>
+        </section>
+      </div>
+    </div>
+  }
+</section>
