@@ -27,8 +27,18 @@ export async function listPublishedArticles({ limit, cursor }) {
   const values = [limit + 1];
   let cursorClause = '';
   if (cursor) {
-    values.push(cursor);
-    cursorClause = `AND a.published_at < $2::timestamptz`;
+    let decoded;
+    try { decoded = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')); } catch { decoded = null; }
+    if (!decoded || typeof decoded.publishedAt !== 'string' ||
+        !Number.isFinite(Date.parse(decoded.publishedAt)) ||
+        typeof decoded.id !== 'string' ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(decoded.id)) {
+      const error = new Error('Invalid article pagination cursor.');
+      error.name = 'InvalidCursorError';
+      throw error;
+    }
+    values.push(decoded.publishedAt, decoded.id);
+    cursorClause = `AND (a.published_at, a.id) < ($2::timestamptz, $3::uuid)`;
   }
 
   const { rows } = await pool.query(
@@ -44,8 +54,11 @@ export async function listPublishedArticles({ limit, cursor }) {
   );
   const hasMore = rows.length > limit;
   const items = rows.slice(0, limit);
+  const last = items.at(-1);
   return {
     items,
-    nextCursor: hasMore ? items.at(-1)?.published_at ?? null : null
+    nextCursor: hasMore && last
+      ? Buffer.from(JSON.stringify({ publishedAt: last.published_at, id: last.id })).toString('base64url')
+      : null
   };
 }
