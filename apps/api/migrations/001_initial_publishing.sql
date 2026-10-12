@@ -3,12 +3,16 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE TABLE IF NOT EXISTS users (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   email text NOT NULL,
+  username text NOT NULL,
+  display_name text NOT NULL,
   password_hash text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT users_email_normalized CHECK (email = lower(btrim(email)))
+  CONSTRAINT users_email_normalized CHECK (email = lower(btrim(email))),
+  CONSTRAINT users_username_format CHECK (username ~ '^[a-z0-9][a-z0-9._-]{1,29}$')
 );
 CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique ON users (email);
+CREATE UNIQUE INDEX IF NOT EXISTS users_username_unique ON users (username);
 
 CREATE TABLE IF NOT EXISTS channels (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
