@@ -9,6 +9,7 @@ import { engagementRoutes } from './modules/engagement/engagement.routes.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { socialRoutes } from './modules/social/social.routes.js';
 import { accountRoutes } from './modules/account/account.routes.js';
+import { magazineRoutes } from './modules/magazines/magazine.routes.js';
 
 export const app = express();
 app.disable('x-powered-by');
@@ -45,6 +46,7 @@ app.use('/api/v1/articles', articleRoutes);
 app.use('/api/v1/engagement', engagementRoutes);
 app.use('/api/v1/social', socialRoutes);
 app.use('/api/v1/account', accountRoutes);
+app.use('/api/v1/magazines', magazineRoutes);
 
 app.use((req, res) => res.status(404).json({
   error: { code: 'NOT_FOUND', message: 'Endpoint not found.' }
