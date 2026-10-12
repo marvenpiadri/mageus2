@@ -71,6 +71,12 @@ export class PublicProfilePageComponent {
   readonly following = signal(false);
   readonly followBusy = signal(false);
   readonly followMessage = signal('');
+  readonly editingProfile = signal(false);
+  readonly profileDisplayName = signal('');
+  readonly profileBio = signal('');
+  readonly profileAvatarUrl = signal('');
+  readonly profileSaveBusy = signal(false);
+  readonly profileSaveMessage = signal('');
   private readonly apiBase = this.resolveApiBase();
 
   constructor() {
@@ -90,6 +96,13 @@ export class PublicProfilePageComponent {
       takeUntilDestroyed(this.destroyRef)
     ).subscribe((data) => {
       this.profileData.set(data);
+      if (data) {
+        this.profileDisplayName.set(data.profile.display_name || '');
+        this.profileBio.set(data.profile.bio || '');
+        this.profileAvatarUrl.set(data.profile.avatar_url || '');
+      }
+      this.editingProfile.set(false);
+      this.profileSaveMessage.set('');
       this.loading.set(false);
       this.notFound.set(!data);
       this.section.set('articles');
@@ -102,6 +115,55 @@ export class PublicProfilePageComponent {
         this.meta.updateTag({ property: 'og:title', content: `@${data.profile.username} · ${name}` });
         this.meta.updateTag({ property: 'og:description', content: data.profile.bio || `Explore ${name} on Mageus.` });
         if (data.profile.avatar_url) this.meta.updateTag({ property: 'og:image', content: data.profile.avatar_url });
+      }
+    });
+  }
+
+  startEditingProfile(): void {
+    const profile = this.profileData()?.profile;
+    if (!profile || !this.isOwnProfile(profile.username)) return;
+    this.profileDisplayName.set(profile.display_name || '');
+    this.profileBio.set(profile.bio || '');
+    this.profileAvatarUrl.set(profile.avatar_url || '');
+    this.profileSaveMessage.set('');
+    this.editingProfile.set(true);
+  }
+
+  cancelEditingProfile(): void {
+    this.editingProfile.set(false);
+    this.profileSaveMessage.set('');
+  }
+
+  saveProfile(): void {
+    if (this.profileSaveBusy()) return;
+    const displayName = this.profileDisplayName().trim();
+    const bio = this.profileBio().trim();
+    const avatarInput = this.profileAvatarUrl().trim();
+    if (!displayName) {
+      this.profileSaveMessage.set('Add a display name before saving.');
+      return;
+    }
+    if (avatarInput && !avatarInput.startsWith('https://')) {
+      this.profileSaveMessage.set('Use an HTTPS URL for the profile image, or leave it empty.');
+      return;
+    }
+    this.profileSaveBusy.set(true);
+    this.profileSaveMessage.set('');
+    this.http.patch<{ profile: { id: string; username: string; display_name: string; bio: string; avatar_url: string | null; created_at: string } }>(
+      '/api/v1/social/me/profile',
+      { displayName, bio, avatarUrl: avatarInput || null },
+      { headers: this.auth.authorizationHeaders() }
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (result) => {
+        this.profileData.update((data) => data ? { ...data, profile: { ...data.profile, ...result.profile } } : data);
+        this.auth.user.update((user) => user ? { ...user, displayName: result.profile.display_name } : user);
+        this.profileSaveMessage.set('Profile updated.');
+        this.profileSaveBusy.set(false);
+        this.editingProfile.set(false);
+      },
+      error: (error) => {
+        this.profileSaveMessage.set(error?.error?.error?.message || 'Your profile could not be saved. Please try again.');
+        this.profileSaveBusy.set(false);
       }
     });
   }
