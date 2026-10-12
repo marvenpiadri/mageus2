@@ -18,6 +18,11 @@ export class ArticleBlockEditorComponent {
 
   plainText(html: string): string { return html.replace(/<[^>]*>/g, ''); }
 
+  updateHeadingLevel(value: string): void {
+    const level = Number(value);
+    if (level === 2 || level === 3 || level === 4) this.patch({ level });
+  }
+
   updateNestedItem(index: number, field: string, value: string | number): void {
     const block = this.block();
     const update = <T extends object>(items: T[]): T[] => items.map((item, i) => i === index ? ({ ...item, [field]: value } as T) : item);
