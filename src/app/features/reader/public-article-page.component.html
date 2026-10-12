@@ -23,7 +23,7 @@
     </div>
   }
   <div class="reading-progress"><span [style.width.%]="progress()"></span></div>
-  <div class="public-reader-scroll" (scroll)="onScroll($event)">
+  <div class="public-reader-scroll" data-scroll-owner="newspaper" (scroll)="onScroll($event)">
     @if (loading()) {
       <div class="public-reader-state"><span class="empty-mark">✦</span><p>Opening story…</p></div>
     } @else if (notFound() || !article()) {
