@@ -14,6 +14,8 @@ export const articleBlockSchema = z.discriminatedUnion('type', [
   z.object({ ...base, type: z.literal('text'), html: z.string().max(100_000) }),
   z.object({ ...base, type: z.literal('heading'), text: z.string().trim().min(1).max(300), level: z.union([z.literal(2), z.literal(3), z.literal(4)]), anchor: z.string().max(120).optional() }),
   z.object({ ...base, type: z.literal('divider'), style: z.enum(['line', 'dots', 'space']) }),
+  z.object({ ...base, type: z.literal('callout'), title: shortText.optional(), body: z.string().max(10_000), tone: z.enum(['note', 'tip', 'warning', 'success']) }),
+  z.object({ ...base, type: z.literal('table'), headers: z.array(z.string().max(500)).min(1).max(20), rows: z.array(z.array(z.string().max(2_000)).max(20)).max(200), caption: shortText.optional() }),
   z.object({ ...base, type: z.literal('image'), imageUrl: urlOrEmpty, alt: z.string().max(500), caption: shortText.optional(), credit: shortText.optional(), width: z.enum(['normal', 'wide', 'full']) }),
   z.object({ ...base, type: z.literal('gallery'), images: z.array(z.object({ url: urlOrEmpty, alt: z.string().max(500), caption: shortText.optional() })).max(100), layout: z.enum(['grid', 'masonry', 'strip', 'carousel']) }),
   z.object({ ...base, type: z.literal('slide'), slides: z.array(z.object({ imageUrl: urlOrEmpty, label: shortText.optional(), href: urlOrEmpty.optional() })).max(100), ratio: z.enum(['9:16', '1:1', '16:9']) }),
