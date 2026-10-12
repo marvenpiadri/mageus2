@@ -1,4 +1,5 @@
 .business-page { width: min(100% - 2rem, 1180px); margin: 0 auto; padding: clamp(1.5rem, 4vw, 3.5rem) 0 6rem; color: var(--text-primary, #f6f6fb); }
+.business-links { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; }
 .business-back { color: var(--text-muted, #a8adbb); font-size: .8rem; text-decoration: none; }
 .business-heading { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 1.2rem; margin: 1.4rem 0 2rem; }
 .business-kicker { color: var(--accent, #66ccc3); font-size: .66rem; font-weight: 750; letter-spacing: .15em; }
