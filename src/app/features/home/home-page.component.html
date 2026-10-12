@@ -1,0 +1,22 @@
+<section class="home-page">
+  <div class="eyebrow"><span class="eyebrow-line"></span> THE MAGEUS READING ROOM</div>
+  <div class="intro-row">
+    <div>
+      <h1>Ideas deserve<br><em>a place to unfold.</em></h1>
+      <p class="intro-copy">Long-form stories, visual essays, and collections made for curious minds.</p>
+    </div>
+    <a class="studio-shortcut" routerLink="/write"><span class="shortcut-icon">↗</span><span><strong>Enter the studio</strong><small>Compose an article</small></span></a>
+  </div>
+  <div class="section-heading"><div><span class="section-kicker">CURATED FOR YOU</span><h2>Stories worth staying for</h2></div><span class="count-label">01 — 03</span></div>
+  <div class="article-grid">
+    @for (article of articles; track article.id; let i = $index) {
+      <a class="article-card" [routerLink]="['/article', article.id]">
+        <div class="card-image" [style.background-image]="'url(' + article.image + ')'"><span class="card-number">0{{ i + 1 }}</span><span class="card-open" aria-hidden="true">↗</span></div>
+        <div class="card-meta"><span>{{ article.category }}</span><span>{{ article.time }}</span></div>
+        <h3>{{ article.title }}</h3><p>{{ article.subtitle }}</p>
+        <div class="card-author"><span class="author-mark">M</span><span>{{ article.author }}</span><span class="author-rule"></span></div>
+      </a>
+    }
+  </div>
+  <footer class="home-footer"><span>READ WITH INTENTION</span><span>SCROLL SLOWLY · STAY CURIOUS</span></footer>
+</section>
