@@ -298,6 +298,7 @@ export class ArticleStudioPageComponent {
       };
       const saved = await this.api.saveDraft(payload, this.serverArticleId(), this.serverRevision());
       this.serverArticleId.set(saved.id); this.serverRevision.set(saved.revision); this.persistDraft(); this.statusMessage.set('Draft synced to your Mageus account.');
+      void this.refreshServerDrafts();
       return true;
     } catch (error: any) { this.statusMessage.set(error?.error?.error?.message || error?.message || 'Could not sync. Your local recovery copy is safe.'); return false; }
   }
