@@ -241,8 +241,7 @@ export class ArticleStudioPageComponent {
   }
 
   async openServerDraft(id: string): Promise<void> {
-    if (isPlatformBrowser(this.platformId) &&
-        (this.title().trim() || this.blocks().length > 0) &&
+    if (isPlatformBrowser(this.platformId) && this.hasEditorContent() &&
         !globalThis.confirm('Replace the current editor contents with this server draft? Export your local draft first if you want to keep these unsynced changes.')) return;
     try {
       const draft = await this.api.loadDraft(id);
@@ -264,6 +263,16 @@ export class ArticleStudioPageComponent {
     } catch (error: any) {
       this.statusMessage.set(error?.error?.error?.message || error?.message || 'Could not reload the server draft.');
     }
+  }
+
+  private hasEditorContent(): boolean {
+    return Boolean(
+      this.title().trim() || this.subtitle().trim() || this.slug().trim() ||
+      this.excerpt().trim() || this.category().trim() || this.tags().length ||
+      this.coverImageUrl().trim() || this.seoTitle().trim() ||
+      this.seoDescription().trim() || this.canonicalUrl().trim() ||
+      this.blocks().length
+    );
   }
 
   private applyServerDraft(draft: SyncedArticleDraft): void {
