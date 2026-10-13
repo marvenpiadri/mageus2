@@ -41,6 +41,14 @@ jobs:
           fi
           grep -q 'THE MAGEUS READING ROOM' /tmp/mageus-home.html
           grep -q 'Ideas deserve' /tmp/mageus-home.html
+          article_status=$(curl --silent --show-error --output /tmp/mageus-article.html --write-out '%{http_code}' http://localhost:4173/ssr-smoke-test/article || true)
+          if [ "$article_status" != "200" ]; then
+            echo "Public article SSR smoke test returned HTTP $article_status"
+            cat /tmp/mageus-ssr.log
+            cat /tmp/mageus-article.html || true
+            exit 1
+          fi
+          grep -q 'Story not found' /tmp/mageus-article.html
   api-check:
     runs-on: ubuntu-latest
     defaults:
