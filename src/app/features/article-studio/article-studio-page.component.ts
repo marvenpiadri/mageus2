@@ -344,6 +344,47 @@ export class ArticleStudioPageComponent {
     this.statusMessage.set('Draft exported as a portable document.');
   }
 
+  async importDraft(event: Event): Promise<void> {
+    if (!isPlatformBrowser(this.platformId)) return;
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      const parsed: unknown = JSON.parse(await file.text());
+      if (!parsed || typeof parsed !== 'object') throw new Error('The file is not a Mageus draft document.');
+      const draft = parsed as Partial<StudioDraft>;
+      if (draft.version !== 1 || !Array.isArray(draft.blocks) ||
+          draft.blocks.some((block) => !block || typeof block !== 'object' ||
+            typeof (block as ArticleBlock).id !== 'string' || typeof (block as ArticleBlock).type !== 'string')) {
+        throw new Error('This draft file has an unsupported format or invalid block entries.');
+      }
+      if (this.hasEditorContent() &&
+          !globalThis.confirm('Replace the current editor contents with this imported draft? Export your current draft first if you want to keep it.')) return;
+      this.title.set(typeof draft.title === 'string' ? draft.title : '');
+      this.subtitle.set(typeof draft.subtitle === 'string' ? draft.subtitle : '');
+      this.slug.set(typeof draft.slug === 'string' ? draft.slug : this.slugify(typeof draft.title === 'string' ? draft.title : ''));
+      this.excerpt.set(typeof draft.excerpt === 'string' ? draft.excerpt : '');
+      this.category.set(typeof draft.category === 'string' ? draft.category : '');
+      this.language.set(typeof draft.language === 'string' ? draft.language : 'en');
+      this.tags.set(Array.isArray(draft.tags) ? draft.tags.filter((tag): tag is string => typeof tag === 'string').slice(0, 30) : []);
+      this.coverImageUrl.set(typeof draft.coverImageUrl === 'string' ? draft.coverImageUrl : '');
+      this.seoTitle.set(typeof draft.seoTitle === 'string' ? draft.seoTitle : '');
+      this.seoDescription.set(typeof draft.seoDescription === 'string' ? draft.seoDescription : '');
+      this.canonicalUrl.set(typeof draft.canonicalUrl === 'string' ? draft.canonicalUrl : '');
+      this.blocks.set(draft.blocks);
+      // Portable imports must never silently overwrite the server article referenced by the exported copy.
+      this.serverArticleId.set(null);
+      this.serverRevision.set(null);
+      this.validationMessages.set(this.validateDraft());
+      this.persistDraft();
+      this.statusMessage.set('Draft imported locally. Review validation notes, then sync to create a separate server draft.');
+    } catch (error: unknown) {
+      this.statusMessage.set(error instanceof Error ? error.message : 'Could not import this draft file.');
+    } finally {
+      input.value = '';
+    }
+  }
+
   private markChanged(): void {
     this.statusMessage.set('Unsaved changes');
     this.persistDraft();
