@@ -23,6 +23,12 @@ Scope:
 - Verify production build, API checks, migrations on clean PostgreSQL, and key article/authentication journeys.
 - Identify blockers with reproducible evidence instead of repeated speculative test loops.
 
+Completed in this phase so far:
+- Added this phased roadmap and explicit acceptance gates.
+- Added browser-only, post-render mood preference restoration. The server uses the stable default mood, storage failures are handled safely, and valid selections are saved for future visits.
+- Fixed access-token expiry bookkeeping so `ensureAccessToken()` can recognize a valid token rather than always attempting refresh.
+- Removed the duplicate session restore from the root component; the app initializer is the single startup restoration path. Concurrent refresh attempts share one in-flight request.
+
 Acceptance:
 - Production Angular build and API checks pass.
 - SSR does not access browser globals during server rendering.
@@ -93,6 +99,6 @@ Acceptance:
 
 Implemented in the repository: Angular 22 SSR foundation; custom visual shell and mood selector; typed/versioned article blocks; article studio and public reader; channel/profile and social APIs; magazine/issue APIs and profile surfaces; business location, storefront, product/service, and location-menu surfaces; PostgreSQL migrations and API tests.
 
-Still requiring focused verification/completion: real target-database migration; deployed SSR and crawler output; browser acceptance against the deployed environment; persistent reading preferences; media selection and block-specific editor polish; complete magazine/issue management journeys; moderation/search/discovery improvements; end-to-end social and commerce workflows; security, accessibility, performance, backup, and rollback checks.
+Still requiring focused verification/completion: real target-database migration; deployed SSR and crawler output; browser acceptance against the deployed environment; media selection and block-specific editor polish; complete magazine/issue management journeys; moderation/search/discovery improvements; end-to-end social and commerce workflows; security, accessibility, performance, backup, and rollback checks.
 
 A green build or clean-database migration test is not evidence that the deployed database or live application has been verified.
