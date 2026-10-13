@@ -6,6 +6,8 @@
       <button class="save-button" type="button" (click)="exportDraft()">Export draft</button>
       <button class="save-button" type="button" (click)="draftImport.click()">Import draft</button>
       <input #draftImport class="draft-import-input" type="file" accept=".json,application/json" (change)="importDraft($event)" aria-label="Import a Mageus draft file" />
+      <button class="save-button" type="button" (click)="undo()" [disabled]="!canUndo()" title="Undo (Ctrl/Cmd+Z)">Undo</button>
+      <button class="save-button" type="button" (click)="redo()" [disabled]="!canRedo()" title="Redo (Ctrl/Cmd+Shift+Z)">Redo</button>
       <button class="save-button" type="button" (click)="saveDraft()">Save local draft</button>
     <button class="save-button" type="button" (click)="syncDraft()">Sync draft</button>
     @if (serverArticleId()) { <button class="save-button" type="button" (click)="reloadServerDraft()">Reload server version</button> }
