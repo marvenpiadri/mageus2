@@ -5,7 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { ArticleBlock, ArticleBlockType } from '../../domain/article.model';
 import { ARTICLE_BLOCK_TOOLS, createEmptyBlock } from './article-block-registry';
 import { AuthService } from '../../core/auth/auth.service';
-import { ArticleApiService, ArticleDraftPayload } from '../../core/services/article-api.service';
+import { ArticleApiService, ArticleDraftPayload, SyncedArticleDraft } from '../../core/services/article-api.service';
 import { ArticleBlockEditorComponent } from './article-block-editor.component';
 import { ArticleBlockRendererComponent } from './article-block-renderer.component';
 import { ArticleDocument, validateArticleDocument } from './article-document';
@@ -66,11 +66,16 @@ export class ArticleStudioPageComponent {
   readonly statusMessage = signal('Draft stored on this device when you edit');
   readonly validationMessages = signal<string[]>([]);
   readonly lastSavedAt = signal<string | null>(null);
+  readonly serverDrafts = signal<SyncedArticleDraft[]>([]);
+  readonly draftsLoading = signal(false);
 
   readonly tools = ARTICLE_BLOCK_TOOLS;
 
   constructor() {
-    if (isPlatformBrowser(this.platformId)) this.restoreDraft();
+    if (isPlatformBrowser(this.platformId)) {
+      this.restoreDraft();
+      if (this.auth.isAuthenticated()) void this.refreshServerDrafts();
+    }
   }
 
   plainText(html: string): string { return html.replace(/<[^>]*>/g, ''); }
@@ -223,32 +228,61 @@ export class ArticleStudioPageComponent {
     this.statusMessage.set(errors.length ? 'Local draft saved · resolve validation notes before publishing.' : 'Local draft saved. Use Sync draft to save it to your account.');
   }
 
+  async refreshServerDrafts(): Promise<void> {
+    if (!isPlatformBrowser(this.platformId) || this.draftsLoading()) return;
+    this.draftsLoading.set(true);
+    try {
+      this.serverDrafts.set(await this.api.listDrafts());
+    } catch (error: any) {
+      this.statusMessage.set(error?.error?.error?.message || error?.message || 'Could not load your server drafts.');
+    } finally {
+      this.draftsLoading.set(false);
+    }
+  }
+
+  async openServerDraft(id: string): Promise<void> {
+    if (isPlatformBrowser(this.platformId) &&
+        (this.title().trim() || this.blocks().length > 0) &&
+        !globalThis.confirm('Replace the current editor contents with this server draft? Export your local draft first if you want to keep these unsynced changes.')) return;
+    try {
+      const draft = await this.api.loadDraft(id);
+      this.applyServerDraft(draft);
+      this.statusMessage.set('Server draft opened. Your next sync will use its revision.');
+    } catch (error: any) {
+      this.statusMessage.set(error?.error?.error?.message || error?.message || 'Could not open the server draft.');
+    }
+  }
+
   async reloadServerDraft(): Promise<void> {
     const id = this.serverArticleId();
     if (!id) return;
     if (isPlatformBrowser(this.platformId) &&
         !globalThis.confirm('Replace the current editor contents with the latest server draft? Export your local draft first if you want to keep these unsynced changes.')) return;
     try {
-      const draft = await this.api.loadDraft(id);
-      this.title.set(draft.title ?? '');
-      this.subtitle.set(draft.subtitle ?? '');
-      this.slug.set(draft.slug ?? '');
-      this.excerpt.set(draft.excerpt ?? '');
-      this.category.set(draft.category ?? '');
-      this.language.set(draft.language ?? 'en');
-      this.tags.set(draft.tags ?? []);
-      this.coverImageUrl.set(draft.cover_image_url ?? '');
-      this.seoTitle.set(draft.seo_title ?? '');
-      this.seoDescription.set(draft.seo_description ?? '');
-      this.canonicalUrl.set(draft.canonical_url ?? '');
-      this.blocks.set(draft.blocks ?? []);
-      this.serverRevision.set(draft.revision);
-      this.validationMessages.set([]);
-      this.persistDraft();
+      this.applyServerDraft(await this.api.loadDraft(id));
       this.statusMessage.set('Loaded the latest server version. Your next sync will use its revision.');
     } catch (error: any) {
       this.statusMessage.set(error?.error?.error?.message || error?.message || 'Could not reload the server draft.');
     }
+  }
+
+  private applyServerDraft(draft: SyncedArticleDraft): void {
+    this.title.set(draft.title ?? '');
+    this.subtitle.set(draft.subtitle ?? '');
+    this.slug.set(draft.slug ?? '');
+    this.excerpt.set(draft.excerpt ?? '');
+    this.category.set(draft.category ?? '');
+    this.language.set(draft.language ?? 'en');
+    this.tags.set(draft.tags ?? []);
+    this.coverImageUrl.set(draft.cover_image_url ?? '');
+    this.seoTitle.set(draft.seo_title ?? '');
+    this.seoDescription.set(draft.seo_description ?? '');
+    this.canonicalUrl.set(draft.canonical_url ?? '');
+    this.blocks.set(draft.blocks ?? []);
+    this.serverArticleId.set(draft.id);
+    this.serverRevision.set(draft.revision);
+    this.validationMessages.set([]);
+    this.persistDraft();
   }
 
   async syncDraft(): Promise<boolean> {
