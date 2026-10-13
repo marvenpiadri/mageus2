@@ -14,6 +14,7 @@ export class AuthService {
   private readonly tokenState = signal<string | null>(null);
   private readonly tokenExpiresAt = signal(0);
   private readonly expiresAt = signal<number>(0);
+  private restoreInFlight: Promise<boolean> | null = null;
   readonly user = signal<MageusUser | null>(null);
   readonly isAuthenticated = computed(() => !!this.tokenState() && !!this.user());
   get accessToken(): string | null { return this.tokenState(); }
@@ -30,11 +31,21 @@ export class AuthService {
 
   async restoreSession(): Promise<boolean> {
     if (!isPlatformBrowser(this.platformId)) return false;
-    try {
-      const response = await firstValueFrom(this.http.post<AuthResponse>(`${this.api}/refresh`, {}, { withCredentials: true }));
-      this.setSession(response);
-      return true;
-    } catch { this.clearSession(); return false; }
+    if (this.restoreInFlight) return this.restoreInFlight;
+
+    this.restoreInFlight = (async () => {
+      try {
+        const response = await firstValueFrom(this.http.post<AuthResponse>(`${this.api}/refresh`, {}, { withCredentials: true }));
+        this.setSession(response);
+        return true;
+      } catch {
+        this.clearSession();
+        return false;
+      } finally {
+        this.restoreInFlight = null;
+      }
+    })();
+    return this.restoreInFlight;
   }
 
   async login(credential: string, password: string): Promise<void> {
@@ -58,9 +69,16 @@ export class AuthService {
   }
 
   private setSession(response: AuthResponse): void {
+    const expiresAt = Date.now() + response.expiresIn * 1000;
     this.tokenState.set(response.accessToken);
-    this.expiresAt.set(Date.now() + response.expiresIn * 1000);
+    this.tokenExpiresAt.set(expiresAt);
+    this.expiresAt.set(expiresAt);
     this.user.set(response.user);
   }
-  private clearSession(): void { this.tokenState.set(null); this.expiresAt.set(0); this.user.set(null); }
+  private clearSession(): void {
+    this.tokenState.set(null);
+    this.tokenExpiresAt.set(0);
+    this.expiresAt.set(0);
+    this.user.set(null);
+  }
 }
