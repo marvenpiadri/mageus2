@@ -1,6 +1,6 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, DestroyRef, PLATFORM_ID, REQUEST, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, PLATFORM_ID, computed, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { catchError, of } from 'rxjs';
@@ -35,7 +35,6 @@ interface PublishedArticleList {
 export class HomePageComponent {
   private readonly http = inject(HttpClient);
   private readonly platformId = inject(PLATFORM_ID);
-  private readonly request = inject(REQUEST, { optional: true });
   private readonly destroyRef = inject(DestroyRef);
   private readonly exploration = inject(ExplorationStateService);
 
@@ -59,12 +58,15 @@ export class HomePageComponent {
   }
 
   private loadPage(replace: boolean): void {
+    // Never SSR-fetch the frontend's own /api path: without MAGEUS_API_URL that can
+    // recursively render this page instead of reaching the separate API service.
+    if (!isPlatformBrowser(this.platformId) && !this.apiBase) return;
     const current = this.listState();
     if (current.loading || (!replace && !current.hasMore)) return;
     this.exploration.patch<HomeArticle>(this.listKey, { loading: true, failed: false });
     const cursor = replace ? null : current.nextCursor;
     const cursorQuery = cursor ? `&cursor=${encodeURIComponent(cursor)}` : '';
-    this.http.get<PublishedArticleList>(`${this.apiBase}?limit=6${cursorQuery}`).pipe(
+    this.http.get<PublishedArticleList>(`${this.apiBase ?? '/api/v1/articles'}?limit=6${cursorQuery}`).pipe(
       catchError(() => {
         this.exploration.patch<HomeArticle>(this.listKey, { loading: false, failed: true });
         return of(null);
@@ -80,13 +82,12 @@ export class HomePageComponent {
     });
   }
 
-  private resolveApiBase(): string {
+  private resolveApiBase(): string | null {
     if (typeof process !== 'undefined' && process.env['MAGEUS_API_URL']) {
       return process.env['MAGEUS_API_URL'].replace(/\/$/, '') + '/articles';
     }
-    if (!isPlatformBrowser(this.platformId) && this.request?.url) {
-      return new URL('/api/v1/articles', this.request.url).toString();
-    }
-    return '/api/v1/articles';
+    // The browser can use the same-origin proxy. SSR must use an explicit API origin;
+    // falling back to the page origin can cause a recursive self-request.
+    return isPlatformBrowser(this.platformId) ? '/api/v1/articles' : null;
   }
 }
