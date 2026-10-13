@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, PLATFORM_ID, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, PLATFORM_ID, inject, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -29,6 +29,11 @@ interface StudioDraft {
   blocks: ArticleBlock[];
   savedAt: string;
 }
+
+type EditorSnapshot = Pick<StudioDraft,
+  'title' | 'subtitle' | 'slug' | 'excerpt' | 'category' | 'language' | 'tags' |
+  'coverImageUrl' | 'seoTitle' | 'seoDescription' | 'canonicalUrl' | 'blocks'
+>;
 
 const DRAFT_KEY = 'mageus:article-studio:draft:v1';
 
@@ -68,12 +73,18 @@ export class ArticleStudioPageComponent {
   readonly lastSavedAt = signal<string | null>(null);
   readonly serverDrafts = signal<SyncedArticleDraft[]>([]);
   readonly draftsLoading = signal(false);
+  readonly canUndo = signal(false);
+  readonly canRedo = signal(false);
+  private undoHistory: EditorSnapshot[] = [];
+  private redoHistory: EditorSnapshot[] = [];
+  private lastHistorySnapshot = '';
 
   readonly tools = ARTICLE_BLOCK_TOOLS;
 
   constructor() {
     if (isPlatformBrowser(this.platformId)) {
       this.restoreDraft();
+      this.lastHistorySnapshot = JSON.stringify(this.captureEditorSnapshot());
       if (this.auth.isAuthenticated()) void this.refreshServerDrafts();
     }
   }
@@ -291,6 +302,7 @@ export class ArticleStudioPageComponent {
     this.serverArticleId.set(draft.id);
     this.serverRevision.set(draft.revision);
     this.validationMessages.set([]);
+    this.resetHistory();
     this.persistDraft();
   }
 
@@ -376,6 +388,7 @@ export class ArticleStudioPageComponent {
       this.serverArticleId.set(null);
       this.serverRevision.set(null);
       this.validationMessages.set(this.validateDraft());
+      this.resetHistory();
       this.persistDraft();
       this.statusMessage.set('Draft imported locally. Review validation notes, then sync to create a separate server draft.');
     } catch (error: unknown) {
@@ -385,7 +398,98 @@ export class ArticleStudioPageComponent {
     }
   }
 
+  undo(): void {
+    const previous = this.undoHistory.pop();
+    if (!previous) return;
+    this.redoHistory.push(this.captureEditorSnapshot());
+    this.applyEditorSnapshot(previous);
+    this.lastHistorySnapshot = JSON.stringify(previous);
+    this.updateHistoryAvailability();
+    this.persistDraft();
+    this.statusMessage.set('Undo applied · saved locally');
+  }
+
+  redo(): void {
+    const next = this.redoHistory.pop();
+    if (!next) return;
+    this.undoHistory.push(this.captureEditorSnapshot());
+    this.applyEditorSnapshot(next);
+    this.lastHistorySnapshot = JSON.stringify(next);
+    this.updateHistoryAvailability();
+    this.persistDraft();
+    this.statusMessage.set('Redo applied · saved locally');
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  onStudioShortcut(event: KeyboardEvent): void {
+    if (!isPlatformBrowser(this.platformId) || !(event.ctrlKey || event.metaKey) || event.altKey) return;
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+    const key = event.key.toLowerCase();
+    if (key === 'z' && event.shiftKey) {
+      event.preventDefault();
+      this.redo();
+    } else if (key === 'z') {
+      event.preventDefault();
+      this.undo();
+    } else if (key === 'y') {
+      event.preventDefault();
+      this.redo();
+    }
+  }
+
+  private captureEditorSnapshot(): EditorSnapshot {
+    return {
+      title: this.title(), subtitle: this.subtitle(), slug: this.slug(), excerpt: this.excerpt(),
+      category: this.category(), language: this.language(), tags: [...this.tags()],
+      coverImageUrl: this.coverImageUrl(), seoTitle: this.seoTitle(),
+      seoDescription: this.seoDescription(), canonicalUrl: this.canonicalUrl(),
+      blocks: JSON.parse(JSON.stringify(this.blocks())) as ArticleBlock[]
+    };
+  }
+
+  private applyEditorSnapshot(snapshot: EditorSnapshot): void {
+    this.title.set(snapshot.title);
+    this.subtitle.set(snapshot.subtitle);
+    this.slug.set(snapshot.slug ?? '');
+    this.excerpt.set(snapshot.excerpt ?? '');
+    this.category.set(snapshot.category ?? '');
+    this.language.set(snapshot.language ?? 'en');
+    this.tags.set([...(snapshot.tags ?? [])]);
+    this.coverImageUrl.set(snapshot.coverImageUrl ?? '');
+    this.seoTitle.set(snapshot.seoTitle ?? '');
+    this.seoDescription.set(snapshot.seoDescription ?? '');
+    this.canonicalUrl.set(snapshot.canonicalUrl ?? '');
+    this.blocks.set(JSON.parse(JSON.stringify(snapshot.blocks)) as ArticleBlock[]);
+  }
+
+  private resetHistory(): void {
+    this.undoHistory = [];
+    this.redoHistory = [];
+    this.lastHistorySnapshot = JSON.stringify(this.captureEditorSnapshot());
+    this.updateHistoryAvailability();
+  }
+
+  private updateHistoryAvailability(): void {
+    this.canUndo.set(this.undoHistory.length > 0);
+    this.canRedo.set(this.redoHistory.length > 0);
+  }
+
   private markChanged(): void {
+    const current = this.captureEditorSnapshot();
+    const serialized = JSON.stringify(current);
+    if (this.lastHistorySnapshot && serialized !== this.lastHistorySnapshot) {
+      try {
+        this.undoHistory.push(JSON.parse(this.lastHistorySnapshot) as EditorSnapshot);
+        if (this.undoHistory.length > 100) this.undoHistory.shift();
+        this.redoHistory = [];
+      } catch {
+        this.undoHistory = [];
+        this.redoHistory = [];
+      }
+      this.lastHistorySnapshot = serialized;
+      this.updateHistoryAvailability();
+    }
     this.statusMessage.set('Unsaved changes');
     this.persistDraft();
   }
