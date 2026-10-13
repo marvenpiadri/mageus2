@@ -19,6 +19,9 @@ export interface SyncedArticleDraft {
   seo_title: string | null;
   seo_description: string | null;
   canonical_url: string | null;
+  status?: string;
+  updated_at?: string;
+  created_at?: string;
 }
 
 export interface ArticleDraftPayload {
@@ -42,6 +45,14 @@ export class ArticleApiService {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
   private readonly endpoint = '/api/v1/articles';
+
+  async listDrafts(): Promise<SyncedArticleDraft[]> {
+    if (!(await this.auth.ensureSession())) throw new Error('Sign in to view your server drafts.');
+    const response = await firstValueFrom(this.http.get<{ articles: SyncedArticleDraft[] }>(`${this.endpoint}/mine`, {
+      headers: this.auth.authorizationHeaders()
+    }));
+    return response.articles.filter((article) => article.status === 'draft');
+  }
 
   async loadDraft(articleId: string): Promise<SyncedArticleDraft> {
     if (!(await this.auth.ensureSession())) throw new Error('Sign in to load your server draft.');
