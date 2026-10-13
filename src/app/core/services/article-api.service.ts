@@ -22,6 +22,7 @@ export interface SyncedArticleDraft {
   status?: string;
   updated_at?: string;
   created_at?: string;
+  author_username?: string;
 }
 
 export interface ArticleDraftPayload {
