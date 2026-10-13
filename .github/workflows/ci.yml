@@ -19,6 +19,21 @@ jobs:
           node-version: 22
       - run: npm install
       - run: npm run build
+      - name: Smoke-test the server-rendered home page
+        run: |
+          set -euo pipefail
+          PORT=4173 node dist/mageus2/server/server.mjs > /tmp/mageus-ssr.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --silent --show-error --fail http://127.0.0.1:4173/ -o /tmp/mageus-home.html; then
+              break
+            fi
+            sleep 1
+          done
+          test -s /tmp/mageus-home.html
+          grep -q 'THE MAGEUS READING ROOM' /tmp/mageus-home.html
+          grep -q 'Ideas deserve' /tmp/mageus-home.html
   api-check:
     runs-on: ubuntu-latest
     defaults:
