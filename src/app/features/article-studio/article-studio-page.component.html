@@ -4,6 +4,8 @@
     <div class="studio-title"><span class="studio-overline">MAGEUS / STUDIO</span><strong>{{ title() || 'Untitled article' }}</strong><small>{{ statusMessage() }}</small></div>
     <div class="studio-header-actions">
       <button class="save-button" type="button" (click)="exportDraft()">Export draft</button>
+      <button class="save-button" type="button" (click)="draftImport.click()">Import draft</button>
+      <input #draftImport class="draft-import-input" type="file" accept=".json,application/json" (change)="importDraft($event)" aria-label="Import a Mageus draft file" />
       <button class="save-button" type="button" (click)="saveDraft()">Save local draft</button>
     <button class="save-button" type="button" (click)="syncDraft()">Sync draft</button>
     @if (serverArticleId()) { <button class="save-button" type="button" (click)="reloadServerDraft()">Reload server version</button> }
