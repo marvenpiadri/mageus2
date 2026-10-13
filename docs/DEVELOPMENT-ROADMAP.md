@@ -19,7 +19,7 @@ This roadmap is the release checklist. A phase is **not complete because its cod
 | Phase | Status | Current evidence / gap |
 | --- | --- | --- |
 | 0. Audit and baseline | In progress | Legacy route inventory, backend migration notes, and the first [source-to-target UI map](./SOURCE-TO-TARGET-MAP.md) now exist. The endpoint/data-contract inventory and a consolidated baseline are still in progress. |
-| 1. Application foundation | Needs verification | Production build and API checks passed on commit `f17a158` (run [38280359658](https://github.com/marvenpiadri/mageus2/actions/runs/38280359658)). SSR/browser behavior, mood interaction, and visual parity still need manual verification. |
+| 1. Application foundation | Needs verification | Latest commit `5b1c075` passed production build, SSR home-page smoke test, API checks, and clean PostgreSQL migration checks in [CI run 38420645786](https://github.com/marvenpiadri/mageus2/actions/runs/38420645786). The smoke test exposed and verified a fix for recursive SSR API self-requests when `MAGEUS_API_URL` is unset. Browser hydration, mood interaction, responsive layouts, visual parity, and live-environment behavior still need manual verification. |
 | 2. Article Studio core | In progress | Typed block model, registry, editor component, renderer, and draft workflow exist. API schema tests now exercise all 22 supported block types. API now rejects duplicate block IDs to protect stable Studio editing/reordering. Article Studio can explicitly reload the latest server draft after a revision conflict, with a confirmation warning before replacing local edits. Full editor completeness, migration/versioning, accessibility, registry/editor/renderer parity, and end-to-end acceptance tests remain. |
 | 3. Neon and API | In progress | Article metadata and relationships remain relational; only article blocks are JSONB. CI now applies every migration, including the rating-summary and magazine/issue migrations, to a clean PostgreSQL 16 database and verifies schema creation. Live Neon migration, production connectivity, and end-to-end persistence still require the configured target database. |
 | 4. Public reader and SEO | Needs verification | Article pages include canonical metadata and Article JSON-LD; magazine and issue pages now include canonical URLs, Open Graph metadata, and publication structured data. Production-domain SSR, browser navigation/scroll acceptance, sitemap generation, and search indexing still need verification. |
@@ -51,7 +51,7 @@ This roadmap is the release checklist. A phase is **not complete because its cod
 - Strict TypeScript and predictable component boundaries; no Tailwind, PrimeNG, or Quill.
 
 ### Acceptance gate
-- [ ] Production build passes in CI.
+- [x] Production build passes in CI: [run 38420645786](https://github.com/marvenpiadri/mageus2/actions/runs/38420645786).
 - [ ] SSR routes render without browser-only API crashes or hydration errors.
 - [ ] Main reader and studio layouts work at mobile and desktop widths.
 - [ ] Mood switching changes visual treatment without changing article content or losing user input.
