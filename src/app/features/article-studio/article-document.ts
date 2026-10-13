@@ -121,7 +121,6 @@ export function validateArticleDocument(document: ArticleDocument): DocumentIssu
       issues.push({ code: 'unsupported-version', path: `${path}.version`, message: 'This block version is not supported by this editor. Keep a recoverable export before changing it.', severity: 'error' });
     }
 
-    const path = `blocks.${index}`;
     const required = (field: string, value: unknown, message: string): void => {
       if (typeof value !== 'string' || !value.trim()) issues.push({ code: 'required', path: `${path}.${field}`, message, severity: 'error' });
     };
