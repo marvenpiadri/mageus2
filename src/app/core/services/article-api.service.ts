@@ -60,7 +60,9 @@ export class ArticleApiService {
     const options = { headers: this.auth.authorizationHeaders() };
     const response = await firstValueFrom(this.http.get<{ articles: SyncedArticleDraft[] }>(`${this.endpoint}/mine`, options));
     const draft = response.articles.find((article) => article.id === articleId);
-    if (!draft) throw new Error('This server draft is no longer available to your account.');
+    if (!draft || draft.status !== 'draft') {
+      throw new Error('This server draft is no longer available to your account.');
+    }
     return draft;
   }
 
