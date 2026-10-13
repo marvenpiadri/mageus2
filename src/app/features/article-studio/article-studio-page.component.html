@@ -21,6 +21,31 @@
     </aside>
     <main class="studio-canvas">
       <div class="canvas-topline"><span>EDITORIAL CANVAS</span><span>{{ blocks().length }} BLOCKS</span></div>
+      @if (auth.isAuthenticated()) {
+        <section class="server-draft-library" aria-labelledby="server-drafts-title">
+          <div class="server-draft-heading">
+            <div><span class="panel-kicker">YOUR WORK</span><h2 id="server-drafts-title">Saved server drafts</h2></div>
+            <button type="button" class="save-button" (click)="refreshServerDrafts()" [disabled]="draftsLoading()">
+              {{ draftsLoading() ? 'Refreshing…' : 'Refresh drafts' }}
+            </button>
+          </div>
+          @if (serverDrafts().length) {
+            <ul class="server-draft-list">
+              @for (draft of serverDrafts(); track draft.id) {
+                <li>
+                  <div class="server-draft-copy">
+                    <strong>{{ draft.title || 'Untitled article' }}</strong>
+                    <span>/{{ draft.author_username || auth.user()?.username || 'your-channel' }}/{{ draft.slug || 'untitled' }} · Revision {{ draft.revision }}</span>
+                  </div>
+                  <button type="button" class="save-button" (click)="openServerDraft(draft.id)">Open</button>
+                </li>
+              }
+            </ul>
+          } @else if (!draftsLoading()) {
+            <p class="server-drafts-empty">No server drafts found yet. Sync a local draft to keep it with your Mageus account.</p>
+          }
+        </section>
+      }
       <div class="article-metadata">
         <label class="field-label">ARTICLE TITLE<input [ngModel]="title()" (ngModelChange)="setTitle($event)" name="title" placeholder="Give your story a title" /></label>
         <label class="field-label">SUBTITLE<textarea [ngModel]="subtitle()" (ngModelChange)="setSubtitle($event)" name="subtitle" rows="2" placeholder="A line that invites readers in"></textarea></label>
