@@ -25,13 +25,20 @@ jobs:
           PORT=4173 node dist/mageus2/server/server.mjs > /tmp/mageus-ssr.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          status=000
           for attempt in $(seq 1 30); do
-            if curl --silent --show-error --fail http://127.0.0.1:4173/ -o /tmp/mageus-home.html; then
+            status=$(curl --silent --show-error --output /tmp/mageus-home.html --write-out '%{http_code}' http://localhost:4173/ || true)
+            if [ "$status" = "200" ]; then
               break
             fi
             sleep 1
           done
-          test -s /tmp/mageus-home.html
+          if [ "$status" != "200" ]; then
+            echo "SSR smoke test returned HTTP $status"
+            cat /tmp/mageus-ssr.log
+            cat /tmp/mageus-home.html || true
+            exit 1
+          fi
           grep -q 'THE MAGEUS READING ROOM' /tmp/mageus-home.html
           grep -q 'Ideas deserve' /tmp/mageus-home.html
   api-check:
