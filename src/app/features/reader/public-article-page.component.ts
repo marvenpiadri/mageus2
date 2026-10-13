@@ -112,6 +112,9 @@ export class PublicArticlePageComponent {
         this.notFound.set(false);
         const username = encodeURIComponent(params.get('username') ?? '');
         const slug = encodeURIComponent(params.get('slug') ?? '');
+        // SSR must use an explicitly configured API origin. Falling back to the page
+        // origin can recursively render this route instead of reaching the API service.
+        if (!this.apiBase) return of(null);
         return this.http.get<{ article: PublicArticle }>(`${this.apiBase}/${username}/${slug}`).pipe(
           catchError(() => of(null))
         );
@@ -129,31 +132,32 @@ export class PublicArticlePageComponent {
       this.notFound.set(!article);
       if (article) {
         this.updateSeo(article);
-        this.loadComments(article.id);
-        this.recordArticleView(article);
-        const voteEndpoint = `/api/v1/engagement/articles/${encodeURIComponent(article.id)}/votes`;
-        this.http.get<{ average: number; count: number }>(voteEndpoint)
-          .pipe(catchError(() => of({ average: 0, count: 0 })), takeUntilDestroyed(this.destroyRef))
-          .subscribe((votes) => { this.voteAverage.set(votes.average); this.voteCount.set(votes.count); });
-        if (this.auth.isAuthenticated()) {
-          this.http.get<{ userVote: number | null }>(`${voteEndpoint}/mine`, { headers: this.auth.authorizationHeaders() })
-            .pipe(catchError(() => of({ userVote: null })), takeUntilDestroyed(this.destroyRef))
-            .subscribe((vote) => { if (vote.userVote !== null) this.voteValue.set(vote.userVote); });
+        // Engagement endpoints are interactive browser work. Keep SSR focused on the
+        // public article document and avoid relative requests back into the SSR server.
+        if (isPlatformBrowser(this.platformId)) {
+          this.loadComments(article.id);
+          this.recordArticleView(article);
+          const voteEndpoint = `/api/v1/engagement/articles/${encodeURIComponent(article.id)}/votes`;
+          this.http.get<{ average: number; count: number }>(voteEndpoint)
+            .pipe(catchError(() => of({ average: 0, count: 0 })), takeUntilDestroyed(this.destroyRef))
+            .subscribe((votes) => { this.voteAverage.set(votes.average); this.voteCount.set(votes.count); });
+          if (this.auth.isAuthenticated()) {
+            this.http.get<{ userVote: number | null }>(`${voteEndpoint}/mine`, { headers: this.auth.authorizationHeaders() })
+              .pipe(catchError(() => of({ userVote: null })), takeUntilDestroyed(this.destroyRef))
+              .subscribe((vote) => { if (vote.userVote !== null) this.voteValue.set(vote.userVote); });
+          }
         }
       }
     });
   }
 
-  private resolveApiBase(): string {
-    // In SSR, point directly at the configured API when supplied. In the browser,
-    // same-origin /api routing keeps the database and service credentials private.
+  private resolveApiBase(): string | null {
+    // In SSR, only an explicit API origin is safe: using the page origin can recurse.
+    // In the browser, same-origin /api routing keeps service credentials private.
     if (typeof process !== 'undefined' && process.env['MAGEUS_API_URL']) {
       return process.env['MAGEUS_API_URL'].replace(/\/$/, '') + '/articles';
     }
-    if (!isPlatformBrowser(this.platformId) && this.request?.url) {
-      return new URL('/api/v1/articles', this.request.url).toString();
-    }
-    return '/api/v1/articles';
+    return isPlatformBrowser(this.platformId) ? '/api/v1/articles' : null;
   }
 
   onVoteValueChange(value: number): void {
