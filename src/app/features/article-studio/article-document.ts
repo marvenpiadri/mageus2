@@ -27,7 +27,7 @@ export interface ArticleDocument {
 }
 
 export interface DocumentIssue {
-  code: 'required' | 'invalid-url' | 'missing-alt' | 'empty-block' | 'invalid-reference';
+  code: 'required' | 'invalid-url' | 'missing-alt' | 'empty-block' | 'invalid-reference' | 'duplicate-id' | 'unsupported-version';
   path: string;
   message: string;
   severity: 'error' | 'warning';
@@ -110,7 +110,17 @@ export function validateArticleDocument(document: ArticleDocument): DocumentIssu
     issues.push({ code: 'invalid-url', path: 'metadata.canonicalUrl', message: 'The canonical URL must use an HTTP or HTTPS URL.', severity: 'error' });
   }
 
+  const seenBlockIds = new Set<string>();
   document.blocks.forEach((block, index) => {
+    const path = `blocks.${index}`;
+    if (seenBlockIds.has(block.id)) {
+      issues.push({ code: 'duplicate-id', path: `${path}.id`, message: 'Each block in this article needs its own ID. Duplicate blocks can still have the same type and content.', severity: 'error' });
+    }
+    seenBlockIds.add(block.id);
+    if (block.version !== ARTICLE_SCHEMA_VERSION) {
+      issues.push({ code: 'unsupported-version', path: `${path}.version`, message: 'This block version is not supported by this editor. Keep a recoverable export before changing it.', severity: 'error' });
+    }
+
     const path = `blocks.${index}`;
     const required = (field: string, value: unknown, message: string): void => {
       if (typeof value !== 'string' || !value.trim()) issues.push({ code: 'required', path: `${path}.${field}`, message, severity: 'error' });
@@ -135,6 +145,7 @@ export function validateArticleDocument(document: ArticleDocument): DocumentIssu
       case 'video':
         required('url', block.url, 'Add a hosted video URL.');
         if (block.url) url('url', block.url);
+        if (block.posterUrl) url('posterUrl', block.posterUrl);
         break;
       case 'audio':
         required('url', block.url, 'Add a hosted audio URL.');
@@ -156,11 +167,12 @@ export function validateArticleDocument(document: ArticleDocument): DocumentIssu
         if (!block.slides.length) issues.push({ code: 'empty-block', path: `${path}.slides`, message: 'Add at least one slide.', severity: 'error' });
         block.slides.forEach((slide, i) => {
           if (slide.imageUrl) url(`slides.${i}.imageUrl`, slide.imageUrl); else required(`slides.${i}.imageUrl`, slide.imageUrl, 'Choose an image for this slide.');
+          if (slide.href) url(`slides.${i}.href`, slide.href);
         });
         break;
       case 'quote': required('quote', block.quote, 'Add the quotation text.'); break;
       case 'embed':
-        if (!/^https?:\/\//i.test(block.url)) issues.push({ code: 'invalid-url', path: `${path}.url`, message: 'Embeds must use a valid HTTP or HTTPS URL.', severity: 'error' });
+        if (!validHttpUrl(block.url)) issues.push({ code: 'invalid-url', path: `${path}.url`, message: 'Embeds must use a valid HTTP or HTTPS URL.', severity: 'error' });
         break;
       case 'before_after':
         required('beforeImage', block.beforeImage, 'Choose the before image.');
@@ -193,6 +205,16 @@ export function validateArticleDocument(document: ArticleDocument): DocumentIssu
       case 'product': required('productId', block.productId, 'Choose a product reference.'); break;
       case 'product_collection':
         if (!block.productIds.some((id) => id.trim())) issues.push({ code: 'invalid-reference', path: `${path}.productIds`, message: 'Choose at least one product.', severity: 'error' });
+        break;
+      case 'commerce_collection':
+        if (!block.itemIds.length) {
+          issues.push({ code: 'invalid-reference', path: `${path}.itemIds`, message: 'Choose at least one product, service, or menu item.', severity: 'error' });
+        }
+        block.itemIds.forEach((id, itemIndex) => {
+          if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+            issues.push({ code: 'invalid-reference', path: `${path}.itemIds.${itemIndex}`, message: 'Each selected commerce item must use a valid item reference ID.', severity: 'error' });
+          }
+        });
         break;
       case 'magazine_ref': required('magazineId', block.magazineId, 'Choose a magazine or issue reference.'); break;
     }
